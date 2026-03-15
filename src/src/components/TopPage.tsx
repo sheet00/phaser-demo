@@ -1,0 +1,71 @@
+import React from 'react';
+
+interface TopPageProps {
+  onSelectGame: (gameId: string) => void;
+}
+
+export default function TopPage({ onSelectGame }: TopPageProps) {
+  const games = [
+    { id: 'shooting', title: '🚀 SPACE SHOOTER', description: '敵機を撃破してハイスコアを目指せ！' },
+    // 今後他のゲームを追加可能
+    { id: 'coming-soon', title: '🔒 COMING SOON', description: '次のアップデートをお楽しみに...' }
+  ];
+
+  return (
+    <div style={{
+      width: '100vw',
+      height: '100vh',
+      backgroundColor: '#0a0a0a', // より深い黒に
+      color: '#fff',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontFamily: "'Exo 2', sans-serif" // 近未来的なフォント（代替案）
+    }}>
+      <h1 style={{ 
+        fontSize: '3.5rem', 
+        marginBottom: '4rem', 
+        letterSpacing: '0.5rem',
+        textTransform: 'uppercase',
+        fontWeight: 900,
+        textShadow: '0 0 15px rgba(0, 210, 255, 0.7)' 
+      }}>
+        PHASER DEMO
+      </h1>
+
+      <div style={{ display: 'grid', gap: '2rem', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', width: '80%', maxWidth: '1000px' }}>
+        {games.map((game) => (
+          <div
+            key={game.id}
+            onClick={() => game.id !== 'coming-soon' && onSelectGame(game.id)}
+            style={{
+              padding: '2rem',
+              borderRadius: '1rem',
+              background: game.id === 'coming-soon' ? '#333' : 'linear-gradient(135deg, #0f3460 0%, #16213e 100%)',
+              cursor: game.id === 'coming-soon' ? 'not-allowed' : 'pointer',
+              border: '2px solid #00d2ff',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+              textAlign: 'center'
+            }}
+            onMouseOver={(e) => {
+              if (game.id !== 'coming-soon') {
+                e.currentTarget.style.transform = 'scale(1.05)';
+                e.currentTarget.style.boxShadow = '0 0 20px #00d2ff';
+              }
+            }}
+            onMouseOut={(e) => {
+              if (game.id !== 'coming-soon') {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = 'none';
+              }
+            }}
+          >
+            <h2 style={{ fontSize: '1.8rem', margin: '0 0 1rem 0' }}>{game.title}</h2>
+            <p style={{ color: '#ccc', fontSize: '1rem' }}>{game.description}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
