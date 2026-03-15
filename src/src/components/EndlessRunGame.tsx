@@ -9,6 +9,11 @@ export default function EndlessRunGame() {
 
     const JUMP_VELOCITY = -1500;
     const GRAVITY = 3000;
+    
+    const HILL_SPAWN_MIN = 1200;
+    const HILL_SPAWN_MAX = 3000;
+    const ENEMY_SPAWN_MIN = 2000;
+    const ENEMY_SPAWN_MAX = 4500;
 
     let background: Phaser.GameObjects.TileSprite;
     let groundTop: Phaser.GameObjects.TileSprite;
@@ -26,13 +31,23 @@ export default function EndlessRunGame() {
       this.load.image('ground_grass', '/assets/platformer-pack/Sprites/Tiles/Default/terrain_grass_block_top.png');
       this.load.image('sand_center', '/assets/platformer-pack/Sprites/Tiles/Default/terrain_sand_block_center.png');
       this.load.image('sand_bottom', '/assets/platformer-pack/Sprites/Tiles/Default/terrain_sand_block_bottom.png');
-
+      
       this.load.image('player_walk1', '/assets/platformer-pack/Sprites/Characters/Default/character_green_walk_a.png');
       this.load.image('player_walk2', '/assets/platformer-pack/Sprites/Characters/Default/character_green_walk_b.png');
       this.load.image('player_jump', '/assets/platformer-pack/Sprites/Characters/Default/character_green_jump.png');
 
       this.load.image('hill_top', '/assets/platformer-pack/Sprites/Tiles/Default/hill_top_smile.png');
       this.load.image('hill_base', '/assets/platformer-pack/Sprites/Tiles/Default/hill.png');
+
+      this.load.image('bee_a', '/assets/platformer-pack/Sprites/Enemies/Default/bee_a.png');
+      this.load.image('bee_b', '/assets/platformer-pack/Sprites/Enemies/Default/bee_b.png');
+
+      this.load.image('ladybug_a', '/assets/platformer-pack/Sprites/Enemies/Default/ladybug_walk_a.png');
+      this.load.image('ladybug_b', '/assets/platformer-pack/Sprites/Enemies/Default/ladybug_walk_b.png');
+      this.load.image('mouse_a', '/assets/platformer-pack/Sprites/Enemies/Default/mouse_walk_a.png');
+      this.load.image('mouse_b', '/assets/platformer-pack/Sprites/Enemies/Default/mouse_walk_b.png');
+      this.load.image('slime_spike_a', '/assets/platformer-pack/Sprites/Enemies/Default/slime_spike_walk_a.png');
+      this.load.image('slime_spike_b', '/assets/platformer-pack/Sprites/Enemies/Default/slime_spike_walk_b.png');
 
       this.load.audio('jump_snd', '/assets/platformer-pack/Sounds/sfx_jump.ogg');
       this.load.audio('hurt_snd', '/assets/platformer-pack/Sounds/sfx_hurt.ogg');
@@ -64,6 +79,11 @@ export default function EndlessRunGame() {
         repeat: -1
       });
 
+      this.anims.create({ key: 'bee_fly', frames: [{ key: 'bee_a' }, { key: 'bee_b' }], frameRate: 15, repeat: -1 });
+      this.anims.create({ key: 'ladybug_walk', frames: [{ key: 'ladybug_a' }, { key: 'ladybug_b' }], frameRate: 10, repeat: -1 });
+      this.anims.create({ key: 'mouse_walk', frames: [{ key: 'mouse_a' }, { key: 'mouse_b' }], frameRate: 10, repeat: -1 });
+      this.anims.create({ key: 'slime_walk', frames: [{ key: 'slime_spike_a' }, { key: 'slime_spike_b' }], frameRate: 8, repeat: -1 });
+
       player = this.physics.add.sprite(400, groundY - 50, 'player_walk1');
       player.setOrigin(0.5, 1).setCollideWorldBounds(true).play('run');
 
@@ -76,7 +96,6 @@ export default function EndlessRunGame() {
           hurtSound.play();
           isInvincible = true;
           player.setTint(0xff0000);
-
           this.time.delayedCall(500, () => {
             player.clearTint();
             isInvincible = false;
@@ -84,32 +103,42 @@ export default function EndlessRunGame() {
         }
       });
 
-      this.time.addEvent({
-        delay: Phaser.Math.Between(1500, 3000),
-        callback: spawnObstacle,
-        callbackScope: this,
-        loop: true
-      });
+      scheduleHillSpawn.call(this);
+      scheduleEnemySpawn.call(this);
 
       if (this.input.keyboard) {
         cursors = this.input.keyboard.createCursorKeys();
       }
     }
 
-    function spawnObstacle(this: Phaser.Scene) {
+    function scheduleHillSpawn(this: Phaser.Scene) {
+      const delay = Phaser.Math.Between(HILL_SPAWN_MIN, HILL_SPAWN_MAX);
+      this.time.delayedCall(delay, () => {
+        spawnHill.call(this);
+        scheduleHillSpawn.call(this);
+      });
+    }
+
+    function scheduleEnemySpawn(this: Phaser.Scene) {
+      const delay = Phaser.Math.Between(ENEMY_SPAWN_MIN, ENEMY_SPAWN_MAX);
+      this.time.delayedCall(delay, () => {
+        spawnRandomEnemy.call(this);
+        scheduleEnemySpawn.call(this);
+      });
+    }
+
+    function spawnHill(this: Phaser.Scene) {
       const { width } = this.scale;
       const tileSize = 64;
       const groundY = this.scale.height - (tileSize * 3);
-      const heightInBlocks = Phaser.Math.Between(1, 3);
-
+      const heightInBlocks = Phaser.Math.Between(1, 2);
+      
       for (let i = 0; i < heightInBlocks; i++) {
         const x = width + 100;
         const y = groundY - (i * tileSize);
         const key = (i === heightInBlocks - 1) ? 'hill_top' : 'hill_base';
-
         const block = obstacles.create(x, y, key) as Phaser.Physics.Arcade.Sprite;
         block.setOrigin(0.5, 1);
-
         if (block.body instanceof Phaser.Physics.Arcade.Body) {
           block.body.allowGravity = false;
           block.body.immovable = true;
@@ -118,11 +147,47 @@ export default function EndlessRunGame() {
       }
     }
 
+    function spawnRandomEnemy(this: Phaser.Scene) {
+      const enemyTypes = ['ladybug', 'mouse', 'slime', 'bee'];
+      const type = Phaser.Utils.Array.GetRandom(enemyTypes);
+
+      if (type === 'bee') {
+        const { width, height } = this.scale;
+        const tileSize = 64;
+        const groundY = height - (tileSize * 3);
+        const x = width + 100;
+        let y = groundY - (Phaser.Math.Between(1, 100) <= 80 ? Phaser.Math.Between(350, 500) : Phaser.Math.Between(180, 250));
+        
+        const bee = obstacles.create(x, y, 'bee_a') as Phaser.Physics.Arcade.Sprite;
+        bee.setOrigin(0.5, 0.5).play('bee_fly');
+        if (bee.body instanceof Phaser.Physics.Arcade.Body) {
+          bee.body.allowGravity = false;
+          bee.body.immovable = true;
+        }
+        bee.setVelocityX(-550);
+      } else {
+        const groundEnemies: Record<string, { key: string, anim: string }> = {
+          'ladybug': { key: 'ladybug_a', anim: 'ladybug_walk' },
+          'mouse': { key: 'mouse_a', anim: 'mouse_walk' },
+          'slime': { key: 'slime_spike_a', anim: 'slime_walk' }
+        };
+        const data = groundEnemies[type];
+        const { width, height } = this.scale;
+        const groundY = height - (64 * 3);
+        const enemy = obstacles.create(width + 100, groundY, data.key) as Phaser.Physics.Arcade.Sprite;
+        enemy.setOrigin(0.5, 1).play(data.anim);
+        if (enemy.body instanceof Phaser.Physics.Arcade.Body) {
+          enemy.body.allowGravity = false;
+          enemy.body.immovable = true;
+        }
+        enemy.setVelocityX(data.key === 'mouse_a' ? -750 : -500);
+      }
+    }
+
     function update(this: Phaser.Scene) {
       if (!background || !groundTop || !player || !cursors) return;
-
       const scrollSpeed = 7.5;
-
+      
       background.tilePositionX += 1.5;
       groundTop.tilePositionX += scrollSpeed;
       groundCenter.tilePositionX += scrollSpeed;
@@ -145,9 +210,7 @@ export default function EndlessRunGame() {
 
       obstacles.getChildren().forEach((obs) => {
         const obstacle = obs as Phaser.Physics.Arcade.Sprite;
-        if (obstacle.x < -100) {
-          obstacle.destroy();
-        }
+        if (obstacle.x < -100) obstacle.destroy();
       });
     }
 
@@ -160,10 +223,7 @@ export default function EndlessRunGame() {
       roundPixels: true,
       physics: {
         default: 'arcade',
-        arcade: {
-          gravity: { x: 0, y: GRAVITY },
-          debug: false
-        }
+        arcade: { gravity: { x: 0, y: GRAVITY }, debug: false }
       },
       scene: { preload, create, update }
     };
