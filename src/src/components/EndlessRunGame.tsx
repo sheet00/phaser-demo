@@ -9,7 +9,7 @@ export default function EndlessRunGame() {
 
     const JUMP_VELOCITY = -1500;
     const GRAVITY = 3000;
-
+    
     const HILL_SPAWN_MIN = 1200;
     const HILL_SPAWN_MAX = 3000;
     const ENEMY_SPAWN_MIN = 1000;
@@ -33,7 +33,7 @@ export default function EndlessRunGame() {
       this.load.image('ground_grass', '/assets/platformer-pack/Sprites/Tiles/Default/terrain_grass_block_top.png');
       this.load.image('sand_center', '/assets/platformer-pack/Sprites/Tiles/Default/terrain_sand_block_center.png');
       this.load.image('sand_bottom', '/assets/platformer-pack/Sprites/Tiles/Default/terrain_sand_block_bottom.png');
-
+      
       this.load.image('player_walk1', '/assets/platformer-pack/Sprites/Characters/Default/character_green_walk_a.png');
       this.load.image('player_walk2', '/assets/platformer-pack/Sprites/Characters/Default/character_green_walk_b.png');
       this.load.image('player_jump', '/assets/platformer-pack/Sprites/Characters/Default/character_green_jump.png');
@@ -50,6 +50,9 @@ export default function EndlessRunGame() {
       this.load.image('mouse_b', '/assets/platformer-pack/Sprites/Enemies/Default/mouse_walk_b.png');
       this.load.image('slime_spike_a', '/assets/platformer-pack/Sprites/Enemies/Default/slime_spike_walk_a.png');
       this.load.image('slime_spike_b', '/assets/platformer-pack/Sprites/Enemies/Default/slime_spike_walk_b.png');
+
+      this.load.image('frog_idle', '/assets/platformer-pack/Sprites/Enemies/Default/frog_idle.png');
+      this.load.image('frog_jump', '/assets/platformer-pack/Sprites/Enemies/Default/frog_jump.png');
 
       this.load.audio('jump_snd', '/assets/platformer-pack/Sounds/sfx_jump.ogg');
       this.load.audio('hurt_snd', '/assets/platformer-pack/Sounds/sfx_hurt.ogg');
@@ -93,15 +96,15 @@ export default function EndlessRunGame() {
 
       obstacles = this.physics.add.group();
 
+      this.physics.add.collider(obstacles, groundTop);
+
       this.physics.add.overlap(player, obstacles, () => {
         if (!isInvincible) {
           hurtSound.play();
           isInvincible = true;
           player.setTint(0xff0000);
-          this.time.delayedCall(500, () => {
-            player.clearTint();
-            isInvincible = false;
-          });
+          this.time.delayedCall(250, () => player.clearTint());
+          this.time.delayedCall(500, () => isInvincible = false);
         }
       });
 
@@ -139,9 +142,8 @@ export default function EndlessRunGame() {
       const { width } = this.scale;
       const tileSize = 64;
       const groundY = this.scale.height - (tileSize * 3);
-
       const widthInBlocks = Phaser.Math.Between(1, 3);
-
+      
       for (let w = 0; widthInBlocks > w; w++) {
         const x = width + 100 + (w * tileSize);
         const currentHeight = Phaser.Math.Between(1, 2);
@@ -160,8 +162,8 @@ export default function EndlessRunGame() {
     }
 
     function spawnRandomEnemy(this: Phaser.Scene) {
-      const enemyTypes = ['ladybug', 'mouse', 'slime', 'bee', 'bee'];
-      const type = Phaser.Utils.Array.GetRandom(enemyTypes);
+      const obstacleTypes = ['ladybug', 'mouse', 'slime', 'bee', 'bee', 'frog'];
+      const type = Phaser.Utils.Array.GetRandom(obstacleTypes);
 
       if (type === 'bee') {
         const { width, height } = this.scale;
@@ -175,6 +177,17 @@ export default function EndlessRunGame() {
           bee.body.immovable = true;
         }
         bee.setVelocityX(-550);
+      } else if (type === 'frog') {
+        const { width, height } = this.scale;
+        const groundY = height - (64 * 3);
+        const frog = obstacles.create(width + 100, groundY - 100, 'frog_idle') as Phaser.Physics.Arcade.Sprite;
+        frog.setOrigin(0.5, 1).setData('type', 'frog');
+        if (frog.body instanceof Phaser.Physics.Arcade.Body) {
+          frog.body.allowGravity = true;
+          frog.body.immovable = false;
+          frog.body.setFrictionX(0);
+        }
+        frog.setVelocityX(-450);
       } else {
         const groundEnemies: Record<string, { key: string, anim: string }> = {
           'ladybug': { key: 'ladybug_a', anim: 'ladybug_walk' },
@@ -197,7 +210,7 @@ export default function EndlessRunGame() {
     function update(this: Phaser.Scene) {
       if (!background || !groundTop || !player || !cursors) return;
       const scrollSpeed = 7.5;
-
+      
       background.tilePositionX += 1.5;
       groundTop.tilePositionX += scrollSpeed;
       groundCenter.tilePositionX += scrollSpeed;
@@ -223,6 +236,22 @@ export default function EndlessRunGame() {
 
       obstacles.getChildren().forEach((obs) => {
         const obstacle = obs as Phaser.Physics.Arcade.Sprite;
+        
+        if (obstacle.getData('type') === 'frog' && obstacle.body instanceof Phaser.Physics.Arcade.Body) {
+          obstacle.body.velocity.x = -450; // スクロール速度に同期
+
+          const isFrogGrounded = obstacle.body.blocked.down || obstacle.body.touching.down;
+          if (isFrogGrounded) {
+            obstacle.setTexture('frog_idle');
+            if (Phaser.Math.Between(1, 100) <= 1) {
+              obstacle.setVelocityY(Phaser.Math.Between(-800, -1200));
+              obstacle.setTexture('frog_jump');
+            }
+          } else {
+            obstacle.setTexture('frog_jump');
+          }
+        }
+
         if (obstacle.x < -100) obstacle.destroy();
       });
     }
