@@ -12,8 +12,8 @@ export default function EndlessRunGame() {
     
     const HILL_SPAWN_MIN = 1200;
     const HILL_SPAWN_MAX = 3000;
-    const ENEMY_SPAWN_MIN = 1000;
-    const ENEMY_SPAWN_MAX = 2500;
+    const ENEMY_SPAWN_MIN = 2400;
+    const ENEMY_SPAWN_MAX = 6000;
 
     let background: Phaser.GameObjects.TileSprite;
     let groundTop: Phaser.GameObjects.TileSprite;
