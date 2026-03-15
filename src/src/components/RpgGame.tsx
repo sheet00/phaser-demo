@@ -12,11 +12,11 @@ export default function RpgGame() {
     if (!gameRef.current) return;
 
     // 定数データ
-    const playerDataBase = { name: 'ゆうしゃ', lv: 1, hp: 20, maxHp: 20, atk: 5 };
+    const playerDataBase = { name: 'ゆうしゃ', lv: 1, hp: 20, maxHp: 20, atk: 5, exp: 0, maxExp: 10 };
     const enemyList = [
-      { name: 'コウモリ', key: 'enemy_bat', lv: 1, hp: 15, maxHp: 15, atk: 3, scale: 1.5 },
-      { name: 'スライム', key: 'enemy_slime', lv: 1, hp: 20, maxHp: 20, atk: 2, scale: 1.5 },
-      { name: 'トカゲ', key: 'enemy_lizard', lv: 2, hp: 25, maxHp: 25, atk: 4, scale: 1.5 }
+      { name: 'コウモリ', key: 'enemy_bat', lv: 1, hp: 15, maxHp: 15, atk: 3, scale: 1.5, rewardExp: 10 },
+      { name: 'スライム', key: 'enemy_slime', lv: 1, hp: 20, maxHp: 20, atk: 2, scale: 1.5, rewardExp: 12 },
+      { name: 'トカゲ', key: 'enemy_lizard', lv: 2, hp: 25, maxHp: 25, atk: 4, scale: 1.5, rewardExp: 25 }
     ];
 
     function preload(this: Phaser.Scene) {
@@ -41,15 +41,18 @@ export default function RpgGame() {
 
       // プレート座標
       const pX = width - 360;
-      const pY = height - 280;
+      const pY = height - 330;
 
       // UI参照用
       let logText: Phaser.GameObjects.Text;
       let phText: Phaser.GameObjects.Text;
       let pBar: Phaser.GameObjects.Rectangle;
+      let pExpBar: Phaser.GameObjects.Rectangle;
       let eBar: Phaser.GameObjects.Rectangle;
       let enemyNameText: Phaser.GameObjects.Text;
       let enemyLvText: Phaser.GameObjects.Text;
+      let pLvText: Phaser.GameObjects.Text;
+      let pExpText: Phaser.GameObjects.Text;
 
       // --- 演出用：ダメージ数字の表示 ---
       const showDamage = (x: number, y: number, amount: number, color: string) => {
@@ -162,16 +165,26 @@ export default function RpgGame() {
       eBar = this.add.rectangle(60, 110, 240, 10, 0x00ff00).setOrigin(0);
 
       // プレイヤープレート
-      uiGraphics.fillRoundedRect(pX, pY, 320, 100, 10);
+      uiGraphics.fillRoundedRect(pX, pY, 320, 130, 10);
+      uiGraphics.strokeRoundedRect(pX, pY, 320, 130, 10);
+      this.add.text(pX + 20, pY + 15, player.name, { fontSize: '22px', color: '#333333', fontStyle: 'bold' });
+      pLvText = this.add.text(pX + 240, pY + 18, `Lv${player.lv}`, { fontSize: '18px', color: '#333333', fontStyle: 'bold' });
+      
+      // HP表示 (統一形式: ラベル, バー, 数値)
+      this.add.text(pX + 20, pY + 50, 'HP', { fontSize: '16px', color: '#333333', fontStyle: 'bold' });
+      this.add.rectangle(pX + 60, pY + 55, 240, 10, 0xdddddd).setOrigin(0);
+      pBar = this.add.rectangle(pX + 60, pY + 55, 240, 10, 0x00ff00).setOrigin(0);
+      phText = this.add.text(pX + 220, pY + 70, `${player.hp}/ ${player.maxHp}`, { 
+        fontSize: '16px', color: '#333333', fontStyle: 'bold' 
+      }).setOrigin(0.5, 0);
 
-      uiGraphics.strokeRoundedRect(pX, pY, 320, 100, 10);
-      this.add.text(pX + 40, pY + 15, player.name, { fontSize: '22px', color: '#333333', fontStyle: 'bold' });
-      this.add.text(pX + 240, pY + 18, `Lv${player.lv}`, { fontSize: '18px', color: '#333333', fontStyle: 'bold' });
-      this.add.rectangle(pX + 40, pY + 50, 240, 10, 0xdddddd).setOrigin(0);
-      pBar = this.add.rectangle(pX + 40, pY + 50, 240, 10, 0x00ff00).setOrigin(0);
-      phText = this.add.text(pX + 200, pY + 65, `${player.hp}/ ${player.maxHp}`, { 
-        fontSize: '20px', color: '#333333', fontStyle: 'bold' 
-      });
+      // EXP表示 (統一形式: ラベル, バー, 数値)
+      this.add.text(pX + 20, pY + 90, 'EX', { fontSize: '16px', color: '#333333', fontStyle: 'bold' });
+      this.add.rectangle(pX + 60, pY + 95, 240, 8, 0xdddddd).setOrigin(0);
+      pExpBar = this.add.rectangle(pX + 60, pY + 95, 0, 8, 0xffcc00).setOrigin(0);
+      pExpText = this.add.text(pX + 220, pY + 108, `${player.exp}/ ${player.maxExp}`, { 
+        fontSize: '14px', color: '#333333', fontStyle: 'bold' 
+      }).setOrigin(0.5, 0);
 
       // --- モンスター ---
       // 画面中央より200px上に配置
@@ -188,6 +201,38 @@ export default function RpgGame() {
 
       logText = this.add.text(40, bY + 45, `${enemy.name} が あらわれた！`, { 
         fontSize: '28px', color: '#333333', padding: { top: 10, bottom: 10 } 
+      });
+
+      // --- デバッグ機能: レベル変更ボタン ---
+      const updatePlayerUI = () => {
+        pLvText.setText(`Lv${player.lv}`);
+        phText.setText(`${player.hp}/ ${player.maxHp}`);
+        pBar.width = 240 * (player.hp / player.maxHp);
+        pExpBar.width = 240 * Math.min(1, player.exp / player.maxExp);
+        pExpText.setText(`${player.exp}/ ${player.maxExp}`);
+      };
+
+      [{ label: 'Lv+1', dy: 0 }, { label: 'Lv-1', dy: 40 }].forEach((btnData, i) => {
+        const bx = width - 200;
+        const by = 20 + btnData.dy;
+        const btn = this.add.rectangle(bx, by, 80, 30, 0x333333, 0.7).setInteractive({ useHandCursor: true });
+        this.add.text(bx, by, btnData.label, { fontSize: '14px', color: '#ffffff' }).setOrigin(0.5);
+
+        btn.on('pointerdown', () => {
+          if (btnData.label === 'Lv+1') {
+            player.lv++;
+            player.maxHp += 10;
+            player.atk += 2;
+          } else if (player.lv > 1) {
+            player.lv--;
+            player.maxHp -= 10;
+            player.atk -= 2;
+          }
+          player.hp = player.maxHp;
+          player.maxExp = Math.floor(10 * Math.pow(1.2, player.lv - 1));
+          updatePlayerUI();
+          logText.setText(`デバッグ: レベルを ${player.lv} に変更しました`);
+        });
       });
 
       ['たたかう', 'ぼうぎょ'].forEach((cmd, i) => {
@@ -243,16 +288,48 @@ export default function RpgGame() {
                   scale: 0, 
                   duration: 500,
                   onComplete: () => {
-                    this.time.delayedCall(1000, () => {
-                      findNextEnemy();
+                    this.time.delayedCall(800, () => {
+                      logText.setText(`${enemy.rewardExp} の けいけんちを かくとく！`);
+                      player.exp += enemy.rewardExp;
+
+                      // 経験値UI更新
+                      pExpBar.width = 240 * Math.min(1, player.exp / player.maxExp);
+                      pExpText.setText(`${player.exp}/ ${player.maxExp}`);
+
+                      this.time.delayedCall(1200, () => {
+                        if (player.exp >= player.maxExp) {
+                          // レベルアップ処理
+                          player.lv++;
+                          player.exp -= player.maxExp;
+                          player.maxExp = Math.floor(player.maxExp * 1.2);
+                          player.maxHp += 10;
+                          player.hp = player.maxHp;
+                          player.atk += 2;
+                          logText.setText('レベルアップ！');
+                          this.sound.play('se_hit_p'); // 演出用SE
+
+                          // レベルアップUI更新
+                          pLvText.setText(`Lv${player.lv}`);
+                          phText.setText(`${player.hp}/ ${player.maxHp}`);
+                          pBar.width = 240;
+                          pBar.setFillStyle(0x00ff00);
+                          pExpBar.width = 240 * Math.min(1, player.exp / player.maxExp);
+                          pExpText.setText(`${player.exp}/ ${player.maxExp}`);
+                          this.time.delayedCall(1500, () => {
+                            logText.setText(`${player.name} は レベル ${player.lv} に なった！`);
+                            this.time.delayedCall(1500, () => findNextEnemy());
+                          });
+                        } else {
+                          findNextEnemy();
+                        }
+                      });
                     });
                   }
                 });
               });
             } else {
               startEnemyTurn();
-            }
-          }
+            }          }
         });
       });
     }
