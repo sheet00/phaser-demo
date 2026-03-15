@@ -4,6 +4,7 @@ import PhaserGame from './components/PhaserGame';
 import TopPage from './components/TopPage';
 import UfoPopperGame from './components/UfoPopperGame';
 import EndlessRunGame from './components/EndlessRunGame';
+import RpgGame from './components/RpgGame';
 import './App.css';
 
 /**
@@ -36,28 +37,6 @@ function GameLayout({ children }: { children: React.ReactNode }) {
       >
         MENU
       </button>
-    </div>
-  );
-}
-
-/**
- * プレースホルダー画面
- */
-function PlaceholderGame({ title }: { title: string }) {
-  return (
-    <div style={{ 
-      width: '100%', 
-      height: '100%', 
-      backgroundColor: '#0a0a0a', 
-      color: '#fff', 
-      display: 'flex', 
-      flexDirection: 'column', 
-      alignItems: 'center', 
-      justifyContent: 'center',
-      fontFamily: 'sans-serif'
-    }}>
-      <h1 style={{ fontSize: '3rem', marginBottom: '1rem' }}>{title}</h1>
-      <p style={{ fontSize: '1.5rem', color: '#888' }}>現在開発中です...</p>
     </div>
   );
 }
@@ -97,7 +76,7 @@ function App() {
       <Routes>
         <Route path="/" element={<TopPage />} />
         <Route path="/shooting" element={<GameLayout><PhaserGame /></GameLayout>} />
-        <Route path="/rpg" element={<GameLayout><PlaceholderGame title="⚔️ RPG ADVENTURE" /></GameLayout>} />
+        <Route path="/rpg" element={<GameLayout><RpgGame /></GameLayout>} />
         <Route path="/ufo-popper" element={<GameLayout><UfoPopperGame /></GameLayout>} />
         <Route path="/endless-run" element={<GameLayout><EndlessRunGame /></GameLayout>} />
       </Routes>
