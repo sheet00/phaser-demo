@@ -7,7 +7,7 @@ export default function EndlessRunGame() {
   useEffect(() => {
     if (!gameRef.current) return;
 
-    const JUMP_VELOCITY = -1400;
+    const JUMP_VELOCITY = -1500;
     const GRAVITY = 3000;
 
     let background: Phaser.GameObjects.TileSprite;
@@ -17,6 +17,9 @@ export default function EndlessRunGame() {
     let player: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     let obstacles: Phaser.Physics.Arcade.Group;
     let cursors: Phaser.Types.Input.Keyboard.CursorKeys;
+    let jumpSound: Phaser.Sound.BaseSound;
+    let hurtSound: Phaser.Sound.BaseSound;
+    let isInvincible = false;
 
     function preload(this: Phaser.Scene) {
       this.load.image('hills_bg', '/assets/platformer-pack/Sprites/Backgrounds/Double/background_color_hills.png');
@@ -30,10 +33,16 @@ export default function EndlessRunGame() {
 
       this.load.image('hill_top', '/assets/platformer-pack/Sprites/Tiles/Default/hill_top_smile.png');
       this.load.image('hill_base', '/assets/platformer-pack/Sprites/Tiles/Default/hill.png');
+
+      this.load.audio('jump_snd', '/assets/platformer-pack/Sounds/sfx_jump.ogg');
+      this.load.audio('hurt_snd', '/assets/platformer-pack/Sounds/sfx_hurt.ogg');
     }
 
     function create(this: Phaser.Scene) {
       const { width, height } = this.scale;
+
+      jumpSound = this.sound.add('jump_snd');
+      hurtSound = this.sound.add('hurt_snd');
 
       background = this.add.tileSprite(0, 0, width, height, 'hills_bg').setOrigin(0, 0);
       const bgTexture = this.textures.get('hills_bg').getSourceImage() as HTMLImageElement;
@@ -63,8 +72,16 @@ export default function EndlessRunGame() {
       obstacles = this.physics.add.group();
 
       this.physics.add.overlap(player, obstacles, () => {
-        player.setTint(0xff0000);
-        this.time.delayedCall(100, () => player.clearTint());
+        if (!isInvincible) {
+          hurtSound.play();
+          isInvincible = true;
+          player.setTint(0xff0000);
+
+          this.time.delayedCall(500, () => {
+            player.clearTint();
+            isInvincible = false;
+          });
+        }
       });
 
       this.time.addEvent({
@@ -114,6 +131,7 @@ export default function EndlessRunGame() {
       const isGrounded = player.body.touching.down;
 
       if (cursors.space.isDown && isGrounded) {
+        jumpSound.play();
         player.setVelocityY(JUMP_VELOCITY);
         player.setTexture('player_jump');
         player.anims.stop();
