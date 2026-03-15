@@ -12,11 +12,11 @@ export default function RpgGame() {
     if (!gameRef.current) return;
 
     // 定数データ
-    const playerDataBase = { name: 'ゆうしゃ', lv: 1, hp: 20, maxHp: 20, atk: 5, exp: 0, maxExp: 10 };
+    const playerDataBase = { name: 'ゆうしゃ', lv: 1, hp: 20, maxHp: 20, atk: 5, exp: 0, maxExp: 10, gold: 0 };
     const enemyList = [
-      { name: 'コウモリ', key: 'enemy_bat', lv: 1, hp: 15, maxHp: 15, atk: 3, scale: 1.5, rewardExp: 10 },
-      { name: 'スライム', key: 'enemy_slime', lv: 1, hp: 20, maxHp: 20, atk: 2, scale: 1.5, rewardExp: 12 },
-      { name: 'トカゲ', key: 'enemy_lizard', lv: 2, hp: 25, maxHp: 25, atk: 4, scale: 1.5, rewardExp: 25 }
+      { name: 'コウモリ', key: 'enemy_bat', lv: 1, hp: 15, maxHp: 15, atk: 3, scale: 1.5, rewardExp: 10, rewardGold: 10 },
+      { name: 'スライム', key: 'enemy_slime', lv: 1, hp: 20, maxHp: 20, atk: 2, scale: 1.5, rewardExp: 12, rewardGold: 15 },
+      { name: 'トカゲ', key: 'enemy_lizard', lv: 2, hp: 25, maxHp: 25, atk: 4, scale: 1.5, rewardExp: 25, rewardGold: 30 }
     ];
 
     function preload(this: Phaser.Scene) {
@@ -53,6 +53,7 @@ export default function RpgGame() {
       let enemyLvText: Phaser.GameObjects.Text;
       let pLvText: Phaser.GameObjects.Text;
       let pExpText: Phaser.GameObjects.Text;
+      let pGoldText: Phaser.GameObjects.Text;
 
       // --- 演出用：ダメージ数字の表示 ---
       const showDamage = (x: number, y: number, amount: number, color: string) => {
@@ -72,6 +73,16 @@ export default function RpgGame() {
           ease: 'Cubic.out',
           onComplete: () => dmgText.destroy()
         });
+      };
+
+      // --- UI更新 ---
+      const updatePlayerUI = () => {
+        pLvText.setText(`Lv${player.lv}`);
+        phText.setText(`${player.hp}/ ${player.maxHp}`);
+        pBar.width = 240 * (player.hp / player.maxHp);
+        pExpBar.width = 240 * Math.min(1, player.exp / player.maxExp);
+        pExpText.setText(`${player.exp}/ ${player.maxExp}`);
+        pGoldText.setText(`GOLD: ${player.gold} G`);
       };
 
       // --- 次の敵を探す ---
@@ -98,6 +109,58 @@ export default function RpgGame() {
         });
       };
 
+      // --- 勝利後の選択肢を表示 ---
+      const showPostBattleMenu = () => {
+        const mx = width / 2;
+        const my = height / 2;
+        
+        const sBtn = this.add.rectangle(mx - 100, my, 160, 60, 0x333333).setInteractive({ useHandCursor: true });
+        const sTxt = this.add.text(mx - 100, my, 'ショップへ', { fontSize: '24px', color: '#ffffff' }).setOrigin(0.5);
+        
+        const nBtn = this.add.rectangle(mx + 100, my, 160, 60, 0x333333).setInteractive({ useHandCursor: true });
+        const nTxt = this.add.text(mx + 100, my, 'つぎの敵へ', { fontSize: '24px', color: '#ffffff' }).setOrigin(0.5);
+
+        sBtn.on('pointerdown', () => {
+          sBtn.destroy(); sTxt.destroy(); nBtn.destroy(); nTxt.destroy();
+          logText.setText('ショップは準備中です...');
+          this.time.delayedCall(1500, () => showPostBattleMenu());
+        });
+
+        nBtn.on('pointerdown', () => {
+          sBtn.destroy(); sTxt.destroy(); nBtn.destroy(); nTxt.destroy();
+          findNextEnemy();
+        });
+      };
+
+      // --- 全滅時のリトライ表示 ---
+      const showGameOverMenu = () => {
+        const mx = width / 2;
+        const my = height / 2;
+
+        const overTxt = this.add.text(mx, my - 60, 'ぜんめつしてしまった...', { 
+          fontSize: '48px', color: '#ff0000', fontStyle: 'bold' 
+        }).setOrigin(0.5);
+
+        const retryBtn = this.add.rectangle(mx, my + 40, 160, 60, 0x333333).setInteractive({ useHandCursor: true });
+        const retryTxt = this.add.text(mx, my + 40, 'リトライ', { fontSize: '24px', color: '#ffffff' }).setOrigin(0.5);
+
+        retryBtn.on('pointerdown', () => {
+          overTxt.destroy(); retryBtn.destroy(); retryTxt.destroy();
+
+          // ステータス初期化
+          player.lv = playerDataBase.lv;
+          player.hp = playerDataBase.maxHp;
+          player.maxHp = playerDataBase.maxHp;
+          player.atk = playerDataBase.atk;
+          player.exp = 0;
+          player.maxExp = 10;
+          player.gold = 0;
+
+          updatePlayerUI();
+          findNextEnemy();
+        });
+      };
+
       // --- 敵のターン処理 ---
       const startEnemyTurn = () => {
         isPlayerTurn = false;
@@ -105,7 +168,6 @@ export default function RpgGame() {
           if (enemy.hp <= 0) return;
           logText.setText(`${enemy.name} の こうげき！`);
           this.time.delayedCall(800, () => {
-            // 回避判定 (10%)
             const isMiss = Math.random() < 0.1;
             
             if (isMiss) {
@@ -118,13 +180,8 @@ export default function RpgGame() {
 
               this.sound.play('se_hit_e');
               player.hp = Math.max(0, player.hp - damage);
-
-              // ダメージ表示
               showDamage(pX + 160, pY + 50, damage, '#ff0000');
-
-              // プレイヤーUI更新
               phText.setText(`${player.hp}/ ${player.maxHp}`);
-
               pBar.width = 240 * (player.hp / player.maxHp);
               if (player.hp / player.maxHp < 0.3) pBar.setFillStyle(0xff0000);
 
@@ -142,6 +199,7 @@ export default function RpgGame() {
             this.time.delayedCall(1000, () => {
               if (player.hp <= 0) {
                 logText.setText(`${player.name} は たおれてしまった...`);
+                this.time.delayedCall(1500, () => showGameOverMenu());
               } else {
                 isPlayerTurn = true;
                 logText.setText(`どうする？`);
@@ -165,8 +223,8 @@ export default function RpgGame() {
       eBar = this.add.rectangle(60, 110, 240, 10, 0x00ff00).setOrigin(0);
 
       // プレイヤープレート
-      uiGraphics.fillRoundedRect(pX, pY, 320, 130, 10);
-      uiGraphics.strokeRoundedRect(pX, pY, 320, 130, 10);
+      uiGraphics.fillRoundedRect(pX, pY, 320, 150, 10);
+      uiGraphics.strokeRoundedRect(pX, pY, 320, 150, 10);
       this.add.text(pX + 20, pY + 15, player.name, { fontSize: '22px', color: '#333333', fontStyle: 'bold' });
       pLvText = this.add.text(pX + 240, pY + 18, `Lv${player.lv}`, { fontSize: '18px', color: '#333333', fontStyle: 'bold' });
       
@@ -186,6 +244,11 @@ export default function RpgGame() {
         fontSize: '14px', color: '#333333', fontStyle: 'bold' 
       }).setOrigin(0.5, 0);
 
+      // ゴールド表示
+      pGoldText = this.add.text(pX + 20, pY + 125, `GOLD: ${player.gold} G`, { 
+        fontSize: '16px', color: '#333333', fontStyle: 'bold' 
+      });
+
       // --- モンスター ---
       // 画面中央より200px上に配置
       const monster = this.add.image(width / 2, height / 2 - 200, enemy.key);
@@ -204,14 +267,6 @@ export default function RpgGame() {
       });
 
       // --- デバッグ機能: レベル変更ボタン ---
-      const updatePlayerUI = () => {
-        pLvText.setText(`Lv${player.lv}`);
-        phText.setText(`${player.hp}/ ${player.maxHp}`);
-        pBar.width = 240 * (player.hp / player.maxHp);
-        pExpBar.width = 240 * Math.min(1, player.exp / player.maxExp);
-        pExpText.setText(`${player.exp}/ ${player.maxExp}`);
-      };
-
       [{ label: 'Lv+1', dy: 0 }, { label: 'Lv-1', dy: 40 }].forEach((btnData, i) => {
         const bx = width - 200;
         const by = 20 + btnData.dy;
@@ -289,39 +344,49 @@ export default function RpgGame() {
                   duration: 500,
                   onComplete: () => {
                     this.time.delayedCall(800, () => {
-                      logText.setText(`${enemy.rewardExp} の けいけんちを かくとく！`);
-                      player.exp += enemy.rewardExp;
+                      const actualExp = Math.floor(enemy.rewardExp * (0.5 + Math.random() * 2.0));
+                      logText.setText(`${actualExp} の けいけんちを かくとく！`);
+                      player.exp += actualExp;
 
                       // 経験値UI更新
                       pExpBar.width = 240 * Math.min(1, player.exp / player.maxExp);
                       pExpText.setText(`${player.exp}/ ${player.maxExp}`);
 
                       this.time.delayedCall(1200, () => {
-                        if (player.exp >= player.maxExp) {
-                          // レベルアップ処理
-                          player.lv++;
-                          player.exp -= player.maxExp;
-                          player.maxExp = Math.floor(player.maxExp * 1.2);
-                          player.maxHp += 10;
-                          player.hp = player.maxHp;
-                          player.atk += 2;
-                          logText.setText('レベルアップ！');
-                          this.sound.play('se_hit_p'); // 演出用SE
+                        const actualGold = Math.floor(enemy.rewardGold * (0.5 + Math.random() * 2.0));
+                        logText.setText(`${actualGold} ゴールドを かくとく！`);
+                        player.gold += actualGold;
+                        updatePlayerUI();
 
-                          // レベルアップUI更新
-                          pLvText.setText(`Lv${player.lv}`);
-                          phText.setText(`${player.hp}/ ${player.maxHp}`);
-                          pBar.width = 240;
-                          pBar.setFillStyle(0x00ff00);
-                          pExpBar.width = 240 * Math.min(1, player.exp / player.maxExp);
-                          pExpText.setText(`${player.exp}/ ${player.maxExp}`);
-                          this.time.delayedCall(1500, () => {
-                            logText.setText(`${player.name} は レベル ${player.lv} に なった！`);
-                            this.time.delayedCall(1500, () => findNextEnemy());
-                          });
-                        } else {
-                          findNextEnemy();
-                        }
+                        this.time.delayedCall(1200, () => {
+                          if (player.exp >= player.maxExp) {
+                            // レベルアップ処理
+                            player.lv++;
+                            player.exp -= player.maxExp;
+                            player.maxExp = Math.floor(player.maxExp * 1.2);
+                            player.maxHp += 10;
+                            player.hp = player.maxHp;
+                            player.atk += 2;
+
+                            logText.setText('レベルアップ！');
+                            this.sound.play('se_hit_p'); // 演出用SE
+
+                            // レベルアップUI更新
+                            pLvText.setText(`Lv${player.lv}`);
+                            phText.setText(`${player.hp}/ ${player.maxHp}`);
+                            pBar.width = 240;
+                            pBar.setFillStyle(0x00ff00);
+                            pExpBar.width = 240 * Math.min(1, player.exp / player.maxExp);
+                            pExpText.setText(`${player.exp}/ ${player.maxExp}`);
+
+                            this.time.delayedCall(1500, () => {
+                              logText.setText(`${player.name} は レベル ${player.lv} に なった！`);
+                              this.time.delayedCall(1500, () => showPostBattleMenu());
+                            });
+                          } else {
+                            showPostBattleMenu();
+                          }
+                        });
                       });
                     });
                   }
@@ -329,7 +394,8 @@ export default function RpgGame() {
               });
             } else {
               startEnemyTurn();
-            }          }
+            }
+          }
         });
       });
     }
