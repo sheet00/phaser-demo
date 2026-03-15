@@ -9,7 +9,7 @@ export default function EndlessRunGame() {
 
     const JUMP_VELOCITY = -1500;
     const GRAVITY = 3000;
-    
+
     const HILL_SPAWN_MIN = 1200;
     const HILL_SPAWN_MAX = 3000;
     const ENEMY_SPAWN_MIN = 1000;
@@ -24,6 +24,8 @@ export default function EndlessRunGame() {
     let cursors: Phaser.Types.Input.Keyboard.CursorKeys;
     let jumpSound: Phaser.Sound.BaseSound;
     let hurtSound: Phaser.Sound.BaseSound;
+    let scoreText: Phaser.GameObjects.Text;
+    let score = 0;
     let isInvincible = false;
 
     function preload(this: Phaser.Scene) {
@@ -31,7 +33,7 @@ export default function EndlessRunGame() {
       this.load.image('ground_grass', '/assets/platformer-pack/Sprites/Tiles/Default/terrain_grass_block_top.png');
       this.load.image('sand_center', '/assets/platformer-pack/Sprites/Tiles/Default/terrain_sand_block_center.png');
       this.load.image('sand_bottom', '/assets/platformer-pack/Sprites/Tiles/Default/terrain_sand_block_bottom.png');
-      
+
       this.load.image('player_walk1', '/assets/platformer-pack/Sprites/Characters/Default/character_green_walk_a.png');
       this.load.image('player_walk2', '/assets/platformer-pack/Sprites/Characters/Default/character_green_walk_b.png');
       this.load.image('player_jump', '/assets/platformer-pack/Sprites/Characters/Default/character_green_jump.png');
@@ -103,6 +105,12 @@ export default function EndlessRunGame() {
         }
       });
 
+      scoreText = this.add.text(20, 20, 'SCORE: 0', {
+        fontSize: '32px',
+        color: '#000',
+        fontStyle: 'bold'
+      }).setDepth(100);
+
       scheduleHillSpawn.call(this);
       scheduleEnemySpawn.call(this);
 
@@ -131,14 +139,12 @@ export default function EndlessRunGame() {
       const { width } = this.scale;
       const tileSize = 64;
       const groundY = this.scale.height - (tileSize * 3);
-      
+
       const widthInBlocks = Phaser.Math.Between(1, 3);
-      
+
       for (let w = 0; widthInBlocks > w; w++) {
         const x = width + 100 + (w * tileSize);
-        // 各列ごとに高さをランダムに決定
         const currentHeight = Phaser.Math.Between(1, 2);
-        
         for (let h = 0; h < currentHeight; h++) {
           const y = groundY - (h * tileSize);
           const key = (h === currentHeight - 1) ? 'hill_top' : 'hill_base';
@@ -154,16 +160,14 @@ export default function EndlessRunGame() {
     }
 
     function spawnRandomEnemy(this: Phaser.Scene) {
-      const enemyTypes = ['ladybug', 'mouse', 'slime', 'bee'];
+      const enemyTypes = ['ladybug', 'mouse', 'slime', 'bee', 'bee'];
       const type = Phaser.Utils.Array.GetRandom(enemyTypes);
 
       if (type === 'bee') {
         const { width, height } = this.scale;
-        const tileSize = 64;
-        const groundY = height - (tileSize * 3);
+        const groundY = height - (64 * 3);
         const x = width + 100;
         let y = groundY - (Phaser.Math.Between(1, 100) <= 80 ? Phaser.Math.Between(350, 500) : Phaser.Math.Between(180, 250));
-        
         const bee = obstacles.create(x, y, 'bee_a') as Phaser.Physics.Arcade.Sprite;
         bee.setOrigin(0.5, 0.5).play('bee_fly');
         if (bee.body instanceof Phaser.Physics.Arcade.Body) {
@@ -193,11 +197,14 @@ export default function EndlessRunGame() {
     function update(this: Phaser.Scene) {
       if (!background || !groundTop || !player || !cursors) return;
       const scrollSpeed = 7.5;
-      
+
       background.tilePositionX += 1.5;
       groundTop.tilePositionX += scrollSpeed;
       groundCenter.tilePositionX += scrollSpeed;
       groundBottom.tilePositionX += scrollSpeed;
+
+      score += 0.1;
+      scoreText.setText(`SCORE: ${Math.floor(score)}`);
 
       const isGrounded = player.body.touching.down;
 
@@ -210,7 +217,7 @@ export default function EndlessRunGame() {
 
       if (!isGrounded) {
         player.setTexture('player_jump');
-      } else if (player.body.velocity.y === 0 && !player.anims.isPlaying) {
+      } else if (isGrounded && player.body.velocity.y === 0 && !player.anims.isPlaying) {
         player.play('run');
       }
 
