@@ -1,0 +1,11 @@
+services:
+  app:
+    image: node:latest
+    working_dir: /app
+    volumes:
+      - ./src:/app
+    ports:
+      - "5173:5173"
+    command: sh -c "npm run dev -- --host"
+    environment:
+      - NODE_ENV=development
