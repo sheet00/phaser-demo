@@ -12,15 +12,22 @@ export default function PhaserGame() {
     let cursors: Phaser.Types.Input.Keyboard.CursorKeys;
     let lasers: Phaser.Physics.Arcade.Group;
     let lastFiredTime = 0;
+    let background: Phaser.GameObjects.TileSprite;
 
     function preload(this: Phaser.Scene) {
-      // 宇宙船とレーザーの画像を読み込む
+      // 背景、宇宙船、レーザーの画像を読み込む
+      this.load.image('background', '/assets/space-shooter/Backgrounds/darkPurple.png');
       this.load.image('player', '/assets/space-shooter/PNG/playerShip2_blue.png');
       this.load.image('laser', '/assets/space-shooter/PNG/Lasers/laserBlue01.png');
     }
 
     function create(this: Phaser.Scene) {
       const { width, height } = this.scale;
+
+      // 背景を敷き詰める (TileSprite)
+      background = this.add.tileSprite(0, 0, width, height, 'background');
+      background.setOrigin(0, 0);
+      background.setScrollFactor(0); // 画面に固定
 
       // レーザーのグループを作成（物理演算を有効化）
       lasers = this.physics.add.group({
@@ -39,7 +46,10 @@ export default function PhaserGame() {
     }
 
     function update(this: Phaser.Scene, time: number) {
-      if (!cursors || !player) return;
+      if (!cursors || !player || !background) return;
+
+      // 背景をスクロールさせる
+      background.tilePositionY -= 2;
 
       // --- 移動処理 ---
       player.setVelocity(0);
@@ -75,7 +85,7 @@ export default function PhaserGame() {
         if (laser.active && laser.y < 0) {
           laser.setActive(false);
           laser.setVisible(false);
-          laser.body.stop(); // 物理挙動を停止
+          laser.body?.stop(); // 物理挙動を停止
         }
         return true;
       });
