@@ -12,11 +12,22 @@ export default function PhaserGame() {
     let cursors: Phaser.Types.Input.Keyboard.CursorKeys;
     let lasers: Phaser.Physics.Arcade.Group;
     let enemies: Phaser.Physics.Arcade.Group; // 敵機グループ
+    let bgMeteors: Phaser.GameObjects.Group; // 背景用メテオグループ
     let lastFiredTime = 0;
     let background: Phaser.GameObjects.TileSprite;
     let score = 0;
     let scoreText: Phaser.GameObjects.Text;
     let zKey: Phaser.Input.Keyboard.Key | undefined;
+
+    // メテオ画像のアセット名リスト
+    const meteorKeys = [
+      'meteorBrown_big1', 'meteorBrown_big2', 'meteorBrown_big3', 'meteorBrown_big4',
+      'meteorBrown_med1', 'meteorBrown_med3', 'meteorBrown_small1', 'meteorBrown_small2',
+      'meteorBrown_tiny1', 'meteorBrown_tiny2',
+      'meteorGrey_big1', 'meteorGrey_big2', 'meteorGrey_big3', 'meteorGrey_big4',
+      'meteorGrey_med1', 'meteorGrey_med2', 'meteorGrey_small1', 'meteorGrey_small2',
+      'meteorGrey_tiny1', 'meteorGrey_tiny2'
+    ];
 
     function preload(this: Phaser.Scene) {
       // 背景、宇宙船、レーザー、敵機、エフェクトの画像を読み込む
@@ -25,6 +36,11 @@ export default function PhaserGame() {
       this.load.image('laser', '/assets/space-shooter/PNG/Lasers/laserBlue01.png');
       this.load.image('enemy', '/assets/space-shooter/PNG/Enemies/enemyBlack1.png');
       this.load.image('star', '/assets/space-shooter/PNG/Effects/star3.png');
+
+      // メテオ画像をすべて読み込む
+      meteorKeys.forEach(key => {
+        this.load.image(key, `/assets/space-shooter/PNG/Meteors/${key}.png`);
+      });
     }
 
     function create(this: Phaser.Scene) {
@@ -34,6 +50,35 @@ export default function PhaserGame() {
       background = this.add.tileSprite(0, 0, width, height, 'background');
       background.setOrigin(0, 0);
       background.setScrollFactor(0); // 画面に固定
+      background.setDepth(-10); // 一番背面に配置
+
+      // 背景用メテオグループの作成
+      bgMeteors = this.add.group();
+
+      // 背景メテオを生成する関数
+      const spawnBgMeteor = () => {
+        const x = Phaser.Math.Between(0, width);
+        const key = Phaser.Utils.Array.GetRandom(meteorKeys);
+        const meteor = this.add.sprite(x, -100, key);
+        
+        // 回転のみランダム（向きを自然にするため）
+        meteor.setRotation(Phaser.Math.FloatBetween(0, Math.PI * 2));
+        meteor.setAlpha(0.8); // 透明度を固定
+        meteor.setDepth(-5); // 背景画像とゲーム要素の間に配置
+
+        // 速度を2に固定（背景スクロールと同期）
+        meteor.setData('speed', 2);
+        
+        bgMeteors.add(meteor);
+      };
+
+      // 0.8秒ごとに背景メテオを生成
+      this.time.addEvent({
+        delay: 800,
+        callback: spawnBgMeteor,
+        callbackScope: this,
+        loop: true
+      });
 
       // レーザーのグループを作成（物理演算を有効化）
       lasers = this.physics.add.group({
@@ -144,10 +189,22 @@ export default function PhaserGame() {
     }
 
     function update(this: Phaser.Scene, time: number) {
-      if (!cursors || !player || !background) return;
+      if (!cursors || !player || !background || !bgMeteors) return;
 
       // 背景をスクロールさせる
       background.tilePositionY -= 2;
+
+      // 背景メテオの移動と削除 (安全なループ処理)
+      bgMeteors.getChildren().forEach((child) => {
+        const meteor = child as Phaser.GameObjects.Sprite;
+        const speed = meteor.getData('speed') || 1;
+        meteor.y += speed;
+
+        // 画面下端（マージン込み）を超えたら削除
+        if (meteor.y > this.scale.height + 100) {
+          meteor.destroy();
+        }
+      });
 
       // --- 移動処理 ---
       player.setVelocity(0);
