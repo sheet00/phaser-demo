@@ -5,21 +5,16 @@ import TopPage from './components/TopPage';
 import './App.css';
 
 /**
- * シューティングゲーム画面
+ * ゲーム画面共通のレイアウト（戻るボタン付き）
  */
-function ShootingGame() {
+function GameLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
-
-  const handleBackToMenu = () => {
-    navigate('/');
-  };
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
-      <PhaserGame />
-      {/* メニューに戻るボタン */}
+      {children}
       <button
-        onClick={handleBackToMenu}
+        onClick={() => navigate('/')}
         style={{
           position: 'absolute',
           top: '20px',
@@ -44,32 +39,69 @@ function ShootingGame() {
 }
 
 /**
+ * プレースホルダー画面
+ */
+function PlaceholderGame({ title }: { title: string }) {
+  return (
+    <div style={{ 
+      width: '100%', 
+      height: '100%', 
+      backgroundColor: '#0a0a0a', 
+      color: '#fff', 
+      display: 'flex', 
+      flexDirection: 'column', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      fontFamily: 'sans-serif'
+    }}>
+      <h1 style={{ fontSize: '3rem', marginBottom: '1rem' }}>{title}</h1>
+      <p style={{ fontSize: '1.5rem', color: '#888' }}>現在開発中です...</p>
+    </div>
+  );
+}
+
+/**
  * タイトル管理コンポーネント
  */
 function TitleUpdater() {
   const location = useLocation();
 
   useEffect(() => {
-    if (location.pathname === '/shooting') {
-      document.title = 'PHASER DEMO - SPACE SHOOTER';
-    } else {
-      document.title = 'PHASER DEMO';
-    }
-  }, [location]);
+    switch (location.pathname) {
+      case '/shooting':
+        document.title = 'PHASER DEMO - SPACE SHOOTER';
+        break;
+      case '/rpg':
+        document.title = 'PHASER DEMO - RPG ADVENTURE';
+        break;
+      case '/whack-a-mole':
+        document.title = 'PHASER DEMO - WHACK-A-MOLE';
+        break;
+      case '/endless-run':
+        document.title = 'PHASER DEMO - ENDLESS RUN';
+        break;
+      default:
+        document.title = 'PHASER DEMO';
+      }
+      }, [location]);
 
-  return null;
-}
+      return null;
+      }
 
-function App() {
-  return (
-    <Router>
+      function App() {
+      return (
+      <Router>
       <TitleUpdater />
       <Routes>
-        <Route path="/" element={<TopPage onSelectGame={() => {}} />} />
-        <Route path="/shooting" element={<ShootingGame />} />
+        <Route path="/" element={<TopPage />} />
+        <Route path="/shooting" element={<GameLayout><PhaserGame /></GameLayout>} />
+        <Route path="/rpg" element={<GameLayout><PlaceholderGame title="⚔️ RPG ADVENTURE" /></GameLayout>} />
+        <Route path="/whack-a-mole" element={<GameLayout><PlaceholderGame title="🔨 WHACK-A-MOLE" /></GameLayout>} />
+        <Route path="/endless-run" element={<GameLayout><PlaceholderGame title="🦖 ENDLESS RUN" /></GameLayout>} />
       </Routes>
-    </Router>
-  );
-}
+      </Router>
+      );
+      }
+
 
 export default App;

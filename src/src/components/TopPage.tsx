@@ -5,13 +5,20 @@ export default function TopPage() {
   const navigate = useNavigate();
   const games = [
     { id: 'shooting', title: '🚀 SPACE SHOOTER', description: '敵機を撃破してハイスコアを目指せ！' },
-    // 今後他のゲームを追加可能
-    { id: 'coming-soon', title: '🔒 COMING SOON', description: '次のアップデートをお楽しみに...' }
+    { id: 'rpg', title: '⚔️ RPG ADVENTURE', description: '広大な世界を冒険しよう（準備中）' },
+    { id: 'whack-a-mole', title: '🔨 WHACK-A-MOLE', description: '次々と現れるモグラを叩け！（準備中）' },
+    { id: 'endless-run', title: '🦖 ENDLESS RUN', description: '障害物をジャンプで避けて進め！（準備中）' },
   ];
 
   const handleSelectGame = (gameId: string) => {
     if (gameId === 'shooting') {
       navigate('/shooting');
+    } else if (gameId === 'rpg') {
+      navigate('/rpg');
+    } else if (gameId === 'whack-a-mole') {
+      navigate('/whack-a-mole');
+    } else if (gameId === 'endless-run') {
+      navigate('/endless-run');
     }
   };
 
