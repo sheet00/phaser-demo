@@ -14,6 +14,9 @@ export default function PhaserGame() {
     let enemies: Phaser.Physics.Arcade.Group; // 敵機グループ
     let lastFiredTime = 0;
     let background: Phaser.GameObjects.TileSprite;
+    let score = 0;
+    let scoreText: Phaser.GameObjects.Text;
+    let zKey: Phaser.Input.Keyboard.Key | undefined;
 
     function preload(this: Phaser.Scene) {
       // 背景、宇宙船、レーザー、敵機、エフェクトの画像を読み込む
@@ -112,14 +115,31 @@ export default function PhaserGame() {
           onComplete: () => hitEffect.destroy() // 終わったら消す
         });
 
+        // スコアを加算
+        score += 10;
+        scoreText.setText('SCORE: ' + score);
+
         // レーザーと敵機の両方を消滅させる
         (laser as Phaser.Physics.Arcade.Sprite).disableBody(true, true);
         e.disableBody(true, true);
       });
 
+      // スコア表示の作成 (左上)
+      scoreText = this.add.text(16, 16, 'SCORE: 0', {
+        fontSize: '32px',
+        color: '#fff',
+        fontStyle: 'bold'
+      });
+      scoreText.setDepth(100); // 最前面に表示
+
       // キーボード設定
       if (this.input.keyboard) {
         cursors = this.input.keyboard.createCursorKeys();
+        // スペースキーがブラウザのスクロールなどを引き起こさないようにする（同時押し制限の緩和）
+        this.input.keyboard.addCapture('SPACE');
+        
+        // Zキーを登録
+        zKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
       }
     }
 
@@ -145,8 +165,10 @@ export default function PhaserGame() {
       }
 
       // --- 発射処理 ---
-      // スペースキーが押されており、前回の発射から0.25秒以上経過している場合
-      if (cursors.space.isDown && time > lastFiredTime) {
+      // スペースキー または Zキー が押されており、前回の発射から0.25秒以上経過している場合
+      const isFiring = cursors.space.isDown || zKey?.isDown;
+
+      if (isFiring && time > lastFiredTime) {
         const laser = lasers.get(player.x, player.y - 20) as Phaser.Physics.Arcade.Sprite;
 
         if (laser) {
