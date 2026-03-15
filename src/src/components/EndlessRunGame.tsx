@@ -11,6 +11,7 @@ export default function EndlessRunGame() {
     let groundTop: Phaser.GameObjects.TileSprite;
     let groundCenter: Phaser.GameObjects.TileSprite;
     let groundBottom: Phaser.GameObjects.TileSprite;
+    let player: Phaser.GameObjects.Sprite;
 
     function preload(this: Phaser.Scene) {
       // 丘の背景
@@ -19,6 +20,9 @@ export default function EndlessRunGame() {
       this.load.image('ground_grass', '/assets/platformer-pack/Sprites/Tiles/Default/terrain_grass_block_top.png');
       this.load.image('sand_center', '/assets/platformer-pack/Sprites/Tiles/Default/terrain_sand_block_center.png');
       this.load.image('sand_bottom', '/assets/platformer-pack/Sprites/Tiles/Default/terrain_sand_block_bottom.png');
+      // プレイヤー (歩行アニメーション用2枚)
+      this.load.image('player_walk1', '/assets/platformer-pack/Sprites/Characters/Default/character_green_walk_a.png');
+      this.load.image('player_walk2', '/assets/platformer-pack/Sprites/Characters/Default/character_green_walk_b.png');
     }
 
     function create(this: Phaser.Scene) {
@@ -30,21 +34,34 @@ export default function EndlessRunGame() {
       const bgTexture = this.textures.get('hills_bg').getSourceImage() as HTMLImageElement;
       background.setTileScale(height / bgTexture.height);
 
-      // 3層地面の配置 (タイルサイズ 64x64) - 重なりなしのピッタリ配置
+      // 3層地面の配置 (タイルサイズ 64x64)
       const tileSize = 64;
       const groundY = Math.floor(height - (tileSize * 3));
 
-      // 上層 (Top)
       groundTop = this.add.tileSprite(0, groundY, width, tileSize, 'ground_grass');
       groundTop.setOrigin(0, 0);
 
-      // 中層 (Center)
       groundCenter = this.add.tileSprite(0, groundY + tileSize, width, tileSize, 'sand_center');
       groundCenter.setOrigin(0, 0);
 
-      // 下層 (Bottom)
       groundBottom = this.add.tileSprite(0, groundY + (tileSize * 2), width, tileSize, 'sand_bottom');
       groundBottom.setOrigin(0, 0);
+
+      // 走りアニメーションの作成
+      this.anims.create({
+        key: 'run',
+        frames: [
+          { key: 'player_walk1' },
+          { key: 'player_walk2' }
+        ],
+        frameRate: 10,
+        repeat: -1
+      });
+
+      // プレイヤーの配置 (さらに右側へ)
+      player = this.add.sprite(400, groundY, 'player_walk1');
+      player.setOrigin(0.5, 1);
+      player.play('run');
     }
 
     function update(this: Phaser.Scene) {
@@ -62,8 +79,8 @@ export default function EndlessRunGame() {
       width: window.innerWidth,
       height: window.innerHeight,
       parent: gameRef.current,
-      pixelArt: true, // ぼやけを防止
-      roundPixels: true, // 座標を整数に丸めて隙間を防止
+      pixelArt: true,
+      roundPixels: true,
       scale: {
         mode: Phaser.Scale.RESIZE,
         autoCenter: Phaser.Scale.CENTER_BOTH
@@ -81,7 +98,6 @@ export default function EndlessRunGame() {
       game.scale.resize(window.innerWidth, window.innerHeight);
       if (background) background.setSize(window.innerWidth, window.innerHeight);
       const h = window.innerHeight;
-      // リサイズ時も重なりなしで再計算
       if (groundTop) groundTop.setY(h - 192);
       if (groundCenter) groundCenter.setY(h - 128);
       if (groundBottom) groundBottom.setY(h - 64);
