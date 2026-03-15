@@ -12,8 +12,8 @@ export default function EndlessRunGame() {
     
     const HILL_SPAWN_MIN = 1200;
     const HILL_SPAWN_MAX = 3000;
-    const ENEMY_SPAWN_MIN = 2000;
-    const ENEMY_SPAWN_MAX = 4500;
+    const ENEMY_SPAWN_MIN = 1000;
+    const ENEMY_SPAWN_MAX = 2500;
 
     let background: Phaser.GameObjects.TileSprite;
     let groundTop: Phaser.GameObjects.TileSprite;
@@ -131,19 +131,25 @@ export default function EndlessRunGame() {
       const { width } = this.scale;
       const tileSize = 64;
       const groundY = this.scale.height - (tileSize * 3);
-      const heightInBlocks = Phaser.Math.Between(1, 2);
       
-      for (let i = 0; i < heightInBlocks; i++) {
-        const x = width + 100;
-        const y = groundY - (i * tileSize);
-        const key = (i === heightInBlocks - 1) ? 'hill_top' : 'hill_base';
-        const block = obstacles.create(x, y, key) as Phaser.Physics.Arcade.Sprite;
-        block.setOrigin(0.5, 1);
-        if (block.body instanceof Phaser.Physics.Arcade.Body) {
-          block.body.allowGravity = false;
-          block.body.immovable = true;
+      const widthInBlocks = Phaser.Math.Between(1, 3);
+      
+      for (let w = 0; widthInBlocks > w; w++) {
+        const x = width + 100 + (w * tileSize);
+        // 各列ごとに高さをランダムに決定
+        const currentHeight = Phaser.Math.Between(1, 2);
+        
+        for (let h = 0; h < currentHeight; h++) {
+          const y = groundY - (h * tileSize);
+          const key = (h === currentHeight - 1) ? 'hill_top' : 'hill_base';
+          const block = obstacles.create(x, y, key) as Phaser.Physics.Arcade.Sprite;
+          block.setOrigin(0.5, 1);
+          if (block.body instanceof Phaser.Physics.Arcade.Body) {
+            block.body.allowGravity = false;
+            block.body.immovable = true;
+          }
+          block.setVelocityX(-450);
         }
-        block.setVelocityX(-450);
       }
     }
 
