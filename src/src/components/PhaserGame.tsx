@@ -16,11 +16,12 @@ export default function PhaserGame() {
     let background: Phaser.GameObjects.TileSprite;
 
     function preload(this: Phaser.Scene) {
-      // 背景、宇宙船、レーザー、敵機の画像を読み込む
+      // 背景、宇宙船、レーザー、敵機、エフェクトの画像を読み込む
       this.load.image('background', '/assets/space-shooter/Backgrounds/darkPurple.png');
       this.load.image('player', '/assets/space-shooter/PNG/playerShip2_blue.png');
       this.load.image('laser', '/assets/space-shooter/PNG/Lasers/laserBlue01.png');
       this.load.image('enemy', '/assets/space-shooter/PNG/Enemies/enemyBlack1.png');
+      this.load.image('star', '/assets/space-shooter/PNG/Effects/star1.png');
     }
 
     function create(this: Phaser.Scene) {
@@ -50,9 +51,24 @@ export default function PhaserGame() {
 
       // 当たり判定：レーザーと敵機が重なった場合
       this.physics.add.overlap(lasers, enemies, (laser, enemy) => {
+        const e = enemy as Phaser.Physics.Arcade.Sprite;
+        
+        // 【演出】当たった場所に星を表示し、トゥイーンでアニメーションさせる
+        const hitEffect = this.add.sprite(e.x, e.y, 'star');
+        hitEffect.setAlpha(1);
+        hitEffect.setScale(0.5); // 最初は小さく
+
+        this.tweens.add({
+          targets: hitEffect,
+          scale: 2.5,    // 大きくしながら
+          alpha: 0,      // 透明にしていく
+          duration: 100, // 0.1秒で
+          onComplete: () => hitEffect.destroy() // 終わったら消す
+        });
+
         // レーザーと敵機の両方を消滅させる
         (laser as Phaser.Physics.Arcade.Sprite).disableBody(true, true);
-        (enemy as Phaser.Physics.Arcade.Sprite).disableBody(true, true);
+        e.disableBody(true, true);
       });
 
       // キーボード設定
