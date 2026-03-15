@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from
 import PhaserGame from './components/PhaserGame';
 import TopPage from './components/TopPage';
 import UfoPopperGame from './components/UfoPopperGame';
+import EndlessRunGame from './components/EndlessRunGame';
 import './App.css';
 
 /**
@@ -98,7 +99,7 @@ function App() {
         <Route path="/shooting" element={<GameLayout><PhaserGame /></GameLayout>} />
         <Route path="/rpg" element={<GameLayout><PlaceholderGame title="⚔️ RPG ADVENTURE" /></GameLayout>} />
         <Route path="/ufo-popper" element={<GameLayout><UfoPopperGame /></GameLayout>} />
-        <Route path="/endless-run" element={<GameLayout><PlaceholderGame title="🦖 ENDLESS RUN" /></GameLayout>} />
+        <Route path="/endless-run" element={<GameLayout><EndlessRunGame /></GameLayout>} />
       </Routes>
     </Router>
   );

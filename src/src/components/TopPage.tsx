@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 export default function TopPage() {
   const navigate = useNavigate();
   const games = [
-    { id: 'shooting', title: '🚀 SPACE SHOOTER', description: '敵機を撃破してハイスコアを目指せ！' },
-    { id: 'ufo-popper', title: '🛸 UFO POPPER', description: '次々と現れるUFOを素早くクリックして撃退せよ！' },
-    { id: 'endless-run', title: '🦖 ENDLESS RUN', description: '障害物をジャンプで避けて進め！（準備中）' },
-    { id: 'rpg', title: '⚔️ RPG ADVENTURE', description: '広大な世界を冒険しよう（準備中）' },
+    { id: 'shooting', title: 'SPACE SHOOTER', description: '敵機を撃破してハイスコアを目指せ！' },
+    { id: 'ufo-popper', title: 'UFO POPPER', description: '次々と現れるUFOを素早くクリックして撃退せよ！' },
+    { id: 'endless-run', title: 'ENDLESS RUN', description: '障害物をジャンプで避けて進め！（準備中）' },
+    { id: 'rpg', title: 'RPG ADVENTURE', description: '広大な世界を冒険しよう（準備中）' },
   ];
 
   const handleSelectGame = (gameId: string) => {
