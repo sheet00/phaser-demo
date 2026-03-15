@@ -243,18 +243,20 @@ export default function RpgGame() {
       uiGraphics.fillStyle(0xffffff, 1); uiGraphics.fillRect(0, bY, width, 150);
       uiGraphics.lineStyle(6, 0x333333, 1); uiGraphics.strokeRect(0, bY, width, 150);
       logText = this.add.text(40, bY + 45, `${enemy.name} が あらわれた！`, { fontSize: '28px', color: '#333333', padding: { top: 10, bottom: 10 } });
-
-      [{ label: 'Lv+1', dy: 0 }, { label: 'Lv-1', dy: 40 }].forEach((btnData) => {
-        const bx = width - 200, by = 20 + btnData.dy;
-        const btn = this.add.rectangle(bx, by, 80, 30, 0x333333, 0.7).setInteractive({ useHandCursor: true });
-        this.add.text(bx, by, btnData.label, { fontSize: '14px', color: '#ffffff' }).setOrigin(0.5);
-        btn.on('pointerdown', () => {
-          if (btnData.label === 'Lv+1') { player.lv++; player.maxHp += 10; player.atk += 2; }
-          else if (player.lv > 1) { player.lv--; player.maxHp -= 10; player.atk -= 2; }
-          player.hp = player.maxHp; player.maxExp = Math.floor(10 * Math.pow(1.2, player.lv - 1));
-          updatePlayerUI();
-        });
-      });
+// --- デバッグ機能: レベル変更ボタン (開発環境のみ) ---
+if (import.meta.env.DEV) {
+  [{ label: 'Lv+1', dy: 0 }, { label: 'Lv-1', dy: 40 }].forEach((btnData) => {
+    const bx = width - 200, by = 20 + btnData.dy;
+    const btn = this.add.rectangle(bx, by, 80, 30, 0x333333, 0.7).setInteractive({ useHandCursor: true });
+    this.add.text(bx, by, btnData.label, { fontSize: '14px', color: '#ffffff' }).setOrigin(0.5);
+    btn.on('pointerdown', () => {
+      if (btnData.label === 'Lv+1') { player.lv++; player.maxHp += 10; player.atk += 2; }
+      else if (player.lv > 1) { player.lv--; player.maxHp -= 10; player.atk -= 2; }
+      player.hp = player.maxHp; player.maxExp = Math.floor(10 * Math.pow(1.2, player.lv - 1));
+      updatePlayerUI();
+    });
+  });
+}
 
       ['たたかう', 'ぼうぎょ'].forEach((cmd, i) => {
         const cx = (width - 350) + (i * 160), cy = bY + 40;
