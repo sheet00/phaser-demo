@@ -35,15 +35,40 @@ export default function RpgGame() {
       // --- 変数初期化 ---
       const player = { ...playerDataBase };
       // ランダム出現に戻す
-      const enemyData = Phaser.Math.RND.pick(enemyList); 
+      const enemyData = Phaser.Math.RND.pick(enemyList);
       const enemy = { ...enemyData };
       let isPlayerTurn = true;
 
+      // プレート座標
+      const pX = width - 360;
+      const pY = height - 280;
+
       // UI参照用
+
       let logText: Phaser.GameObjects.Text;
       let phText: Phaser.GameObjects.Text;
       let pBar: Phaser.GameObjects.Rectangle;
       let eBar: Phaser.GameObjects.Rectangle;
+
+      // --- 演出用：ダメージ数字の表示 ---
+      const showDamage = (x: number, y: number, amount: number, color: string) => {
+        const dmgText = this.add.text(x, y, `-${amount}`, {
+          fontSize: '48px',
+          color: color,
+          fontStyle: 'bold',
+          stroke: '#000000',
+          strokeThickness: 6
+        }).setOrigin(0.5);
+
+        this.tweens.add({
+          targets: dmgText,
+          y: y - 100,
+          alpha: 0,
+          duration: 800,
+          ease: 'Cubic.out',
+          onComplete: () => dmgText.destroy()
+        });
+      };
 
       // --- 敵のターン処理 ---
       const startEnemyTurn = () => {
@@ -51,16 +76,20 @@ export default function RpgGame() {
         this.time.delayedCall(1200, () => {
           if (enemy.hp <= 0) return;
           logText.setText(`${enemy.name} の こうげき！`);
-          
           this.time.delayedCall(800, () => {
             this.sound.play('se_hit_e');
             player.hp = Math.max(0, player.hp - enemy.atk);
-            
+
+            // ダメージ表示
+            showDamage(pX + 160, pY + 50, enemy.atk, '#ff0000');
+
+            // プレイヤーUI更新
             phText.setText(`${player.hp}/ ${player.maxHp}`);
+
             pBar.width = 240 * (player.hp / player.maxHp);
             if (player.hp / player.maxHp < 0.3) pBar.setFillStyle(0xff0000);
 
-            logText.setText(`${player.name} は ダメージを うけた！`);
+            logText.setText(`${player.name} は ${enemy.atk} の ダメージを うけた！`);
             this.cameras.main.shake(200, 0.01);
 
             this.time.delayedCall(1000, () => {
@@ -88,10 +117,9 @@ export default function RpgGame() {
       this.add.rectangle(60, 110, 240, 10, 0xdddddd).setOrigin(0);
       eBar = this.add.rectangle(60, 110, 240, 10, 0x00ff00).setOrigin(0);
 
-      // プレイヤープレート (右下)
-      const pX = width - 360;
-      const pY = height - 280;
+      // プレイヤープレート
       uiGraphics.fillRoundedRect(pX, pY, 320, 100, 10);
+
       uiGraphics.strokeRoundedRect(pX, pY, 320, 100, 10);
       this.add.text(pX + 40, pY + 15, player.name, { fontSize: '22px', color: '#333333', fontStyle: 'bold' });
       this.add.text(pX + 240, pY + 18, `Lv${player.lv}`, { fontSize: '18px', color: '#333333', fontStyle: 'bold' });
@@ -130,10 +158,14 @@ export default function RpgGame() {
           isPlayerTurn = false;
           this.sound.play('se_hit_p');
           enemy.hp = Math.max(0, enemy.hp - player.atk);
+          
+          // ダメージ表示 (モンスター付近)
+          showDamage(width / 2, height / 2 - 200, player.atk, '#ffffff');
+
           eBar.width = 240 * (enemy.hp / enemy.maxHp);
           if (enemy.hp / enemy.maxHp < 0.3) eBar.setFillStyle(0xff0000);
 
-          logText.setText(`${enemy.name} に ダメージを あたえた！`);
+          logText.setText(`${enemy.name} に ${player.atk} の ダメージを あたえた！`);
           this.tweens.add({ targets: monster, x: monster.x + 10, duration: 50, yoyo: true, repeat: 3 });
 
           if (enemy.hp <= 0) {
