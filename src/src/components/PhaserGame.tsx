@@ -21,7 +21,7 @@ export default function PhaserGame() {
       this.load.image('player', '/assets/space-shooter/PNG/playerShip2_blue.png');
       this.load.image('laser', '/assets/space-shooter/PNG/Lasers/laserBlue01.png');
       this.load.image('enemy', '/assets/space-shooter/PNG/Enemies/enemyBlack1.png');
-      this.load.image('star', '/assets/space-shooter/PNG/Effects/star1.png');
+      this.load.image('star', '/assets/space-shooter/PNG/Effects/star3.png');
     }
 
     function create(this: Phaser.Scene) {
@@ -45,9 +45,54 @@ export default function PhaserGame() {
       player = this.physics.add.sprite(width / 2, height - 100, 'player');
       player.setCollideWorldBounds(true);
 
-      // 敵機を1つ配置（画面上部中央）
-      const enemy = enemies.create(width / 2, 100, 'enemy');
-      enemy.setImmovable(true); // 弾が当たっても動かないようにする
+      // 敵を生成する関数
+      const spawnEnemy = () => {
+        const x = Phaser.Math.Between(50, width - 50);
+        const enemy = enemies.get(x, -50, 'enemy') as Phaser.Physics.Arcade.Sprite;
+        
+        if (enemy) {
+          enemy.enableBody(true, x, -50, true, true);
+          enemy.setVelocityY(200); // 下方向に移動
+        }
+      };
+
+      // 1秒ごとに敵を生成するタイマー
+      this.time.addEvent({
+        delay: 1000,
+        callback: spawnEnemy,
+        callbackScope: this,
+        loop: true
+      });
+
+      // 当たり判定：プレイヤーと敵機が衝突した場合
+      this.physics.add.overlap(player, enemies, (p, enemy) => {
+        const playerSprite = p as Phaser.Physics.Arcade.Sprite;
+        const enemySprite = enemy as Phaser.Physics.Arcade.Sprite;
+
+        // プレイヤーの爆発演出（Starを大きく出し、オレンジに光らせる）
+        const hitEffect = this.add.sprite(playerSprite.x, playerSprite.y, 'star');
+        hitEffect.setScale(4); // プレイヤーなので大きめに！
+        hitEffect.setTint(0xffa500); // オレンジ色！
+
+        this.tweens.add({
+          targets: hitEffect,
+          scale: 6,
+          alpha: 0,
+          duration: 300,
+          onComplete: () => hitEffect.destroy()
+        });
+
+        // 敵機を消去
+        enemySprite.disableBody(true, true);
+
+        // 自機を一瞬無効化して、位置をリセット
+        playerSprite.disableBody(true, true);
+        
+        // 1秒後に復活
+        this.time.delayedCall(1000, () => {
+          playerSprite.enableBody(true, width / 2, height - 100, true, true);
+        });
+      });
 
       // 当たり判定：レーザーと敵機が重なった場合
       this.physics.add.overlap(lasers, enemies, (laser, enemy) => {
@@ -57,6 +102,7 @@ export default function PhaserGame() {
         const hitEffect = this.add.sprite(e.x, e.y, 'star');
         hitEffect.setAlpha(1);
         hitEffect.setScale(0.5); // 最初は小さく
+        hitEffect.setTint(0xffa500); // オレンジ色！
 
         this.tweens.add({
           targets: hitEffect,
