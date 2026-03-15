@@ -7,26 +7,96 @@ export default function PhaserGame() {
   useEffect(() => {
     if (!gameRef.current) return;
 
-    // 最もシンプルな関数ベースのシーン定義
+    // ゲーム内の状態を保持するための変数
+    let player: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
+    let cursors: Phaser.Types.Input.Keyboard.CursorKeys;
+    let lasers: Phaser.Physics.Arcade.Group;
+    let lastFiredTime = 0;
+
     function preload(this: Phaser.Scene) {
-      // 指定された画像（publicフォルダ直下から）を読み込む
+      // 宇宙船とレーザーの画像を読み込む
       this.load.image('player', '/assets/space-shooter/PNG/playerShip2_blue.png');
+      this.load.image('laser', '/assets/space-shooter/PNG/Lasers/laserBlue01.png');
     }
 
     function create(this: Phaser.Scene) {
-      // 画面中央に画像を配置
-      const player = this.add.image(400, 300, 'player');
+      const { width, height } = this.scale;
+
+      // レーザーのグループを作成（物理演算を有効化）
+      lasers = this.physics.add.group({
+        defaultKey: 'laser',
+        maxSize: 30 // 同時に画面に出る最大弾数
+      });
+
+      // プレイヤーを配置
+      player = this.physics.add.sprite(width / 2, height - 100, 'player');
+      player.setCollideWorldBounds(true);
+
+      // キーボード設定
+      if (this.input.keyboard) {
+        cursors = this.input.keyboard.createCursorKeys();
+      }
     }
 
-    function update(this: Phaser.Scene) {
-      // 毎フレームの処理（今回は表示のみのため何もしない）
+    function update(this: Phaser.Scene, time: number) {
+      if (!cursors || !player) return;
+
+      // --- 移動処理 ---
+      player.setVelocity(0);
+
+      if (cursors.left.isDown) {
+        player.setVelocityX(-400);
+      } else if (cursors.right.isDown) {
+        player.setVelocityX(400);
+      }
+
+      if (cursors.up.isDown) {
+        player.setVelocityY(-400);
+      } else if (cursors.down.isDown) {
+        player.setVelocityY(400);
+      }
+
+      // --- 発射処理 ---
+      // スペースキーが押されており、前回の発射から0.25秒以上経過している場合
+      if (cursors.space.isDown && time > lastFiredTime) {
+        const laser = lasers.get(player.x, player.y - 20) as Phaser.Physics.Arcade.Sprite;
+
+        if (laser) {
+          laser.setActive(true);
+          laser.setVisible(true);
+          laser.setVelocityY(-600); // 上方向に飛ばす
+          lastFiredTime = time + 250; // 0.25秒のクールタイム
+        }
+      }
+
+      // 画面外（上端）に出たレーザーを無効化・非表示にする
+      lasers.children.iterate((child) => {
+        const laser = child as Phaser.Physics.Arcade.Sprite;
+        if (laser.active && laser.y < 0) {
+          laser.setActive(false);
+          laser.setVisible(false);
+          laser.body.stop(); // 物理挙動を停止
+        }
+        return true;
+      });
     }
 
     const config: Phaser.Types.Core.GameConfig = {
       type: Phaser.AUTO,
-      width: 800,
-      height: 600,
-      parent: gameRef.current, // Reactのdiv要素にゲームを展開
+      width: window.innerWidth,
+      height: window.innerHeight,
+      parent: gameRef.current,
+      scale: {
+        mode: Phaser.Scale.RESIZE,
+        autoCenter: Phaser.Scale.CENTER_BOTH
+      },
+      physics: {
+        default: 'arcade',
+        arcade: {
+          gravity: { x: 0, y: 0 },
+          debug: false
+        }
+      },
       scene: {
         preload: preload,
         create: create,
@@ -36,11 +106,16 @@ export default function PhaserGame() {
 
     const game = new Phaser.Game(config);
 
-    // コンポーネントが破棄される際にPhaserのインスタンスも破棄する
+    const handleResize = () => {
+      game.scale.resize(window.innerWidth, window.innerHeight);
+    };
+    window.addEventListener('resize', handleResize);
+
     return () => {
+      window.removeEventListener('resize', handleResize);
       game.destroy(true);
     };
   }, []);
 
-  return <div ref={gameRef} style={{ width: '800px', height: '600px', margin: 'auto' }} />;
+  return <div ref={gameRef} style={{ width: '100vw', height: '100vh', background: '#000' }} />;
 }
