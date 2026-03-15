@@ -31,7 +31,7 @@ export default function PhaserGame() {
 
     function preload(this: Phaser.Scene) {
       // 背景、宇宙船、レーザー、敵機、エフェクトの画像を読み込む
-      this.load.image('background', '/assets/space-shooter/Backgrounds/darkPurple.png');
+      this.load.image('background', '/assets/universe_space04.png');
       this.load.image('player', '/assets/space-shooter/PNG/playerShip2_blue.png');
       this.load.image('laser', '/assets/space-shooter/PNG/Lasers/laserBlue01.png');
       this.load.image('enemy', '/assets/space-shooter/PNG/Enemies/enemyBlack1.png');

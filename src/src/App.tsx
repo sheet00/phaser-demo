@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import PhaserGame from './components/PhaserGame';
 import TopPage from './components/TopPage';
+import UfoPopperGame from './components/UfoPopperGame';
 import './App.css';
 
 /**
@@ -74,34 +75,33 @@ function TitleUpdater() {
       case '/rpg':
         document.title = 'PHASER DEMO - RPG ADVENTURE';
         break;
-      case '/whack-a-mole':
-        document.title = 'PHASER DEMO - WHACK-A-MOLE';
+      case '/ufo-popper':
+        document.title = 'PHASER DEMO - UFO POPPER';
         break;
       case '/endless-run':
         document.title = 'PHASER DEMO - ENDLESS RUN';
         break;
       default:
         document.title = 'PHASER DEMO';
-      }
-      }, [location]);
+    }
+  }, [location]);
 
-      return null;
-      }
+  return null;
+}
 
-      function App() {
-      return (
-      <Router>
+function App() {
+  return (
+    <Router>
       <TitleUpdater />
       <Routes>
         <Route path="/" element={<TopPage />} />
         <Route path="/shooting" element={<GameLayout><PhaserGame /></GameLayout>} />
         <Route path="/rpg" element={<GameLayout><PlaceholderGame title="⚔️ RPG ADVENTURE" /></GameLayout>} />
-        <Route path="/whack-a-mole" element={<GameLayout><PlaceholderGame title="🔨 WHACK-A-MOLE" /></GameLayout>} />
+        <Route path="/ufo-popper" element={<GameLayout><UfoPopperGame /></GameLayout>} />
         <Route path="/endless-run" element={<GameLayout><PlaceholderGame title="🦖 ENDLESS RUN" /></GameLayout>} />
       </Routes>
-      </Router>
-      );
-      }
-
+    </Router>
+  );
+}
 
 export default App;

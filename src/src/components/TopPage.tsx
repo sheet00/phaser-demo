@@ -5,9 +5,9 @@ export default function TopPage() {
   const navigate = useNavigate();
   const games = [
     { id: 'shooting', title: '🚀 SPACE SHOOTER', description: '敵機を撃破してハイスコアを目指せ！' },
-    { id: 'rpg', title: '⚔️ RPG ADVENTURE', description: '広大な世界を冒険しよう（準備中）' },
-    { id: 'whack-a-mole', title: '🔨 WHACK-A-MOLE', description: '次々と現れるモグラを叩け！（準備中）' },
+    { id: 'ufo-popper', title: '🛸 UFO POPPER', description: '次々と現れるUFOを素早くクリックして撃退せよ！' },
     { id: 'endless-run', title: '🦖 ENDLESS RUN', description: '障害物をジャンプで避けて進め！（準備中）' },
+    { id: 'rpg', title: '⚔️ RPG ADVENTURE', description: '広大な世界を冒険しよう（準備中）' },
   ];
 
   const handleSelectGame = (gameId: string) => {
@@ -15,8 +15,8 @@ export default function TopPage() {
       navigate('/shooting');
     } else if (gameId === 'rpg') {
       navigate('/rpg');
-    } else if (gameId === 'whack-a-mole') {
-      navigate('/whack-a-mole');
+    } else if (gameId === 'ufo-popper') {
+      navigate('/ufo-popper');
     } else if (gameId === 'endless-run') {
       navigate('/endless-run');
     }
@@ -26,13 +26,13 @@ export default function TopPage() {
     <div style={{
       width: '100vw',
       height: '100vh',
-      backgroundColor: '#0a0a0a', // より深い黒に
+      backgroundColor: '#0a0a0a', // 元の深い黒に戻す
       color: '#fff',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      fontFamily: "'Exo 2', sans-serif" // 近未来的なフォント（代替案）
+      fontFamily: "'Exo 2', sans-serif"
     }}>
       <h1 style={{ 
         fontSize: '3.5rem', 
