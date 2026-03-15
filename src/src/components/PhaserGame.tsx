@@ -100,7 +100,9 @@ export default function PhaserGame() {
         
         if (enemy) {
           enemy.enableBody(true, x, -50, true, true);
-          enemy.setVelocityY(200); // 下方向に移動
+          // 速度を150から400の間でランダムに設定
+          const speed = Phaser.Math.Between(150, 400);
+          enemy.setVelocityY(speed); 
         }
       };
 
