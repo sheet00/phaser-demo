@@ -1,15 +1,19 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
-interface TopPageProps {
-  onSelectGame: (gameId: string) => void;
-}
-
-export default function TopPage({ onSelectGame }: TopPageProps) {
+export default function TopPage() {
+  const navigate = useNavigate();
   const games = [
     { id: 'shooting', title: '🚀 SPACE SHOOTER', description: '敵機を撃破してハイスコアを目指せ！' },
     // 今後他のゲームを追加可能
     { id: 'coming-soon', title: '🔒 COMING SOON', description: '次のアップデートをお楽しみに...' }
   ];
+
+  const handleSelectGame = (gameId: string) => {
+    if (gameId === 'shooting') {
+      navigate('/shooting');
+    }
+  };
 
   return (
     <div style={{
@@ -38,7 +42,7 @@ export default function TopPage({ onSelectGame }: TopPageProps) {
         {games.map((game) => (
           <div
             key={game.id}
-            onClick={() => game.id !== 'coming-soon' && onSelectGame(game.id)}
+            onClick={() => handleSelectGame(game.id)}
             style={{
               padding: '2rem',
               borderRadius: '1rem',
