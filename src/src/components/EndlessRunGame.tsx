@@ -7,11 +7,15 @@ export default function EndlessRunGame() {
   useEffect(() => {
     if (!gameRef.current) return;
 
+    const JUMP_VELOCITY = -1400;
+    const GRAVITY = 3000;
+
     let background: Phaser.GameObjects.TileSprite;
     let groundTop: Phaser.GameObjects.TileSprite;
     let groundCenter: Phaser.GameObjects.TileSprite;
     let groundBottom: Phaser.GameObjects.TileSprite;
     let player: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
+    let obstacles: Phaser.Physics.Arcade.Group;
     let cursors: Phaser.Types.Input.Keyboard.CursorKeys;
 
     function preload(this: Phaser.Scene) {
@@ -23,6 +27,9 @@ export default function EndlessRunGame() {
       this.load.image('player_walk1', '/assets/platformer-pack/Sprites/Characters/Default/character_green_walk_a.png');
       this.load.image('player_walk2', '/assets/platformer-pack/Sprites/Characters/Default/character_green_walk_b.png');
       this.load.image('player_jump', '/assets/platformer-pack/Sprites/Characters/Default/character_green_jump.png');
+
+      this.load.image('hill_top', '/assets/platformer-pack/Sprites/Tiles/Default/hill_top_smile.png');
+      this.load.image('hill_base', '/assets/platformer-pack/Sprites/Tiles/Default/hill.png');
     }
 
     function create(this: Phaser.Scene) {
@@ -53,8 +60,44 @@ export default function EndlessRunGame() {
 
       this.physics.add.collider(player, groundTop);
 
+      obstacles = this.physics.add.group();
+
+      this.physics.add.overlap(player, obstacles, () => {
+        player.setTint(0xff0000);
+        this.time.delayedCall(100, () => player.clearTint());
+      });
+
+      this.time.addEvent({
+        delay: Phaser.Math.Between(1500, 3000),
+        callback: spawnObstacle,
+        callbackScope: this,
+        loop: true
+      });
+
       if (this.input.keyboard) {
         cursors = this.input.keyboard.createCursorKeys();
+      }
+    }
+
+    function spawnObstacle(this: Phaser.Scene) {
+      const { width } = this.scale;
+      const tileSize = 64;
+      const groundY = this.scale.height - (tileSize * 3);
+      const heightInBlocks = Phaser.Math.Between(1, 3);
+
+      for (let i = 0; i < heightInBlocks; i++) {
+        const x = width + 100;
+        const y = groundY - (i * tileSize);
+        const key = (i === heightInBlocks - 1) ? 'hill_top' : 'hill_base';
+
+        const block = obstacles.create(x, y, key) as Phaser.Physics.Arcade.Sprite;
+        block.setOrigin(0.5, 1);
+
+        if (block.body instanceof Phaser.Physics.Arcade.Body) {
+          block.body.allowGravity = false;
+          block.body.immovable = true;
+        }
+        block.setVelocityX(-450);
       }
     }
 
@@ -71,7 +114,7 @@ export default function EndlessRunGame() {
       const isGrounded = player.body.touching.down;
 
       if (cursors.space.isDown && isGrounded) {
-        player.setVelocityY(-1700);
+        player.setVelocityY(JUMP_VELOCITY);
         player.setTexture('player_jump');
         player.anims.stop();
       }
@@ -81,6 +124,13 @@ export default function EndlessRunGame() {
       } else if (player.body.velocity.y === 0 && !player.anims.isPlaying) {
         player.play('run');
       }
+
+      obstacles.getChildren().forEach((obs) => {
+        const obstacle = obs as Phaser.Physics.Arcade.Sprite;
+        if (obstacle.x < -100) {
+          obstacle.destroy();
+        }
+      });
     }
 
     const config: Phaser.Types.Core.GameConfig = {
@@ -93,7 +143,7 @@ export default function EndlessRunGame() {
       physics: {
         default: 'arcade',
         arcade: {
-          gravity: { x: 0, y: 3000 },
+          gravity: { x: 0, y: GRAVITY },
           debug: false
         }
       },
