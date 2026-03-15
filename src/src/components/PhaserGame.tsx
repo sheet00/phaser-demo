@@ -11,14 +11,16 @@ export default function PhaserGame() {
     let player: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     let cursors: Phaser.Types.Input.Keyboard.CursorKeys;
     let lasers: Phaser.Physics.Arcade.Group;
+    let enemies: Phaser.Physics.Arcade.Group; // 敵機グループ
     let lastFiredTime = 0;
     let background: Phaser.GameObjects.TileSprite;
 
     function preload(this: Phaser.Scene) {
-      // 背景、宇宙船、レーザーの画像を読み込む
+      // 背景、宇宙船、レーザー、敵機の画像を読み込む
       this.load.image('background', '/assets/space-shooter/Backgrounds/darkPurple.png');
       this.load.image('player', '/assets/space-shooter/PNG/playerShip2_blue.png');
       this.load.image('laser', '/assets/space-shooter/PNG/Lasers/laserBlue01.png');
+      this.load.image('enemy', '/assets/space-shooter/PNG/Enemies/enemyBlack1.png');
     }
 
     function create(this: Phaser.Scene) {
@@ -35,9 +37,23 @@ export default function PhaserGame() {
         maxSize: 30 // 同時に画面に出る最大弾数
       });
 
+      // 敵機のグループを作成
+      enemies = this.physics.add.group();
+
       // プレイヤーを配置
       player = this.physics.add.sprite(width / 2, height - 100, 'player');
       player.setCollideWorldBounds(true);
+
+      // 敵機を1つ配置（画面上部中央）
+      const enemy = enemies.create(width / 2, 100, 'enemy');
+      enemy.setImmovable(true); // 弾が当たっても動かないようにする
+
+      // 当たり判定：レーザーと敵機が重なった場合
+      this.physics.add.overlap(lasers, enemies, (laser, enemy) => {
+        // レーザーと敵機の両方を消滅させる
+        (laser as Phaser.Physics.Arcade.Sprite).disableBody(true, true);
+        (enemy as Phaser.Physics.Arcade.Sprite).disableBody(true, true);
+      });
 
       // キーボード設定
       if (this.input.keyboard) {
@@ -72,8 +88,8 @@ export default function PhaserGame() {
         const laser = lasers.get(player.x, player.y - 20) as Phaser.Physics.Arcade.Sprite;
 
         if (laser) {
-          laser.setActive(true);
-          laser.setVisible(true);
+          // 物理ボディーを有効化して位置を設定し、表示状態にする
+          laser.enableBody(true, player.x, player.y - 20, true, true);
           laser.setVelocityY(-600); // 上方向に飛ばす
           lastFiredTime = time + 250; // 0.25秒のクールタイム
         }
@@ -83,9 +99,7 @@ export default function PhaserGame() {
       lasers.children.iterate((child) => {
         const laser = child as Phaser.Physics.Arcade.Sprite;
         if (laser.active && laser.y < 0) {
-          laser.setActive(false);
-          laser.setVisible(false);
-          laser.body?.stop(); // 物理挙動を停止
+          laser.disableBody(true, true); // 物理ボディーを無効化して非表示にする
         }
         return true;
       });
