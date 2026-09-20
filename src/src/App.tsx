@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import PhaserGame from './components/PhaserGame';
 import TopPage from './components/TopPage';
 import UfoPopperGame from './components/UfoPopperGame';
@@ -7,6 +7,7 @@ import EndlessRunGame from './components/EndlessRunGame';
 import RpgGame from './components/RpgGame';
 import FallingGame from './components/FallingGame';
 import OldTestamentRpgGame from './components/old-testament-rpg/OldTestamentRpgGame';
+import { CHAPTERS, getChapterPath } from './components/old-testament-rpg/chapters';
 import './App.css';
 
 /**
@@ -50,6 +51,11 @@ function TitleUpdater() {
   const location = useLocation();
 
   useEffect(() => {
+    const chapter = CHAPTERS.find(entry => location.pathname === getChapterPath(entry.number));
+    if (chapter?.available) {
+      document.title = `PHASER DEMO - 第${chapter.number}章 ${chapter.title}`;
+      return;
+    }
     switch (location.pathname) {
       case '/shooting':
         document.title = 'PHASER DEMO - SPACE SHOOTER';
@@ -88,7 +94,8 @@ function App() {
         <Route path="/ufo-popper" element={<GameLayout><UfoPopperGame /></GameLayout>} />
         <Route path="/endless-run" element={<GameLayout><EndlessRunGame /></GameLayout>} />
         <Route path="/falling" element={<GameLayout><FallingGame /></GameLayout>} />
-        <Route path="/old-testament-rpg" element={<GameLayout><OldTestamentRpgGame /></GameLayout>} />
+        <Route path="/old-testament-rpg" element={<Navigate to={getChapterPath(1)} replace />} />
+        <Route path="/old-testament-rpg/:chapterId" element={<GameLayout><OldTestamentRpgGame /></GameLayout>} />
       </Routes>
     </Router>
   );

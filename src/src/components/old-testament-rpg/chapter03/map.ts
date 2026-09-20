@@ -33,14 +33,15 @@ export function createBush(scene: Phaser.Scene, x: number, y: number) {
 
 export function createSheep(scene: Phaser.Scene, x: number, y: number) {
   const sheep = scene.add.container(x, y).setDepth(26);
-  const wool = scene.add.graphics();
-  wool.fillStyle(0xf5efe1, 1).fillCircle(-25, 0, 22).fillCircle(0, -9, 28).fillCircle(25, 0, 22);
-  const face = scene.add.graphics();
-  face.fillStyle(0x403c3b, 1).fillCircle(40, -4, 15);
-  face.lineStyle(4, 0xd4b36a, 1).arc(42, -12, 15, Math.PI * 1.15, Math.PI * 1.8).strokePath();
-  face.fillCircle(45, -7, 2);
-  const legs = scene.add.graphics();
-  legs.lineStyle(6, 0x403c3b, 1).lineBetween(-18, 17, -18, 35).lineBetween(14, 17, 14, 35);
-  sheep.add([wool, face, legs]);
+  const body = scene.add.image(0, 0, 'abraham_ram').setScale(0.95);
+  const horns = scene.add.graphics();
+  horns.lineStyle(3, 0xd4a048, 1);
+  // 左の巻き角
+  horns.arc(-16, -18, 6, Math.PI * 0.25, Math.PI * 1.75);
+  horns.strokePath();
+  // 右の巻き角
+  horns.arc(10, -16, 6, Math.PI * 1.25, Math.PI * 2.75);
+  horns.strokePath();
+  sheep.add([body, horns]);
   return sheep;
 }

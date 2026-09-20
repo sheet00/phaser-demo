@@ -38,7 +38,9 @@ export default class NoahChapterScene extends Phaser.Scene {
     this.load.spritesheet('noah_tiles', '/assets/roguelike-rpg-pack/Spritesheet/roguelikeSheet_transparent.png', {
       frameWidth: 16, frameHeight: 16, spacing: 1
     });
-    this.load.image('noah_person', '/assets/platformer-pack/Sprites/Characters/Default/character_beige_idle.png');
+    this.load.spritesheet('roguelike_characters', '/assets/roguelike-characters/Spritesheet/roguelikeChar_transparent.png', {
+      frameWidth: 16, frameHeight: 16, spacing: 1
+    });
     for (const name of ['lion', 'deer', 'bunny', 'parrot']) {
       this.load.image(`noah_${name}`, `/assets/cube-pets/Previews/animal-${name}.png`);
     }
@@ -51,10 +53,10 @@ export default class NoahChapterScene extends Phaser.Scene {
     this.physics.world.setBounds(24, 170, 912, 492);
     this.scenery = this.add.container(0, 0);
     this.boat = buildArkMap(this, this.scenery);
-    this.player = this.physics.add.sprite(480, 470, 'noah_person').setScale(0.52).setDepth(20);
+    this.player = this.physics.add.sprite(480, 470, 'roguelike_characters', 271).setScale(4.0).setDepth(20);
     this.player.setCollideWorldBounds(true);
-    this.player.body!.setSize(48, 36);
-    this.player.body!.setOffset(40, 88);
+    this.player.body!.setSize(12, 10);
+    this.player.body!.setOffset(2, 6);
     this.playerLabel = this.add.text(480, 425, 'ノア', {
       fontFamily: FONT_FAMILY, fontSize: '15px', color: '#ffffff', backgroundColor: '#26352c',
       resolution: 3, padding: { top: 6, bottom: 4, left: 6, right: 6 }
@@ -192,8 +194,10 @@ export default class NoahChapterScene extends Phaser.Scene {
     this.phase = 'babel';
     buildBabelMap(this, this.scenery);
     this.player.setPosition(480, 580).setVisible(true);
+    this.player.setFrame(378);
     this.playerLabel.setText('ノアの子孫').setVisible(true);
-    this.builders = [330, 420, 560, 650].map((x, index) => this.add.sprite(x, 455 + index % 2 * 35, 'noah_person').setScale(0.46).setTint([0xd1a96b, 0xadc6d1, 0xc6b494, 0xc2d29b][index]).setDepth(20));
+    const builderFrames = [325, 432, 487, 541];
+    this.builders = [330, 420, 560, 650].map((x, index) => this.add.sprite(x, 455 + index % 2 * 35, 'roguelike_characters', builderFrames[index]).setScale(3.6).setDepth(20));
     this.builderLabels = this.builders.map((builder, index) => {
       const label = this.add.text(builder.x, builder.y - 45, index % 2 ? 'レンガを運ぶ' : '積もう！', {
         fontFamily: FONT_FAMILY, fontSize: '14px', color: '#fff4d6', backgroundColor: '#594833',

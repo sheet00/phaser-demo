@@ -6,7 +6,7 @@ import { createEdenUI } from './ui';
 
 export function createEdenScene(onNextChapter: () => void) {
   const PET_SCALE = 1.6; // 64px の Cube Pets を約 102px に拡大
-  const PLAYER_SCALE = 0.82; // 128px の人型スプライトを約 105px に調整
+  const PLAYER_SCALE = 5.2; // 16px スプライトを約 83px に調整
   const PLAYER_SPEED = 340; // 快適な移動速度
 
   let player: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
@@ -81,7 +81,11 @@ export function createEdenScene(onNextChapter: () => void) {
       spacing: 1
     });
 
-    this.load.image('player_adam', '/assets/platformer-pack/Sprites/Characters/Default/character_beige_idle.png');
+    this.load.spritesheet('roguelike_characters', '/assets/roguelike-characters/Spritesheet/roguelikeChar_transparent.png', {
+      frameWidth: 16,
+      frameHeight: 16,
+      spacing: 1
+    });
     this.load.image('pet_dog', '/assets/cube-pets/Previews/animal-dog.png');
     this.load.image('pet_lion', '/assets/cube-pets/Previews/animal-lion.png');
     this.load.image('pet_deer', '/assets/cube-pets/Previews/animal-deer.png');
@@ -103,15 +107,14 @@ export function createEdenScene(onNextChapter: () => void) {
     spawnEdenPets.call(this);
 
     // プレイヤー（最初の人間：アダム）生成
-    player = this.physics.add.sprite(1100, 950, 'player_adam');
+    player = this.physics.add.sprite(1100, 950, 'roguelike_characters', 378);
     player.setCollideWorldBounds(true);
     player.setScale(PLAYER_SCALE);
-    // 足元に合わせた物理当たり判定
-    player.body.setSize(48, 36);
-    player.body.setOffset(40, 88);
+    player.body.setSize(12, 10);
+    player.body.setOffset(2, 6);
 
     // 頭上ネームタグ
-    playerTag = this.add.container(player.x, player.y - 68).setDepth(2000);
+    playerTag = this.add.container(player.x, player.y - 54).setDepth(2000);
     const tagBg = this.add.rectangle(0, 0, 76, 24, 0x111111, 0.85)
       .setStrokeStyle(1.5, 0x2ecc71);
     const tagText = this.add.text(0, 0, 'アダム', {
@@ -552,7 +555,7 @@ export function createEdenScene(onNextChapter: () => void) {
   function update(this: Phaser.Scene) {
     player.setDepth(player.y + 35);
     if (playerTag) {
-      playerTag.setPosition(player.x, player.y - 74);
+      playerTag.setPosition(player.x, player.y - 54);
       playerTag.setDepth(player.y + 36);
     }
 
@@ -579,8 +582,8 @@ export function createEdenScene(onNextChapter: () => void) {
       promptBubbleText.setText(actionStr);
       promptBubbleBg.setSize(promptBubbleText.width + 36, 44);
 
-      // 大型化したフキダシの位置調整（頭上ネームタグの上部に配置）
-      promptBubble.setPosition(player.x, player.y - 112);
+      // フキダシの位置調整（頭上ネームタグの上部に配置）
+      promptBubble.setPosition(player.x, player.y - 92);
       promptBubble.setVisible(true);
 
       if (keySpace && Phaser.Input.Keyboard.JustDown(keySpace)) {

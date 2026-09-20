@@ -33,7 +33,9 @@ export default class AbrahamScene extends Phaser.Scene {
 
   preload() {
     this.load.spritesheet('abraham_tiles', '/assets/roguelike-rpg-pack/Spritesheet/roguelikeSheet_transparent.png', { frameWidth: 16, frameHeight: 16, spacing: 1 });
-    this.load.image('abraham_person', '/assets/platformer-pack/Sprites/Characters/Default/character_beige_idle.png');
+    this.load.spritesheet('roguelike_characters', '/assets/roguelike-characters/Spritesheet/roguelikeChar_transparent.png', { frameWidth: 16, frameHeight: 16, spacing: 1 });
+    this.load.image('angel_alien', '/assets/platformer-pack/Sprites/Characters/Default/character_yellow_idle.png');
+    this.load.image('abraham_ram', '/assets/cube-pets/Previews/animal-polar.png');
   }
 
   create() {
@@ -43,14 +45,14 @@ export default class AbrahamScene extends Phaser.Scene {
     this.scenery = this.add.container(0, 0);
     this.altar = buildAbrahamMap(this, this.scenery);
     this.createStars();
-    this.player = this.physics.add.sprite(280, 560, 'abraham_person').setScale(0.52).setDepth(25);
-    this.player.setCollideWorldBounds(true).body!.setSize(48, 36).setOffset(40, 88);
+    this.player = this.physics.add.sprite(280, 560, 'roguelike_characters', 486).setScale(4.0).setDepth(25);
+    this.player.setCollideWorldBounds(true).body!.setSize(12, 10).setOffset(2, 6);
     this.playerLabel = this.add.text(280, 508, 'アブラハム（父）', {
       fontFamily: FONT_FAMILY, fontSize: '15px', color: '#fff8e7', backgroundColor: '#344f7a',
       resolution: 3, padding: { top: 6, bottom: 4, left: 6, right: 6 }
     }).setOrigin(0.5).setDepth(30);
-    this.isaac = this.add.sprite(215, 568, 'abraham_person').setScale(0.43).setTint(0xd5bd9d).setDepth(24);
-    this.isaacLabel = this.add.text(215, 540, 'イサク（息子）', {
+    this.isaac = this.add.sprite(235, 564, 'roguelike_characters', 378).setScale(3.3).setDepth(24);
+    this.isaacLabel = this.add.text(235, 532, 'イサク（息子）', {
       fontFamily: FONT_FAMILY, fontSize: '13px', color: '#fff0c2', backgroundColor: '#3f463c',
       resolution: 3, padding: { top: 5, bottom: 3, left: 6, right: 6 }
     }).setOrigin(0.5).setDepth(30);
@@ -154,15 +156,15 @@ export default class AbrahamScene extends Phaser.Scene {
   private createAngel() {
     this.angelGlow = this.add.graphics().setDepth(22).setAlpha(0);
     this.angelGlow.fillStyle(0xffe6a1, 0.25).fillCircle(624, 260, 60);
-    this.angel = this.add.sprite(624, 260, 'abraham_person').setScale(0.55).setTint(0xffedb0).setDepth(25).setAlpha(0);
-    this.angelLabel = this.add.text(624, 210, '御使い（天の使い）', {
+    this.angel = this.add.sprite(624, 260, 'angel_alien').setScale(0.55).setTint(0xffedb0).setDepth(25).setAlpha(0);
+    this.angelLabel = this.add.text(624, 205, '御使い（天の使い）', {
       fontFamily: FONT_FAMILY, fontSize: '16px', color: '#fff8d8', backgroundColor: '#705c2b',
       resolution: 3, padding: { top: 6, bottom: 4, left: 6, right: 6 }
     }).setOrigin(0.5).setDepth(30).setAlpha(0);
   }
 
   private afterAngel() {
-    this.tweens.add({ targets: [this.isaac, this.isaacLabel], x: this.player.x - 65, y: this.player.y + 8, duration: 600, onComplete: () => {
+    this.tweens.add({ targets: [this.isaac, this.isaacLabel], x: this.player.x - 45, y: this.player.y + 4, duration: 600, onComplete: () => {
       this.angel?.setAlpha(0.85);
       this.angelLabel?.setText('御使い（守り）');
       this.time.delayedCall(500, () => this.revealSheep());
@@ -215,9 +217,10 @@ export default class AbrahamScene extends Phaser.Scene {
 
   update() {
     if (!this.player) return;
-    this.playerLabel.setPosition(this.player.x, this.player.y - 52);
-    this.isaac.setPosition(this.player.x - (this.player.flipX ? -65 : 65), this.player.y + 8);
-    this.isaacLabel.setPosition(this.isaac.x, this.isaac.y - 28);
+    this.playerLabel.setPosition(this.player.x, this.player.y - 44);
+    this.isaac.setPosition(this.player.x - (this.player.flipX ? -45 : 45), this.player.y + 4);
+    this.isaac.setFlipX(this.player.flipX);
+    this.isaacLabel.setPosition(this.isaac.x, this.isaac.y - 32);
     const action = Phaser.Input.Keyboard.JustDown(this.keys.SPACE);
     if (this.pages.length) { if (action) this.advanceDialogue(); return; }
     if (this.phase !== 'travel' && this.phase !== 'ram') return;
