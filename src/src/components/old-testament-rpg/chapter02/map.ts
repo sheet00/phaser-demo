@@ -27,7 +27,11 @@ export function buildArkMap(scene: Phaser.Scene, scenery: Phaser.GameObjects.Con
   tile(10, 4, 123, boat);
   tile(9, 5, 123);
   tile(10, 5, 123);
-  boat.add(scene.add.text(480, 163, 'ノアの箱舟', { padding: { top: 6, bottom: 4, left: 4, right: 4 }, fontSize: '19px', color: '#fff0c2', backgroundColor: '#513c27' }).setOrigin(0.5));
+  boat.add(scene.add.text(480, 163, 'ノアの箱舟', {
+    fontFamily: '"Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif',
+    fontSize: '19px', color: '#fff0c2', backgroundColor: '#513c27', fontStyle: 'bold',
+    resolution: 3, padding: { top: 6, bottom: 4, left: 6, right: 6 }
+  }).setOrigin(0.5));
   scenery.add(scene.add.rectangle(480, 390, 960, 560, 0x172b44, 0.28));
   return boat;
 }
@@ -42,7 +46,11 @@ export function buildBabelMap(scene: Phaser.Scene, scenery: Phaser.GameObjects.C
     tile(c, r, 119);
     tile(c + 1, r, 22);
   }
-  scenery.add(scene.add.text(480, 398, 'バベルの塔', { padding: { top: 6, bottom: 4, left: 4, right: 4 }, fontSize: '19px', color: '#ffffff', backgroundColor: '#675132' }).setOrigin(0.5));
+  scenery.add(scene.add.text(480, 398, 'バベルの塔', {
+    fontFamily: '"Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif',
+    fontSize: '19px', color: '#ffffff', backgroundColor: '#675132', fontStyle: 'bold',
+    resolution: 3, padding: { top: 6, bottom: 4, left: 6, right: 6 }
+  }).setOrigin(0.5));
 }
 
 export function addBabelTier(scene: Phaser.Scene, scenery: Phaser.GameObjects.Container, tier: number) {

@@ -16,9 +16,10 @@ export function buildAbrahamMap(scene: Phaser.Scene, scenery: Phaser.GameObjects
   }
   const altar = scene.add.container(0, 0).setDepth(12);
   for (const [col, row] of [[12, 7], [13, 7], [12, 8], [13, 8]]) addAbrahamTile(scene, altar, col, row, 119);
-  for (const [col, row] of [[11, 7], [14, 7], [11, 8], [14, 8]]) addAbrahamTile(scene, altar, col, row, 178);
   scenery.add(scene.add.text(624, 408, 'モリア山の祭壇', {
-    padding: { top: 6, bottom: 4, left: 4, right: 4 }, fontSize: '17px', color: '#fff0c2', backgroundColor: '#513c27'
+    fontFamily: '"Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", Meiryo, sans-serif',
+    fontSize: '17px', color: '#fff0c2', backgroundColor: '#513c27',
+    resolution: 3, padding: { top: 6, bottom: 4, left: 6, right: 6 }
   }).setOrigin(0.5).setDepth(30));
   return altar;
 }

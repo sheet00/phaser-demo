@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { buildAbrahamMap, createBush, createSheep } from './map';
 
+const FONT_FAMILY = '"Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif';
+
 type Phase = 'stars' | 'travel' | 'altar' | 'ram' | 'offering' | 'complete';
 
 export default class AbrahamScene extends Phaser.Scene {
@@ -35,6 +37,8 @@ export default class AbrahamScene extends Phaser.Scene {
   }
 
   create() {
+    this.updateCameraView();
+    this.scale.on('resize', () => this.updateCameraView());
     this.physics.world.setBounds(24, 170, 912, 492);
     this.scenery = this.add.container(0, 0);
     this.altar = buildAbrahamMap(this, this.scenery);
@@ -42,21 +46,33 @@ export default class AbrahamScene extends Phaser.Scene {
     this.player = this.physics.add.sprite(280, 560, 'abraham_person').setScale(0.52).setDepth(25);
     this.player.setCollideWorldBounds(true).body!.setSize(48, 36).setOffset(40, 88);
     this.playerLabel = this.add.text(280, 508, 'アブラハム（父）', {
-      padding: { top: 6, bottom: 4, left: 4, right: 4 }, fontSize: '15px', color: '#fff8e7', backgroundColor: '#344f7a'
+      fontFamily: FONT_FAMILY, fontSize: '15px', color: '#fff8e7', backgroundColor: '#344f7a',
+      resolution: 3, padding: { top: 6, bottom: 4, left: 6, right: 6 }
     }).setOrigin(0.5).setDepth(30);
     this.isaac = this.add.sprite(215, 568, 'abraham_person').setScale(0.43).setTint(0xd5bd9d).setDepth(24);
     this.isaacLabel = this.add.text(215, 540, 'イサク（息子）', {
-      padding: { top: 6, bottom: 4, left: 4, right: 4 }, fontSize: '13px', color: '#fff0c2', backgroundColor: '#3f463c'
+      fontFamily: FONT_FAMILY, fontSize: '13px', color: '#fff0c2', backgroundColor: '#3f463c',
+      resolution: 3, padding: { top: 5, bottom: 3, left: 6, right: 6 }
     }).setOrigin(0.5).setDepth(30);
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.keys = this.input.keyboard!.addKeys('W,A,S,D,SPACE') as typeof this.keys;
     this.add.rectangle(480, 54, 928, 90, 0x101a35, 0.96).setStrokeStyle(1, 0xb79a56).setDepth(100);
-    this.add.text(32, 18, '第3章  アブラハムとイサク', { padding: { top: 6, bottom: 4, left: 4, right: 4 }, fontSize: '20px', color: '#e5c77e' }).setDepth(101);
-    this.add.text(650, 18, '操作: アブラハム（父）　同行: イサク（息子）', {
-      padding: { top: 6, bottom: 4, left: 4, right: 4 }, fontSize: '14px', color: '#fff2d0'
+    this.add.text(32, 18, '第3章  アブラハムとイサク', {
+      fontFamily: FONT_FAMILY, fontSize: '20px', color: '#e5c77e', fontStyle: 'bold',
+      resolution: 3, padding: { top: 6, bottom: 4, left: 4, right: 4 }
     }).setDepth(101);
-    this.command = this.add.text(32, 51, '', { padding: { top: 6, bottom: 4, left: 4, right: 4 }, fontSize: '17px', color: '#fff2d0', wordWrap: { width: 880 } }).setDepth(101);
-    this.hint = this.add.text(480, 696, '矢印 / WASD / タップで移動 · SPACE / タップで調べる', { padding: { top: 6, bottom: 4, left: 4, right: 4 }, fontSize: '14px', color: '#ffffff', backgroundColor: '#19203b' }).setOrigin(0.5).setDepth(101);
+    this.add.text(650, 18, '操作: アブラハム（父）　同行: イサク（息子）', {
+      fontFamily: FONT_FAMILY, fontSize: '14px', color: '#fff2d0',
+      resolution: 3, padding: { top: 6, bottom: 4, left: 4, right: 4 }
+    }).setDepth(101);
+    this.command = this.add.text(32, 51, '', {
+      fontFamily: FONT_FAMILY, fontSize: '17px', color: '#fff2d0', wordWrap: { width: 880 },
+      resolution: 3, padding: { top: 6, bottom: 4, left: 4, right: 4 }
+    }).setDepth(101);
+    this.hint = this.add.text(480, 696, '矢印 / WASD / タップで移動 · SPACE / タップで調べる', {
+      fontFamily: FONT_FAMILY, fontSize: '14px', color: '#ffffff', backgroundColor: '#19203b',
+      resolution: 3, padding: { top: 6, bottom: 4, left: 8, right: 8 }
+    }).setOrigin(0.5).setDepth(101);
     this.createDialogue();
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (this.pages.length) { this.advanceDialogue(); return; }
@@ -88,15 +104,31 @@ export default class AbrahamScene extends Phaser.Scene {
       const y = 155 + (i * 47) % 155;
       stars.fillStyle(i % 4 === 0 ? 0xffe4a3 : 0xffffff, 0.9).fillCircle(x, y, i % 5 === 0 ? 3 : 2);
     }
-    this.add.text(480, 185, '数えきれない星の約束', { padding: { top: 6, bottom: 4, left: 4, right: 4 }, fontSize: '18px', color: '#ffe7a6', backgroundColor: '#1a2749' }).setOrigin(0.5).setDepth(30);
+    this.add.text(480, 185, '数えきれない星の約束', {
+      fontFamily: FONT_FAMILY, fontSize: '18px', color: '#ffe7a6', fontStyle: 'bold',
+      backgroundColor: '#1a2749', resolution: 3, padding: { top: 6, bottom: 4, left: 8, right: 8 }
+    }).setOrigin(0.5).setDepth(30);
   }
 
   private createDialogue() {
     this.dialogue = this.add.container(0, 0).setDepth(200).setVisible(false);
     this.dialogue.add(this.add.rectangle(480, 595, 916, 180, 0x11182d, 0.98).setStrokeStyle(2, 0xb79a56));
-    this.speaker = this.add.text(42, 517, '', { padding: { top: 8, bottom: 4, left: 4, right: 4 }, fontSize: '20px', color: '#e5c77e' });
-    this.speech = this.add.text(42, 556, '', { padding: { top: 8, bottom: 6, left: 4, right: 4 }, fontSize: '19px', color: '#ffffff', lineSpacing: 8, wordWrap: { width: 870 } });
-    this.dialogue.add([this.speaker, this.speech, this.add.text(906, 648, 'SPACE / タップで次へ', { padding: { top: 6, bottom: 4, left: 4, right: 4 }, fontSize: '14px', color: '#d5c9a7' }).setOrigin(1, 0)]);
+    this.speaker = this.add.text(42, 517, '', {
+      fontFamily: FONT_FAMILY, fontSize: '20px', color: '#e5c77e', fontStyle: 'bold',
+      resolution: 3, padding: { top: 8, bottom: 4, left: 4, right: 4 }
+    });
+    this.speech = this.add.text(42, 556, '', {
+      fontFamily: FONT_FAMILY, fontSize: '19px', color: '#ffffff', lineSpacing: 8, wordWrap: { width: 870 },
+      resolution: 3, padding: { top: 8, bottom: 6, left: 4, right: 4 }
+    });
+    this.dialogue.add([
+      this.speaker,
+      this.speech,
+      this.add.text(906, 648, 'SPACE / タップで次へ', {
+        fontFamily: FONT_FAMILY, fontSize: '14px', color: '#d5c9a7',
+        resolution: 3, padding: { top: 6, bottom: 4, left: 4, right: 4 }
+      }).setOrigin(1, 0)
+    ]);
   }
 
   private setCommand(text: string) { this.command.setText(`神からの司令  ${text}`); }
@@ -124,7 +156,8 @@ export default class AbrahamScene extends Phaser.Scene {
     this.angelGlow.fillStyle(0xffe6a1, 0.25).fillCircle(624, 260, 60);
     this.angel = this.add.sprite(624, 260, 'abraham_person').setScale(0.55).setTint(0xffedb0).setDepth(25).setAlpha(0);
     this.angelLabel = this.add.text(624, 210, '御使い（天の使い）', {
-      padding: { top: 6, bottom: 4, left: 4, right: 4 }, fontSize: '16px', color: '#fff8d8', backgroundColor: '#705c2b'
+      fontFamily: FONT_FAMILY, fontSize: '16px', color: '#fff8d8', backgroundColor: '#705c2b',
+      resolution: 3, padding: { top: 6, bottom: 4, left: 6, right: 6 }
     }).setOrigin(0.5).setDepth(30).setAlpha(0);
   }
 
@@ -141,7 +174,10 @@ export default class AbrahamScene extends Phaser.Scene {
     this.phase = 'ram';
     createBush(this, 780, 435);
     this.sheep = createSheep(this, 780, 435).setAlpha(0);
-    this.sheepLabel = this.add.text(780, 385, '茂みに現れた雄羊', { padding: { top: 6, bottom: 4, left: 4, right: 4 }, fontSize: '15px', color: '#fff8e7', backgroundColor: '#38533c' }).setOrigin(0.5).setDepth(30).setAlpha(0);
+    this.sheepLabel = this.add.text(780, 385, '茂みに現れた雄羊', {
+      fontFamily: FONT_FAMILY, fontSize: '15px', color: '#fff8e7', backgroundColor: '#38533c',
+      resolution: 3, padding: { top: 6, bottom: 4, left: 6, right: 6 }
+    }).setOrigin(0.5).setDepth(30).setAlpha(0);
     this.tweens.add({ targets: [this.sheep, this.sheepLabel], alpha: 1, y: '-=12', duration: 550 });
     this.setCommand('角を茂みに取られた雄羊を見つけなさい。');
     this.hint.setText('雄羊に近づき SPACE / タップで調べる');
@@ -194,5 +230,11 @@ export default class AbrahamScene extends Phaser.Scene {
     if (movement.x) this.player.setFlipX(movement.x < 0);
     if (this.phase === 'travel' && action) this.altarAction();
     if (this.phase === 'ram' && action) this.ramAction();
+  }
+
+  private updateCameraView() {
+    const zoom = Math.min(this.scale.width / 960, this.scale.height / 720);
+    this.cameras.main.setZoom(zoom);
+    this.cameras.main.centerOn(480, 360);
   }
 }

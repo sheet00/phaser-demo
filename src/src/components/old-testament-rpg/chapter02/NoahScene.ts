@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { addBabelBlock, addNoahTile, buildArkMap, buildBabelMap } from './map';
 
+const FONT_FAMILY = '"Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif';
+
 type Phase = 'rescue' | 'flood' | 'covenant' | 'babel' | 'babelBuilding' | 'scattering' | 'complete';
 type AnimalPair = { sprites: Phaser.GameObjects.Image[]; label: Phaser.GameObjects.Text; saved: boolean };
 
@@ -44,6 +46,8 @@ export default class NoahChapterScene extends Phaser.Scene {
   }
 
   create() {
+    this.updateCameraView();
+    this.scale.on('resize', () => this.updateCameraView());
     this.physics.world.setBounds(24, 170, 912, 492);
     this.scenery = this.add.container(0, 0);
     this.boat = buildArkMap(this, this.scenery);
@@ -51,20 +55,41 @@ export default class NoahChapterScene extends Phaser.Scene {
     this.player.setCollideWorldBounds(true);
     this.player.body!.setSize(48, 36);
     this.player.body!.setOffset(40, 88);
-    this.playerLabel = this.add.text(480, 425, 'ノア', { padding: { top: 6, bottom: 4, left: 4, right: 4 }, fontSize: '15px', color: '#ffffff', backgroundColor: '#26352c' }).setOrigin(0.5).setDepth(21);
+    this.playerLabel = this.add.text(480, 425, 'ノア', {
+      fontFamily: FONT_FAMILY, fontSize: '15px', color: '#ffffff', backgroundColor: '#26352c',
+      resolution: 3, padding: { top: 6, bottom: 4, left: 6, right: 6 }
+    }).setOrigin(0.5).setDepth(21);
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.keys = this.input.keyboard!.addKeys('W,A,S,D,SPACE') as typeof this.keys;
     this.createPairs();
     this.rain = this.add.graphics().setDepth(40);
     this.add.rectangle(480, 54, 928, 90, 0x14251d, 0.96).setStrokeStyle(1, 0xb79a56).setDepth(100);
-    this.add.text(32, 18, '第2章  ノアの箱舟とバベルの塔', { padding: { top: 6, bottom: 4, left: 4, right: 4 }, fontSize: '20px', color: '#e5c77e' }).setDepth(101);
-    this.command = this.add.text(32, 51, '', { padding: { top: 6, bottom: 4, left: 4, right: 4 }, fontSize: '17px', color: '#fff2d0', wordWrap: { width: 880 } }).setDepth(101);
-    this.hint = this.add.text(480, 696, '矢印 / WASD / タップで移動 · SPACE / タップで調べる', { padding: { top: 6, bottom: 4, left: 4, right: 4 }, fontSize: '14px', color: '#ffffff', backgroundColor: '#19251c' }).setOrigin(0.5).setDepth(101);
+    this.add.text(32, 18, '第2章  ノアの箱舟とバベルの塔', {
+      fontFamily: FONT_FAMILY, fontSize: '20px', color: '#e5c77e', fontStyle: 'bold',
+      resolution: 3, padding: { top: 6, bottom: 4, left: 4, right: 4 }
+    }).setDepth(101);
+    this.command = this.add.text(32, 51, '', {
+      fontFamily: FONT_FAMILY, fontSize: '17px', color: '#fff2d0', wordWrap: { width: 880 },
+      resolution: 3, padding: { top: 6, bottom: 4, left: 4, right: 4 }
+    }).setDepth(101);
+    this.hint = this.add.text(480, 696, '矢印 / WASD / タップで移動 · SPACE / タップで調べる', {
+      fontFamily: FONT_FAMILY, fontSize: '14px', color: '#ffffff', backgroundColor: '#19251c',
+      resolution: 3, padding: { top: 6, bottom: 4, left: 8, right: 8 }
+    }).setOrigin(0.5).setDepth(101);
     this.dialogue = this.add.container(0, 0).setDepth(200).setVisible(false);
     const panel = this.add.rectangle(480, 595, 916, 180, 0x111b17, 0.98).setStrokeStyle(2, 0xb79a56);
-    this.speaker = this.add.text(42, 517, '', { padding: { top: 8, bottom: 4, left: 4, right: 4 }, fontSize: '20px', color: '#e5c77e' });
-    this.speech = this.add.text(42, 556, '', { padding: { top: 8, bottom: 6, left: 4, right: 4 }, fontSize: '19px', color: '#ffffff', lineSpacing: 8, wordWrap: { width: 870 } });
-    const next = this.add.text(906, 648, 'SPACE / タップで次へ', { padding: { top: 6, bottom: 4, left: 4, right: 4 }, fontSize: '14px', color: '#d5c9a7' }).setOrigin(1, 0);
+    this.speaker = this.add.text(42, 517, '', {
+      fontFamily: FONT_FAMILY, fontSize: '20px', color: '#e5c77e', fontStyle: 'bold',
+      resolution: 3, padding: { top: 8, bottom: 4, left: 4, right: 4 }
+    });
+    this.speech = this.add.text(42, 556, '', {
+      fontFamily: FONT_FAMILY, fontSize: '19px', color: '#ffffff', lineSpacing: 8, wordWrap: { width: 870 },
+      resolution: 3, padding: { top: 8, bottom: 6, left: 4, right: 4 }
+    });
+    const next = this.add.text(906, 648, 'SPACE / タップで次へ', {
+      fontFamily: FONT_FAMILY, fontSize: '14px', color: '#d5c9a7',
+      resolution: 3, padding: { top: 6, bottom: 4, left: 4, right: 4 }
+    }).setOrigin(1, 0);
     this.dialogue.add([panel, this.speaker, this.speech, next]);
     this.setCommand('ノアよ、つがいの動物たちを箱舟へ導きなさい。 0 / 3組');
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
@@ -96,7 +121,10 @@ export default class NoahChapterScene extends Phaser.Scene {
       const x = [280, 480, 700][index];
       const y = [455, 580, 475][index];
       const sprites = [-23, 23].map(offset => this.add.image(x + offset, y, `noah_${name}`).setScale(0.8).setDepth(22));
-      const label = this.add.text(x, y - 43, '助けを待つつがい', { padding: { top: 6, bottom: 4, left: 4, right: 4 }, fontSize: '13px', color: '#fff0c2', backgroundColor: '#3b4037' }).setOrigin(0.5).setDepth(23);
+      const label = this.add.text(x, y - 43, '助けを待つつがい', {
+        fontFamily: FONT_FAMILY, fontSize: '13px', color: '#fff0c2', backgroundColor: '#3b4037',
+        resolution: 3, padding: { top: 6, bottom: 4, left: 6, right: 6 }
+      }).setOrigin(0.5).setDepth(23);
       this.pairs.push({ sprites, label, saved: false });
       for (const sprite of sprites) {
         this.tweens.add({ targets: sprite, x: sprite.x + 8, duration: 230 + index * 60, yoyo: true, repeat: -1 });
@@ -168,8 +196,8 @@ export default class NoahChapterScene extends Phaser.Scene {
     this.builders = [330, 420, 560, 650].map((x, index) => this.add.sprite(x, 455 + index % 2 * 35, 'noah_person').setScale(0.46).setTint([0xd1a96b, 0xadc6d1, 0xc6b494, 0xc2d29b][index]).setDepth(20));
     this.builderLabels = this.builders.map((builder, index) => {
       const label = this.add.text(builder.x, builder.y - 45, index % 2 ? 'レンガを運ぶ' : '積もう！', {
-        padding: { top: 6, bottom: 4, left: 4, right: 4 },
-        fontSize: '14px', color: '#fff4d6', backgroundColor: '#594833'
+        fontFamily: FONT_FAMILY, fontSize: '14px', color: '#fff4d6', backgroundColor: '#594833',
+        resolution: 3, padding: { top: 6, bottom: 4, left: 6, right: 6 }
       }).setOrigin(0.5).setDepth(30);
       this.tweens.add({ targets: builder, x: builder.x + (index % 2 ? -18 : 18), duration: 420 + index * 40, yoyo: true, repeat: -1 });
       this.tweens.add({ targets: label, x: label.x + (index % 2 ? -18 : 18), duration: 420 + index * 40, yoyo: true, repeat: -1 });
@@ -307,5 +335,11 @@ export default class NoahChapterScene extends Phaser.Scene {
     } else if (this.builders.some(builder => Phaser.Math.Distance.Between(this.player.x, this.player.y, builder.x, builder.y) < 85) && action) {
       this.startBabelConversation();
     }
+  }
+
+  private updateCameraView() {
+    const zoom = Math.min(this.scale.width / 960, this.scale.height / 720);
+    this.cameras.main.setZoom(zoom);
+    this.cameras.main.centerOn(480, 360);
   }
 }

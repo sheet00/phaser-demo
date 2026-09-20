@@ -9,15 +9,35 @@ export default function AbrahamChapterGame() {
     if (!host) return;
     const scene = new AbrahamScene();
     const game = new Phaser.Game({
-      type: Phaser.AUTO, parent: host, width: 960, height: 720, pixelArt: true,
-      backgroundColor: '#101a35', scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+      type: Phaser.AUTO,
+      parent: host,
+      width: window.innerWidth,
+      height: window.innerHeight - 78,
+      pixelArt: true,
+      backgroundColor: '#101a35',
+      scale: {
+        mode: Phaser.Scale.RESIZE,
+        autoCenter: Phaser.Scale.CENTER_BOTH
+      },
       input: { keyboard: { target: host } },
-      physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 } } }, scene
+      physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 } } },
+      scene
     });
     host.focus({ preventScroll: true });
     const blur = () => { if (scene.sys.isActive()) scene.stopMovement(); };
     host.addEventListener('blur', blur);
-    return () => { host.removeEventListener('blur', blur); game.destroy(true); };
+
+    const handleResize = () => {
+      if (!game) return;
+      game.scale.resize(window.innerWidth, window.innerHeight - 78);
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      host.removeEventListener('blur', blur);
+      game.destroy(true);
+    };
   }, []);
   return <div ref={hostRef} tabIndex={0} aria-label="第3章。矢印キーまたはWASDで移動、スペースで調べる"
     onPointerDown={event => event.currentTarget.focus({ preventScroll: true })}
