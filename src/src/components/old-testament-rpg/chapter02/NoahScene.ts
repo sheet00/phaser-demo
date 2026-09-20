@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
-import { addNoahTile, buildArkMap, buildBabelMap } from './map';
+import { addBabelBlock, addNoahTile, buildArkMap, buildBabelMap } from './map';
 
-type Phase = 'rescue' | 'flood' | 'covenant' | 'babel' | 'scattering' | 'complete';
+type Phase = 'rescue' | 'flood' | 'covenant' | 'babel' | 'babelBuilding' | 'scattering' | 'complete';
 type AnimalPair = { sprites: Phaser.GameObjects.Image[]; label: Phaser.GameObjects.Text; saved: boolean };
 
 export default class NoahChapterScene extends Phaser.Scene {
@@ -25,6 +25,9 @@ export default class NoahChapterScene extends Phaser.Scene {
   private pairs: AnimalPair[] = [];
   private rescued = 0;
   private builders: Phaser.GameObjects.Sprite[] = [];
+  private builderLabels: Phaser.GameObjects.Text[] = [];
+  private babelConversationStarted = false;
+  private babelConstructionStarted = false;
 
   constructor() { super('noah'); }
 
@@ -65,9 +68,16 @@ export default class NoahChapterScene extends Phaser.Scene {
     this.setCommand('ノアよ、つがいの動物たちを箱舟へ導きなさい。 0 / 3組');
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (this.pages.length) { this.advanceDialogue(); return; }
-      if (this.phase === 'babel' && Phaser.Math.Distance.Between(pointer.worldX, pointer.worldY, 480, 385) < 110) {
-        this.destination = new Phaser.Math.Vector2(480, 440);
-        return;
+      if (this.phase === 'babel' && this.builders.length) {
+        const builder = this.builders.find(candidate => Phaser.Math.Distance.Between(pointer.worldX, pointer.worldY, candidate.x, candidate.y) < 75);
+        if (builder && Phaser.Math.Distance.Between(this.player.x, this.player.y, builder.x, builder.y) < 105) {
+          this.startBabelConversation();
+          return;
+        }
+        if (builder) {
+          this.destination = new Phaser.Math.Vector2(builder.x, builder.y);
+          return;
+        }
       }
       if (this.phase === 'rescue' || this.phase === 'babel') {
         this.destination = new Phaser.Math.Vector2(Phaser.Math.Clamp(pointer.worldX, 45, 915), Phaser.Math.Clamp(pointer.worldY, 380, 650));
@@ -138,7 +148,7 @@ export default class NoahChapterScene extends Phaser.Scene {
       this.setCommand('この虹を、あなたたちと結ぶ契約のしるしとする。');
       this.talk([
         { speaker: '神の約束 ― 虹の契約', body: 'この虹を契約のしるしとする。\n再び洪水によって、すべての生き物を滅ぼすことはしない。' },
-        { speaker: '時は流れ、シナルの平野へ', body: '人々は再び増え、一つの言葉を話していた。\nやがて自分たちの名を高めようと、高い塔を築き始めた。' }
+        { speaker: '時は流れ、シナルの平野へ', body: 'ノアの子孫たちは地上に増え広がり、一つの言葉を話していた。\nやがて自分たちの名を高めようと、天に届く塔を築き始めた。' }
       ], () => {
         dove.destroy(); leaf.destroy(); rainbow.destroy();
         this.tweens.killTweensOf(this.boat);
@@ -153,24 +163,74 @@ export default class NoahChapterScene extends Phaser.Scene {
     this.phase = 'babel';
     buildBabelMap(this, this.scenery);
     this.player.setPosition(480, 580).setVisible(true);
-    this.playerLabel.setText('ノアの時代から、後の人々へ').setVisible(true);
+    this.playerLabel.setText('ノアの子孫').setVisible(true);
     this.builders = [330, 420, 560, 650].map((x, index) => this.add.sprite(x, 455 + index % 2 * 35, 'noah_person').setScale(0.46).setTint([0xd1a96b, 0xadc6d1, 0xc6b494, 0xc2d29b][index]).setDepth(20));
+    this.builderLabels = this.builders.map((builder, index) => {
+      const label = this.add.text(builder.x, builder.y - 45, index % 2 ? 'レンガを運ぶ' : '積もう！', {
+        padding: { top: 6, bottom: 4, left: 4, right: 4 },
+        fontSize: '14px', color: '#fff4d6', backgroundColor: '#594833'
+      }).setOrigin(0.5).setDepth(30);
+      this.tweens.add({ targets: builder, x: builder.x + (index % 2 ? -18 : 18), duration: 420 + index * 40, yoyo: true, repeat: -1 });
+      this.tweens.add({ targets: label, x: label.x + (index % 2 ? -18 : 18), duration: 420 + index * 40, yoyo: true, repeat: -1 });
+      return label;
+    });
     this.setCommand('人々の築く塔を見よ。その高慢を見届けなさい。');
-    this.hint.setText('塔へ近づき SPACE / タップで調べる');
-    this.talk([{ speaker: 'バベルの建設者', body: 'さあ、天に届く塔を建て、われわれの名を上げよう！\n地の全面に散らされないようにしよう！' }]);
+    this.hint.setText('建設者に近づき SPACE / タップで話しかける');
+  }
+
+  private startBabelConversation() {
+    if (this.babelConversationStarted || this.babelConstructionStarted) return;
+    this.babelConversationStarted = true;
+    this.talk([
+      { speaker: '建設者', body: 'こんにちは！ 私たちは同じ言葉で話し、力を合わせている。\nレンガを積んで、町と塔を建てよう！' },
+      { speaker: '建設者たちの誇り', body: '「天に届く塔を建て、われわれの名を上げよう！\n地の全面に散らされないようにしよう！」' }
+    ], () => this.startBabelConstruction());
+  }
+
+  private startBabelConstruction() {
+    if (this.babelConstructionStarted) return;
+    this.babelConstructionStarted = true;
+    this.phase = 'babelBuilding';
+    this.setCommand('建設者たちはレンガを積み、塔を少しずつ高くしている。');
+    this.hint.setText('建設中……レンガが積み上がっていく');
+    this.builderLabels.forEach(label => label.setText('レンガを積む！'));
+    [1, 2].forEach((tier, index) => {
+      const left = 6 + tier;
+      const right = 13 - tier;
+      const row = 4 - tier * 2;
+      const startDelay = 650 + index * 950;
+      for (let col = left; col <= right; col++) {
+        [row, row + 1].forEach((blockRow, rowIndex) => {
+          this.time.delayedCall(startDelay + (col - left) * 90 + rowIndex * 35, () => {
+            addBabelBlock(this, this.scenery, col, blockRow);
+            this.builderLabels.forEach(label => label.setText(index === 0 ? 'もう一段！' : '高くなった！'));
+          });
+        });
+      }
+    });
+    this.time.delayedCall(2850, () => {
+      this.setCommand('塔が高くなった。人々は自分たちの名を誇っている。');
+      this.hint.setText('建設が終わった。SPACE / タップで神の戒めを聞く');
+      this.talk([{ speaker: '神の声', body: '彼らは一つの民で、皆一つの言葉を使っている。\nこれは彼らの始めたことだ。高慢な思いを改めなさい。' }], () => this.scatter());
+    });
   }
 
   private scatter() {
     this.phase = 'scattering';
     this.stopMovement();
+    this.tweens.killTweensOf(this.builders);
+    this.tweens.killTweensOf(this.builderLabels);
+    this.builderLabels.forEach(label => label.setText('指示が通じない…').setPosition(label.x, label.y));
+    this.setCommand('同じ指示が通じなくなり、建設は止まった。');
+    this.hint.setText('人々は立ち止まり、互いの言葉を聞き返している……');
     this.talk([{ speaker: '神の声', body: '人々は自分たちの力を誇り、高慢になった。\nさあ、彼らの言葉を混乱させ、互いに通じなくしよう。' }], () => {
-      this.setCommand('全地へと広がりなさい。');
-      this.hint.setText('言葉が通じなくなり、人々は塔を離れていく……');
+      this.setCommand('言葉が通じず、工事は止まった。人々は全地へ散っていく。');
+      this.hint.setText('人々は塔を離れ、世界各地へ去っていく……');
       this.builders.forEach((builder, index) => {
-        const speech = this.add.text(builder.x, builder.y - 48, ['何を言っている？', '…？ …！', '言葉が通じない！', '別の土地へ行こう'][index], { padding: { top: 6, bottom: 4, left: 4, right: 4 }, fontSize: '15px', color: '#ffffff', backgroundColor: '#594833' }).setOrigin(0.5).setDepth(30);
-        this.tweens.add({ targets: [builder, speech], x: index < 2 ? 30 : 930, y: `+=${index % 2 ? 130 : -50}`, alpha: 0, duration: 2200 });
+        const speech = this.builderLabels[index].setText(['何を言っている？', '…？ …！', '言葉が通じない！', '別の土地へ行こう'][index]);
+        this.tweens.add({ targets: [builder, speech], x: index < 2 ? 30 : 930, y: `+=${index % 2 ? 130 : -50}`, alpha: 0, delay: 850, duration: 2200 });
       });
-      this.time.delayedCall(2400, () => {
+      this.time.delayedCall(3300, () => {
         this.phase = 'complete';
         this.setCommand('高慢を捨て、わたしの導きに耳を傾けなさい。');
         this.hint.setText('第2章 完 · 上部の章メニューから遊び直せます');
@@ -243,9 +303,8 @@ export default class NoahChapterScene extends Phaser.Scene {
       for (const pair of this.pairs) {
         if (!pair.saved && pair.sprites.some(sprite => Phaser.Math.Distance.Between(this.player.x, this.player.y, sprite.x, sprite.y) < 70)) this.rescue(pair);
       }
-    } else if (Phaser.Math.Distance.Between(this.player.x, this.player.y, 480, 430) < 85 && (action || this.destination?.y === 440)) {
-      this.scatter();
+    } else if (this.builders.some(builder => Phaser.Math.Distance.Between(this.player.x, this.player.y, builder.x, builder.y) < 85) && action) {
+      this.startBabelConversation();
     }
   }
 }
-
