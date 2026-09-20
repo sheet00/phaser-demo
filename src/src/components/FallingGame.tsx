@@ -126,7 +126,7 @@ export default function FallingGame() {
       itemsGroup = this.physics.add.group();
 
       // アイテムとプレイヤーの衝突判定
-      this.physics.add.overlap(player, itemsGroup, (p, itemObj) => {
+      this.physics.add.overlap(player, itemsGroup, (_player, itemObj) => {
         handleItemCatch.call(this, itemObj as Phaser.Types.Physics.Arcade.SpriteWithDynamicBody);
       });
 
