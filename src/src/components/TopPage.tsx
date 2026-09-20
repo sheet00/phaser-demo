@@ -8,6 +8,7 @@ export default function TopPage() {
     { id: 'endless-run', title: 'ENDLESS RUN', description: '障害物をジャンプで避けて進め！' },
     { id: 'falling', title: 'FALLING GAME', description: '空から降る宝を集めよう！' },
     { id: 'rpg', title: 'RPG ADVENTURE', description: '広大な世界を冒険しよう' },
+    { id: 'old-testament-rpg', title: 'OLD TESTAMENT RPG', description: '天地創造、出エジプト… 聖なる物語の冒険へ' },
   ];
 
   const handleSelectGame = (gameId: string) => {
@@ -21,6 +22,8 @@ export default function TopPage() {
       navigate('/endless-run');
     } else if (gameId === 'falling') {
       navigate('/falling');
+    } else if (gameId === 'old-testament-rpg') {
+      navigate('/old-testament-rpg');
     }
   };
 
