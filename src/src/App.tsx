@@ -6,7 +6,7 @@ import UfoPopperGame from './components/UfoPopperGame';
 import EndlessRunGame from './components/EndlessRunGame';
 import RpgGame from './components/RpgGame';
 import FallingGame from './components/FallingGame';
-import OldTestamentRpgGame from './components/OldTestamentRpgGame';
+import OldTestamentRpgGame from './components/old-testament-rpg/OldTestamentRpgGame';
 import './App.css';
 
 /**
