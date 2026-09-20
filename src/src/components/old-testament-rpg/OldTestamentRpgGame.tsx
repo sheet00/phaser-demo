@@ -6,6 +6,7 @@ import EdenChapterGame from './chapter01/EdenChapterGame';
 import NoahChapterGame from './chapter02/NoahChapterGame';
 import AbrahamChapterGame from './chapter03/AbrahamChapterGame';
 import JacobJosephChapterGame from './chapter04/JacobJosephChapterGame';
+import ExodusChapterGame from './chapter05/ExodusChapterGame';
 import './styles.css';
 
 export default function OldTestamentRpgGame() {
@@ -34,7 +35,9 @@ export default function OldTestamentRpgGame() {
           ? <NoahChapterGame key={`noah-${chapterSession}`} onNextChapter={startChapterThree} />
           : activeChapter === 3
             ? <AbrahamChapterGame key={`abraham-${chapterSession}`} onNextChapter={startChapterFour} />
-            : <JacobJosephChapterGame key={`jacob-joseph-${chapterSession}`} />}
+            : activeChapter === 4
+              ? <JacobJosephChapterGame key={`jacob-joseph-${chapterSession}`} />
+              : <ExodusChapterGame key={`exodus-${chapterSession}`} />}
     </div>
   );
 }

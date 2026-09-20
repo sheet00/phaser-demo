@@ -22,7 +22,6 @@ export default class AbrahamScene extends Phaser.Scene {
   private speech!: Phaser.GameObjects.Text;
   private pages: { speaker: string; body: string }[] = [];
   private afterDialogue: (() => void) | null = null;
-  private altar!: Phaser.GameObjects.Container;
   private sheep?: Phaser.GameObjects.Container;
   private sheepLabel?: Phaser.GameObjects.Text;
   private angel?: Phaser.GameObjects.Sprite;
@@ -47,7 +46,7 @@ export default class AbrahamScene extends Phaser.Scene {
     this.scale.on('resize', () => this.updateCameraView());
     this.physics.world.setBounds(24, 170, 912, 492);
     this.scenery = this.add.container(0, 0);
-    this.altar = buildAbrahamMap(this, this.scenery);
+    buildAbrahamMap(this, this.scenery);
     this.createStars();
     this.player = this.physics.add.sprite(280, 560, 'roguelike_characters', 486).setScale(4.0).setDepth(25);
     this.player.setCollideWorldBounds(true).body!.setSize(12, 10).setOffset(2, 6);
@@ -141,7 +140,7 @@ export default class AbrahamScene extends Phaser.Scene {
   private talk(pages: { speaker: string; body: string }[], after?: () => void) { this.stopMovement(); this.pages = pages; this.afterDialogue = after ?? null; this.speaker.setText(pages[0].speaker); this.speech.setText(pages[0].body); this.dialogue.setVisible(true); }
   private advanceDialogue() { this.pages.shift(); if (this.pages.length) { this.speaker.setText(this.pages[0].speaker); this.speech.setText(this.pages[0].body); return; } this.dialogue.setVisible(false); const after = this.afterDialogue; this.afterDialogue = null; after?.(); }
 
-  private stopMovement() { this.destination = null; this.player?.setVelocity(0, 0); this.input.keyboard?.resetKeys(); }
+  stopMovement() { this.destination = null; this.player?.setVelocity(0, 0); this.input.keyboard?.resetKeys(); }
   private altarAction() {
     if (this.phase !== 'travel' || Phaser.Math.Distance.Between(this.player.x, this.player.y, 624, 500) > 125) return;
     this.phase = 'altar';

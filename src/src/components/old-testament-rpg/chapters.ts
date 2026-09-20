@@ -3,7 +3,7 @@ export const CHAPTERS = [
   'ヤコブとヨセフ', '出エジプトと十戒', '約束の地カナンと士師たち',
   '少年ダビデと巨人ゴリアテ', '知恵の王ソロモンと黄金神殿', '王国の分裂と預言者エリヤ',
   'バビロン捕囚', '獅子の穴のダニエル', '帰還とメシア待望'
-].map((title, index) => ({ number: index + 1, title, available: index < 4 }));
+].map((title, index) => ({ number: index + 1, title, available: index < 5 }));
 
 export const getChapterPath = (chapter: number) =>
   `/old-testament-rpg/chapter-${String(chapter).padStart(2, '0')}`;

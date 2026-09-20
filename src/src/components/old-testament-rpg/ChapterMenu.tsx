@@ -36,7 +36,7 @@ export default function ChapterMenu({ activeChapter, onSelectChapter }: {
                 </button>
               ))}
             </div>
-            <p>第1〜4章をプレイできます。第5章以降は準備中です。選び直すと章内の進行はリセットされます。</p>
+            <p>第1〜5章をプレイできます。第6章以降は準備中です。選び直すと章内の進行はリセットされます。</p>
           </div>
         </details>
       </nav>
