@@ -5,6 +5,7 @@ import TopPage from './components/TopPage';
 import UfoPopperGame from './components/UfoPopperGame';
 import EndlessRunGame from './components/EndlessRunGame';
 import RpgGame from './components/RpgGame';
+import FallingGame from './components/FallingGame';
 import './App.css';
 
 /**
@@ -61,6 +62,9 @@ function TitleUpdater() {
       case '/endless-run':
         document.title = 'PHASER DEMO - ENDLESS RUN';
         break;
+      case '/falling':
+        document.title = 'PHASER DEMO - FALLING GAME';
+        break;
       default:
         document.title = 'PHASER DEMO';
     }
@@ -79,6 +83,7 @@ function App() {
         <Route path="/rpg" element={<GameLayout><RpgGame /></GameLayout>} />
         <Route path="/ufo-popper" element={<GameLayout><UfoPopperGame /></GameLayout>} />
         <Route path="/endless-run" element={<GameLayout><EndlessRunGame /></GameLayout>} />
+        <Route path="/falling" element={<GameLayout><FallingGame /></GameLayout>} />
       </Routes>
     </Router>
   );

@@ -6,6 +6,7 @@ export default function TopPage() {
     { id: 'shooting', title: 'SPACE SHOOTER', description: '敵機を撃破してハイスコアを目指せ！' },
     { id: 'ufo-popper', title: 'UFO POPPER', description: '次々と現れるUFOを素早くクリックして撃退せよ！' },
     { id: 'endless-run', title: 'ENDLESS RUN', description: '障害物をジャンプで避けて進め！' },
+    { id: 'falling', title: 'FALLING GAME', description: '空から降る宝を集めよう！' },
     { id: 'rpg', title: 'RPG ADVENTURE', description: '広大な世界を冒険しよう' },
   ];
 
@@ -18,6 +19,8 @@ export default function TopPage() {
       navigate('/ufo-popper');
     } else if (gameId === 'endless-run') {
       navigate('/endless-run');
+    } else if (gameId === 'falling') {
+      navigate('/falling');
     }
   };
 
