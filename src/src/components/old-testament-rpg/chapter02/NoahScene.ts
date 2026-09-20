@@ -28,8 +28,9 @@ export default class NoahChapterScene extends Phaser.Scene {
   private builderLabels: Phaser.GameObjects.Text[] = [];
   private babelConversationStarted = false;
   private babelConstructionStarted = false;
+  private nextChapter?: () => void;
 
-  constructor() { super('noah'); }
+  constructor(nextChapter?: () => void) { super('noah'); this.nextChapter = nextChapter; }
 
   preload() {
     this.load.spritesheet('noah_tiles', '/assets/roguelike-rpg-pack/Spritesheet/roguelikeSheet_transparent.png', {
@@ -237,7 +238,7 @@ export default class NoahChapterScene extends Phaser.Scene {
         this.talk([
           { speaker: '第2章 ― ノアの箱舟とバベルの塔 完', body: '洪水は罪への裁き。箱舟と虹は、神の憐れみと契約のしるし。\nバベルの人々は高慢を戒められ、世界各地へ散っていった。' },
           { speaker: '次の物語へ', body: 'やがて神は、アブラハムという一人の人を呼び出す。\n第3章「アブラハムとイサク」へ続く。' }
-        ]);
+        ], this.nextChapter);
       });
     });
   }
