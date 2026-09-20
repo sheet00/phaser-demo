@@ -2,12 +2,12 @@ import { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
 import AbrahamScene from './AbrahamScene';
 
-export default function AbrahamChapterGame() {
+export default function AbrahamChapterGame({ onNextChapter }: { onNextChapter?: () => void }) {
   const hostRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
-    const scene = new AbrahamScene();
+    const scene = new AbrahamScene(onNextChapter);
     const game = new Phaser.Game({
       type: Phaser.AUTO,
       parent: host,
@@ -38,7 +38,7 @@ export default function AbrahamChapterGame() {
       host.removeEventListener('blur', blur);
       game.destroy(true);
     };
-  }, []);
+  }, [onNextChapter]);
   return <div ref={hostRef} tabIndex={0} aria-label="第3章。矢印キーまたはWASDで移動、スペースで調べる"
     onPointerDown={event => event.currentTarget.focus({ preventScroll: true })}
     style={{ position: 'absolute', top: 78, left: 0, width: '100%', height: 'calc(100% - 78px)', overflow: 'hidden' }} />;

@@ -16,6 +16,7 @@ export default function OldTestamentRpgGame() {
   );
   const startChapterTwo = useCallback(() => navigate(getChapterPath(2)), [navigate]);
   const startChapterThree = useCallback(() => navigate(getChapterPath(3)), [navigate]);
+  const startChapterFour = useCallback(() => navigate(getChapterPath(4)), [navigate]);
   const [chapterSession, setChapterSession] = useState(0);
 
   if (!chapter) return <Navigate to={getChapterPath(1)} replace />;
@@ -32,7 +33,7 @@ export default function OldTestamentRpgGame() {
         : activeChapter === 2
           ? <NoahChapterGame key={`noah-${chapterSession}`} onNextChapter={startChapterThree} />
           : activeChapter === 3
-            ? <AbrahamChapterGame key={`abraham-${chapterSession}`} />
+            ? <AbrahamChapterGame key={`abraham-${chapterSession}`} onNextChapter={startChapterFour} />
             : <JacobJosephChapterGame key={`jacob-joseph-${chapterSession}`} />}
     </div>
   );

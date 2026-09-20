@@ -28,8 +28,12 @@ export default class AbrahamScene extends Phaser.Scene {
   private angel?: Phaser.GameObjects.Sprite;
   private angelLabel?: Phaser.GameObjects.Text;
   private angelGlow?: Phaser.GameObjects.Graphics;
+  private nextChapter?: () => void;
 
-  constructor() { super('abraham'); }
+  constructor(nextChapter?: () => void) {
+    super('abraham');
+    this.nextChapter = nextChapter;
+  }
 
   preload() {
     this.load.spritesheet('abraham_tiles', '/assets/roguelike-rpg-pack/Spritesheet/roguelikeSheet_transparent.png', { frameWidth: 16, frameHeight: 16, spacing: 1 });
@@ -209,8 +213,9 @@ export default class AbrahamScene extends Phaser.Scene {
         this.hint.setText('第3章 完 · 章メニューから遊び直せます');
         this.talk([
           { speaker: 'アブラハム', body: '主が備えてくださった雄羊を、身代わりとして捧げました。' },
-          { speaker: '第3章 ― アブラハムとイサク 完', body: '神はイサクを止め、雄羊を備えられた。\n父子は守られ、約束は続いていく。' }
-        ]);
+          { speaker: '第3章 ― アブラハムとイサク 完', body: '神はイサクを止め、雄羊を備えられた。\n父子は守られ、約束は続いていく。' },
+          { speaker: '次の物語へ', body: 'やがて約束はヤコブ、そしてヨセフへと受け継がれていく――。\n第4章「ヤコブとヨセフ」へ続く。' }
+        ], this.nextChapter);
       } });
     } });
   }
