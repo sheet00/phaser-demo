@@ -9,6 +9,7 @@ export default function TopPage() {
     { id: 'falling', title: 'FALLING GAME', description: '空から降る宝を集めよう！' },
     { id: 'rpg', title: 'RPG ADVENTURE', description: '広大な世界を冒険しよう' },
     { id: 'old-testament-rpg', title: 'OLD TESTAMENT RPG', description: '天地創造、出エジプト… 聖なる物語の冒険へ' },
+    { id: 'aws-card-game', title: 'AWS BUILDER CARDS', description: 'AWSサービスを組み合わせて最強のアーキテクチャを構築せよ！' },
   ];
 
   const handleSelectGame = (gameId: string) => {
@@ -24,6 +25,8 @@ export default function TopPage() {
       navigate('/falling');
     } else if (gameId === 'old-testament-rpg') {
       navigate('/old-testament-rpg');
+    } else if (gameId === 'aws-card-game') {
+      navigate('/aws-card-game');
     }
   };
 
