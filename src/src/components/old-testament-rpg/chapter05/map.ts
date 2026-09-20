@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 
 export const TILE = 48;
-export const SEA_WIDTH = 2880;
+export const SEA_WIDTH = 2016;
 export const SEA_HEIGHT = 960;
 export const MOUNTAIN_WIDTH = 960;
 export const MOUNTAIN_HEIGHT = 1440;
@@ -28,35 +28,31 @@ function tent(scene: Phaser.Scene, parent: Phaser.GameObjects.Container, col: nu
 
 export function buildSea(scene: Phaser.Scene, parent: Phaser.GameObjects.Container) {
   for (let row = 0; row < 20; row++) {
-    for (let col = 0; col < 60; col++) {
+    for (let col = 0; col < 42; col++) {
       tile(scene, parent, col, row, row >= 9 && row <= 12 ? 8 : 65);
     }
   }
-  for (const col of [1, 3, 6, 50, 54, 58]) {
+  for (const col of [1, 3, 6, 37, 39, 41]) {
     for (const row of [2, 5, 15, 18]) prop(scene, parent, col * TILE + 24, row * TILE + 36, 1137 + col % 3);
   }
-  for (const [col, row] of [[2, 4], [5, 15], [51, 3], [55, 15]]) {
+  for (const [col, row] of [[2, 4], [5, 15], [37, 3], [40, 15]]) {
     tile(scene, parent, col, row, 540);
     tile(scene, parent, col, row + 1, 597);
   }
   tent(scene, parent, 2, 6);
-  tent(scene, parent, 52, 6);
+  tent(scene, parent, 38, 6);
   prop(scene, parent, 180, 395, 140);
-  prop(scene, parent, 2580, 392, 23);
+  prop(scene, parent, 1820, 392, 23);
 
   // 乾いた道の上に海を重ね、海のコンテナだけを退かせて道を開く。
   const north = scene.add.container(0, 0);
   const south = scene.add.container(0, 0);
   parent.add([north, south]);
+  const seaTint = 0x4294c2;
   for (let row = -2; row < 23; row++) {
-    for (let col = 10; col < 48; col++) {
-      const tint = row >= 8 && row <= 13 ? 0x91d9eb : 0x579ec4;
-      tile(scene, row < 11 ? north : south, col, row, (row + col) % 7 === 0 ? 1 : 0, tint);
+    for (let col = 10; col < 36; col++) {
+      tile(scene, row < 11 ? north : south, col, row, (row + col) % 7 === 0 ? 1 : 0, seaTint);
     }
-  }
-  for (let col = 10; col < 48; col++) {
-    tile(scene, north, col, 10, 117, 0xa3e1ee);
-    tile(scene, south, col, 11, 3, 0xa3e1ee);
   }
   return { north, south };
 }
