@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { BuilderCard, GameCard, PlayerState, StarterCard, SupplyPile, TurnPhase, WellArchitectedCard } from '../types';
+import type { BuilderCard, GameCard, PlayerState, StarterCard, SupplyPile, WellArchitectedCard } from '../types';
 import { createDominionSupply } from '../data/cards';
 
 const FONT_FAMILY = '"Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif';
@@ -9,7 +9,6 @@ export class BuilderCardScene extends Phaser.Scene {
   private treasureSupply: SupplyPile[] = [];
   private victorySupply: SupplyPile[] = [];
   private kingdomSupply: SupplyPile[] = [];
-  private currentPhase: TurnPhase = 'acquire';
 
   private bgRect!: Phaser.GameObjects.Rectangle;
   private headerBg!: Phaser.GameObjects.Rectangle;
@@ -266,7 +265,6 @@ export class BuilderCardScene extends Phaser.Scene {
   }
 
   private startTurn() {
-    this.currentPhase = 'build';
     this.playerState.deployed = [];
     this.playerState.credits = 0;
     this.playerState.remainingAcquires = 1;
@@ -325,7 +323,7 @@ export class BuilderCardScene extends Phaser.Scene {
     this.logSidebarBg = this.add.rectangle(dim.logX, 0, dim.logW, height, 0x090d16).setOrigin(0, 0);
     this.logSidebarBorder = this.add.rectangle(dim.logX, 0, 2, height, 0x1e293b).setOrigin(0, 0);
 
-    const logTitleBg = this.add.rectangle(dim.logX, 0, dim.logW, 52, 0x0f172a).setOrigin(0, 0);
+    this.add.rectangle(dim.logX, 0, dim.logW, 52, 0x0f172a).setOrigin(0, 0);
     this.logSidebarTitle = this.add.text(dim.logX + 16, 26, '📜 ゲームログ (Game Log)', {
       fontSize: '15px',
       color: '#93c5fd',
@@ -858,8 +856,6 @@ export class BuilderCardScene extends Phaser.Scene {
       wordWrap: { width: w - 8, useAdvancedWrap: true },
       resolution: 2,
     }).setOrigin(0.5);
-
-    const boxX = 6;
     const boxY = titleBarH + 3;
     const boxW = w - 12;
     const footerMargin = isZoom ? 38 : (isSmall ? 24 : 32);
@@ -904,14 +900,16 @@ export class BuilderCardScene extends Phaser.Scene {
       if (card.credit > 0) {
         mainEffects.push({ text: `💰 +${card.credit} クレジット`, color: '#fde047', size: effSize });
       }
-      if (card.effects?.extraDraw) {
-        mainEffects.push({ text: `🃏 +${card.effects.extraDraw} ドロー`, color: '#60a5fa', size: subEffSize });
-      }
-      if (card.effects?.extraAcquire) {
-        mainEffects.push({ text: `🛒 +${card.effects.extraAcquire} 購入権`, color: '#34d399', size: subEffSize });
-      }
-      if (card.effects?.retireOnEnd) {
-        mainEffects.push({ text: `🌅 リタイア`, color: '#fb923c', size: subEffSize });
+      if (card.type === 'builder' && card.effects) {
+        if (card.effects.draw) {
+          mainEffects.push({ text: `🃏 +${card.effects.draw} ドロー`, color: '#60a5fa', size: subEffSize });
+        }
+        if (card.effects.extraAcquire) {
+          mainEffects.push({ text: `🛒 +${card.effects.extraAcquire} 購入権`, color: '#34d399', size: subEffSize });
+        }
+        if (card.effects.retireOnUse) {
+          mainEffects.push({ text: `🌅 リタイア`, color: '#fb923c', size: subEffSize });
+        }
       }
 
       mainEffects.forEach((eff) => {
@@ -1120,11 +1118,6 @@ export class BuilderCardScene extends Phaser.Scene {
 
     // 組み合わせ効果（セカンダリー）の判定
     this.checkSynergies(card);
-
-    if (this.playerState.hand.length === 0) {
-      this.currentPhase = 'acquire';
-    }
-
     this.refreshAll();
   }
 

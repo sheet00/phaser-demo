@@ -22,8 +22,12 @@ export default class JacobJosephScene extends Phaser.Scene {
   private afterDialogue: (() => void) | null = null;
   private target = new Phaser.Math.Vector2(700, 500);
   private actionLocked = false;
+  private readonly onNextChapter?: () => void;
 
-  constructor() { super('jacob-joseph'); }
+  constructor(onNextChapter?: () => void) {
+    super('jacob-joseph');
+    this.onNextChapter = onNextChapter;
+  }
 
   preload() {
     this.load.spritesheet('jacob_joseph_tiles', '/assets/roguelike-rpg-pack/Spritesheet/roguelikeSheet_transparent.png', { frameWidth: 16, frameHeight: 16, spacing: 1 });
@@ -49,9 +53,10 @@ export default class JacobJosephScene extends Phaser.Scene {
     this.createDialogue();
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       if (this.pages.length) { this.advanceDialogue(); return; }
+      if (this.phase === 'complete') { this.onNextChapter?.(); return; }
       if (this.actionLocked) return;
       if (Phaser.Math.Distance.Between(this.player.x, this.player.y, this.target.x, this.target.y) < 140 && Phaser.Math.Distance.Between(pointer.worldX, pointer.worldY, this.target.x, this.target.y) < 170) this.doAction();
-      else if (this.phase !== 'complete') this.destination = new Phaser.Math.Vector2(Phaser.Math.Clamp(pointer.worldX, 45, 915), Phaser.Math.Clamp(pointer.worldY, 390, 650));
+      else this.destination = new Phaser.Math.Vector2(Phaser.Math.Clamp(pointer.worldX, 45, 915), Phaser.Math.Clamp(pointer.worldY, 390, 650));
     });
     this.setPhase('wrestling');
     this.talk([
@@ -77,7 +82,7 @@ export default class JacobJosephScene extends Phaser.Scene {
       complete: '第4章 完 · 神は悪を善に変え、家族を救いへ導かれた。'
     };
     this.setCommand(labels[phase]);
-    this.hint.setText(phase === 'complete' ? '章メニューから遊び直せます' : '目的地へ移動し、SPACE / タップで調べる');
+    this.hint.setText(phase === 'complete' ? 'SPACE / タップ：第5章 出エジプトと十戒へ' : '目的地へ移動し、SPACE / タップで調べる');
   }
 
   private drawStage() {
@@ -198,7 +203,8 @@ export default class JacobJosephScene extends Phaser.Scene {
     this.playerLabel.setPosition(this.player.x, this.player.y - 44);
     const action = Phaser.Input.Keyboard.JustDown(this.keys.SPACE);
     if (this.pages.length) { if (action) this.advanceDialogue(); return; }
-    if (this.phase === 'complete' || this.actionLocked) return;
+    if (this.phase === 'complete') { if (action) this.onNextChapter?.(); return; }
+    if (this.actionLocked) return;
     const movement = new Phaser.Math.Vector2(Number(this.cursors.right.isDown || this.keys.D.isDown) - Number(this.cursors.left.isDown || this.keys.A.isDown), Number(this.cursors.down.isDown || this.keys.S.isDown) - Number(this.cursors.up.isDown || this.keys.W.isDown));
     if (movement.lengthSq()) this.destination = null;
     else if (this.destination) { movement.copy(this.destination).subtract(this.player); if (movement.length() < 9) { movement.set(0, 0); this.destination = null; } }

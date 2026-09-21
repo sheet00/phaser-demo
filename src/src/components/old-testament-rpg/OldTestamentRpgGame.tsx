@@ -7,7 +7,20 @@ import NoahChapterGame from './chapter02/NoahChapterGame';
 import AbrahamChapterGame from './chapter03/AbrahamChapterGame';
 import JacobJosephChapterGame from './chapter04/JacobJosephChapterGame';
 import ExodusChapterGame from './chapter05/ExodusChapterGame';
+import JoshuaChapterGame from './chapter06/JoshuaChapterGame';
+import DavidChapterGame from './chapter07/DavidChapterGame';
+import SolomonChapterGame from './chapter08/SolomonChapterGame';
+import ElijahChapterGame from './chapter09/ElijahChapterGame';
+import ExileChapterGame from './chapter10/ExileChapterGame';
+import DanielChapterGame from './chapter11/DanielChapterGame';
+import ReturnChapterGame from './chapter12/ReturnChapterGame';
 import './styles.css';
+
+const CHAPTER_GAMES = [
+  EdenChapterGame, NoahChapterGame, AbrahamChapterGame, JacobJosephChapterGame,
+  ExodusChapterGame, JoshuaChapterGame, DavidChapterGame, SolomonChapterGame,
+  ElijahChapterGame, ExileChapterGame, DanielChapterGame, ReturnChapterGame,
+];
 
 export default function OldTestamentRpgGame() {
   const { chapterId } = useParams<{ chapterId: string }>();
@@ -15,13 +28,14 @@ export default function OldTestamentRpgGame() {
   const chapter = CHAPTERS.find(entry =>
     entry.available && chapterId === `chapter-${String(entry.number).padStart(2, '0')}`,
   );
-  const startChapterTwo = useCallback(() => navigate(getChapterPath(2)), [navigate]);
-  const startChapterThree = useCallback(() => navigate(getChapterPath(3)), [navigate]);
-  const startChapterFour = useCallback(() => navigate(getChapterPath(4)), [navigate]);
+  const nextChapter = useCallback(() => {
+    if (chapter && chapter.number < CHAPTERS.length) navigate(getChapterPath(chapter.number + 1));
+  }, [chapter, navigate]);
   const [chapterSession, setChapterSession] = useState(0);
 
   if (!chapter) return <Navigate to={getChapterPath(1)} replace />;
   const activeChapter = chapter.number;
+  const ChapterGame = CHAPTER_GAMES[activeChapter - 1];
 
   return (
     <div className="old-testament-game">
@@ -29,15 +43,7 @@ export default function OldTestamentRpgGame() {
         if (selectedChapter === activeChapter) setChapterSession(session => session + 1);
         else navigate(getChapterPath(selectedChapter));
       }} />
-      {activeChapter === 1
-        ? <EdenChapterGame key={`eden-${chapterSession}`} onNextChapter={startChapterTwo} />
-        : activeChapter === 2
-          ? <NoahChapterGame key={`noah-${chapterSession}`} onNextChapter={startChapterThree} />
-          : activeChapter === 3
-            ? <AbrahamChapterGame key={`abraham-${chapterSession}`} onNextChapter={startChapterFour} />
-            : activeChapter === 4
-              ? <JacobJosephChapterGame key={`jacob-joseph-${chapterSession}`} />
-              : <ExodusChapterGame key={`exodus-${chapterSession}`} />}
+      <ChapterGame key={`${activeChapter}-${chapterSession}`} onNextChapter={nextChapter} />
     </div>
   );
 }

@@ -25,8 +25,12 @@ export default class ExodusScene extends Phaser.Scene {
   private pages: Page[] = [];
   private afterDialogue: (() => void) | null = null;
   private audioContext: AudioContext | null = null;
+  private readonly onNextChapter?: () => void;
 
-  constructor() { super('exodus'); }
+  constructor(onNextChapter?: () => void) {
+    super('exodus');
+    this.onNextChapter = onNextChapter;
+  }
 
   init() {
     this.phase = 'shore';
@@ -146,7 +150,7 @@ export default class ExodusScene extends Phaser.Scene {
       if (this.player.y > 380) { this.hud.setAction('石段を登り、山頂へ進もう ↑'); return; }
       this.receiveTablets();
     } else if (this.phase === 'complete') {
-      this.scene.restart();
+      this.onNextChapter?.();
     }
   }
 
@@ -303,7 +307,7 @@ export default class ExodusScene extends Phaser.Scene {
                 this.phase = 'complete';
                 this.hud.setObjective('第5章 完 ─ 偶像を砕き、真の神と契約を結んだ。');
                 this.hud.setProgress('3 / 3  十戒授与・金の子牛と契約更新 達成');
-                this.hud.setAction('SPACE / ここをタップ：第5章をもう一度');
+                this.hud.setAction('SPACE / ここをタップ：第6章 約束の地カナンへ');
               });
             });
           }
