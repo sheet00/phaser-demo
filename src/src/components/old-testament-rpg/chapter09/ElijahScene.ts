@@ -390,7 +390,7 @@ export default class ElijahScene extends ChronicleScene {
         duration: 1400,
         delay: 450 + (tile.x + tile.y) * 0.7,
         onUpdate: (tw) => {
-          const v = tw.getValue() / 100;
+          const v = (tw.getValue() ?? 0) / 100;
           const r = Math.round(210 * (1 - v) + 118 * v);
           const g = Math.round(188 * (1 - v) + 207 * v);
           const b = Math.round(153 * (1 - v) + 104 * v);
