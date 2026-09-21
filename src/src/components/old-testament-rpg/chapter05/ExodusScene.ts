@@ -239,12 +239,13 @@ export default class ExodusScene extends Phaser.Scene {
     this.calfContainer = this.add.container(480, 1260).setDepth(22);
     const glow = this.add.graphics();
     glow.fillStyle(0xffe066, 0.35).fillCircle(0, 0, 36);
-    const base = this.add.rectangle(0, 20, 68, 22, 0x5a6577).setStrokeStyle(2, 0xd4af37);
+    const baseLeft = this.add.image(-18, 18, TILES, 119).setScale(2.4).setTint(0xc2b59b);
+    const baseRight = this.add.image(18, 18, TILES, 119).setScale(2.4).setTint(0xc2b59b);
     const cow = this.add.image(0, 0, 'golden_calf').setScale(1.2).setTint(0xffd700);
     const label = this.add.text(0, -38, '金の子牛（偶像）', {
       ...textStyle(14, '#fff2b3'), backgroundColor: '#6e5318', padding: { top: 4, bottom: 4, left: 6, right: 6 }
     }).setOrigin(0.5);
-    this.calfContainer.add([glow, base, cow, label]);
+    this.calfContainer.add([glow, baseLeft, baseRight, cow, label]);
     this.scenery.add(this.calfContainer);
     this.tweens.add({ targets: glow, alpha: 0.12, scale: 1.35, yoyo: true, repeat: -1, duration: 800 });
   }
