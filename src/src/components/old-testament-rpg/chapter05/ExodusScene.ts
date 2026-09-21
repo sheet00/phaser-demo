@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { buildCallStage, buildMountain, buildSea, CALL_HEIGHT, CALL_WIDTH, MOUNTAIN_HEIGHT, MOUNTAIN_WIDTH, SEA_HEIGHT, SEA_WIDTH, TILES } from './map';
+import { buildCallStage, buildMountain, buildSea, MOUNTAIN_HEIGHT, MOUNTAIN_WIDTH, SEA_HEIGHT, SEA_WIDTH, TILES } from './map';
 import { ExodusHud, textStyle } from './ui';
 
 type Phase = 'call' | 'shore' | 'parting' | 'crossing' | 'arrival' | 'mountain' | 'receiving' | 'descending' | 'calf' | 'breaking' | 'complete';

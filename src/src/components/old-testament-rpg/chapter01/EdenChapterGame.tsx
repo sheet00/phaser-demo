@@ -7,7 +7,8 @@ export default function EdenChapterGame({ onNextChapter }: { onNextChapter: () =
   const gameRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!gameRef.current) return;
+    const host = gameRef.current;
+    if (!host) return;
 
     return afterFontsReady(() => {
       const scene = createEdenScene(onNextChapter);
@@ -15,10 +16,10 @@ export default function EdenChapterGame({ onNextChapter }: { onNextChapter: () =
         type: Phaser.AUTO,
         width: window.innerWidth,
         height: window.innerHeight,
-        parent: gameRef.current,
+        parent: host,
         ...CRISP_RENDERING,
         input: {
-          keyboard: { target: gameRef.current }
+          keyboard: { target: host }
         },
         scale: {
           mode: Phaser.Scale.RESIZE,
@@ -35,10 +36,9 @@ export default function EdenChapterGame({ onNextChapter }: { onNextChapter: () =
       };
   
       const game = new Phaser.Game(config);
-      const gameHost = gameRef.current;
-      gameHost.focus({ preventScroll: true });
+      host.focus({ preventScroll: true });
       const stopMovement = () => { if (scene.sys.isActive()) scene.stopMovement(); };
-      gameHost.addEventListener('blur', stopMovement);
+      host.addEventListener('blur', stopMovement);
   
       const handleResize = () => {
         if (!game) return;
@@ -49,7 +49,7 @@ export default function EdenChapterGame({ onNextChapter }: { onNextChapter: () =
   
       return () => {
         window.removeEventListener('resize', handleResize);
-        gameHost.removeEventListener('blur', stopMovement);
+        host.removeEventListener('blur', stopMovement);
         game.destroy(true);
       };
     });
