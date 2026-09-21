@@ -60,7 +60,7 @@ export default class JacobJosephScene extends Phaser.Scene {
     });
     this.setPhase('wrestling');
     this.talk([
-      { speaker: '背景と状況', body: 'かつて兄エサウを欺いて故郷を追われたヤコブ。\n20年ぶりの帰郷の途中、「怒りに燃える兄が400人の兵を率いて迫っている」と知らせが入る。' },
+      { speaker: 'ヤボクの渡し・死の恐怖', body: 'かつて兄エサウを欺いて故郷を追われたヤコブ。\n20年ぶりの帰郷の途中、「怒りに燃える兄が400人の兵を率いて迫っている」と知らせが入る。' },
       { speaker: 'ヤコブ', body: '家族を先に川の向こうへ逃がしたが、死の恐怖で震えが止まらない……。\n神よ、私は明日、兄に殺されてしまうのでしょうか！' },
       { speaker: 'ヤコブ', body: '……あそこに立っているのは、光をまとう天からの使いか！？\n逃がすものか！ 私を守り、生かすと約束してくださるまで、絶対に離すものか！' }
     ], () => this.setCommand('神の使いのもとへ進み、必死に助け（祝福）を求めなさい。'));
@@ -112,8 +112,8 @@ export default class JacobJosephScene extends Phaser.Scene {
     this.actionLocked = true; this.destination = null; this.player.setVelocity(0, 0);
     if (this.phase === 'wrestling') this.talk([
       { speaker: '神の使い', body: '夜が明ける。恐れるなヤコブよ。\nお前が夜通し必死にしがみつき、叫び求めた祈りは神に届いた。' },
-      { speaker: '神の祝福', body: '今日よりお前の名はヤコブ（人を出し抜く者）ではない。\n神にすがり祈り抜いた者「イスラエル」と名乗りなさい。兄を恐れず進め。' },
-      { speaker: '和解と新たな旅', body: 'ヤコブは兄エサウと涙の和解を果たした。\nやがて時は流れ、物語はイスラエルの愛する息子「ヨセフ」へと受け継がれていく――' }
+      { speaker: 'イスラエルへの改名', body: '今日よりお前の名はヤコブ（人を出し抜く者）ではない。\n神にすがり祈り抜いた者「イスラエル」と名乗りなさい。兄を恐れず進め。' },
+      { speaker: '涙の和解・そして息子の時代へ', body: 'ヤコブは兄エサウと涙の和解を果たした。\nやがて時は流れ、物語はイスラエルの愛する息子「ヨセフ」へと受け継がれていく――' }
     ], () => this.transition('sold'));
     if (this.phase === 'sold') this.talk([
       { speaker: '兄たち', body: '父上は末っ子のヨセフばかり可愛がって、あいつだけに特別な着物を与えた。許せない……！' },
@@ -152,7 +152,7 @@ export default class JacobJosephScene extends Phaser.Scene {
         body: '恐れないでください。\n兄さんたちは僕に悪を行いましたが、神はそれを善に変え、\n多くの命を救うために僕を先に行かせたのです。すべてを赦します。'
       },
       {
-        speaker: '家族の和解',
+        speaker: '神の配慮・涙の抱擁',
         body: '兄弟は抱き合って涙を流し、過去の憎しみを越えて奇跡の和解を果たしました。'
       }
     ], () => this.transition('complete'));
@@ -169,15 +169,15 @@ export default class JacobJosephScene extends Phaser.Scene {
     if (phase === 'dream') {
       this.talk([
         {
-          speaker: 'ヨセフの数奇な運命',
+          speaker: 'エジプトの奴隷から宰相へ',
           body: 'エジプトの貴族へ奴隷として売られたヨセフ。\n誠実に働くも、無実の罪を着せられて牢屋（監獄）へ落とされてしまう。'
         },
         {
-          speaker: 'ヨセフの数奇な運命',
+          speaker: '監獄の夢解きと王宮の噂',
           body: 'だがヨセフは絶望せず、牢の中で「不思議な夢を解き明かす才能」を発揮する。\nその評判は、やがて王宮の最高権力者の耳へと届く……。'
         },
         {
-          speaker: 'エジプト国王ファラオ',
+          speaker: 'ファラオ',
           body: '「国の占い師が誰も解けぬ不気味な悪夢に悩まされている。\n牢にいるあの若者（ヨセフ）を、今すぐここへ連れてまいれ！」'
         }
       ], () => this.setCommand('ファラオのもとへ進み、誰にも解けぬ悪夢を解き明かしなさい。'));
@@ -185,11 +185,11 @@ export default class JacobJosephScene extends Phaser.Scene {
     if (phase === 'famine') {
       this.talk([
         {
-          speaker: '大飢饉と流れる年月',
+          speaker: '七年の大豊作と七年の大飢饉',
           body: 'ヨセフの予言通り、7年の豊作ののち、未曾有の大飢饉が世界を襲った。\n多くの国が飢えに苦しむ中、ヨセフの指示により大量の穀物を蓄えたエジプトだけが生き残っていた。'
         },
         {
-          speaker: '飢えと兄たちの来訪',
+          speaker: 'カナンからの飢えた兄弟たち',
           body: '故郷カナンでも食料が尽き、飢えに苦しむ兄たちがエジプトへ食料を買いにやって来る。\n目の前の総理大臣が、かつて売り飛ばした弟ヨセフだとは夢にも思わずに……。'
         }
       ], () => this.setCommand('穀物倉庫へ進み、食料を求めてひれ伏す兄たちと対面しなさい。'));

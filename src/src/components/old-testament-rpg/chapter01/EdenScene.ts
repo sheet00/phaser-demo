@@ -153,7 +153,7 @@ export function createEdenScene(onNextChapter: () => void) {
 
     ({ promptBubble, promptBubbleBg, promptBubbleText, hudCommandText, dialogueContainer, dialogueSpeakerText, dialogueBodyText, dNextHint } = createEdenUI(this));
     openDialogueQueue.call(this, [{
-      speaker: '神からの司令',
+      speaker: '主なる神の呼びかけ',
       body: 'アダムよ、この園をあなたに委ねる。\n園の生き物たちに名を授けなさい。\nまずは三匹のもとを訪ね、それぞれに名を与えるのだ。'
     }]);
     updateDivineCommand();
@@ -342,7 +342,7 @@ export function createEdenScene(onNextChapter: () => void) {
             if (namedAnimalsCount === TOTAL_ANIMALS_TO_NAME && !hasEatenForbiddenFruit) {
               this.time.delayedCall(350, () => {
                 openDialogueQueue.call(this, [{
-                  speaker: '神からの司令',
+                  speaker: '主なる神',
                   body: '園の生き物たちに名を授けたのだな。\n\n園の中央にある木を見よ。\n決してその実を取って食べてはならない。'
                 }]);
               });
@@ -464,7 +464,7 @@ export function createEdenScene(onNextChapter: () => void) {
     if (item.isTree) {
       if (namedAnimalsCount < TOTAL_ANIMALS_TO_NAME) {
         openDialogueQueue.call(this, [{
-          speaker: '神からの司令',
+          speaker: '主なる神',
           body: 'アダムよ、まずは園の生き物たちに名を授けなさい。\nあなたに委ねた務めを果たすのだ。'
         }]);
         return;
@@ -472,7 +472,7 @@ export function createEdenScene(onNextChapter: () => void) {
 
       if (hasEatenForbiddenFruit) {
         openDialogueQueue.call(this, [{
-          speaker: '神からの司令',
+          speaker: '主なる神',
           body: '東の門へ向かいなさい。\nここからあなたの旅が始まる。'
         }]);
         return;
@@ -481,11 +481,11 @@ export function createEdenScene(onNextChapter: () => void) {
       // 禁断の果実イベント：タイマーによる強制遷移を廃止し、操作で確実に進む3ページ構成
       openDialogueQueue.call(this, [
         {
-          speaker: '善悪の知識の木',
+          speaker: '蛇の誘惑と禁断の木',
           body: '神が「決して取って食べてはならない」と命じられた大樹だ。\n葉の隙間から滑らかな蛇が姿を現し、ささやいてきた……\n「本当に死ぬって言われたの？ 食べたら神のように善悪を知る者になれるんだよ……」'
         },
         {
-          speaker: '禁断の果実',
+          speaker: '禁じられた木の実',
           body: '（ポリッ……シャキッ……！）\n甘い香りが広がる……あっ、実を食べてしまった！',
           onPageShow: () => {
             seBump.play();
@@ -493,7 +493,7 @@ export function createEdenScene(onNextChapter: () => void) {
           }
         },
         {
-          speaker: '神からの司令',
+          speaker: '主なる神',
           body: 'アダムよ、食べてはならないと命じた実を食べたのか。\nあなたに衣を与えよう。\n東の門へ向かいなさい。ここからあなたの旅が始まる。',
           onPageShow: () => {
             hasEatenForbiddenFruit = true;
@@ -507,7 +507,7 @@ export function createEdenScene(onNextChapter: () => void) {
     if (item.isExit) {
       if (!hasEatenForbiddenFruit) {
         openDialogueQueue.call(this, [{
-          speaker: '神からの司令',
+          speaker: '主なる神',
           body: namedAnimalsCount < TOTAL_ANIMALS_TO_NAME
             ? 'まだ園を離れる時ではない。\n園の生き物たちに名を授けなさい。'
             : '園の中央にある木を見よ。\nその実を食べてはならない。'
@@ -517,7 +517,7 @@ export function createEdenScene(onNextChapter: () => void) {
 
       if (isChapterCleared) {
         openDialogueQueue.call(this, [{
-          speaker: '神からの司令',
+          speaker: '主なる神',
           body: '地を耕し、生きてゆきなさい。\nあなたの歩みを、わたしは見守っている。'
         }]);
         return;
@@ -526,14 +526,14 @@ export function createEdenScene(onNextChapter: () => void) {
       isChapterCleared = true;
       openDialogueQueue.call(this, [
         {
-          speaker: '神からの司令',
+          speaker: '主なる神',
           body: 'アダムよ、この先の地を耕し、生きてゆきなさい。\nあなたの歩みを、わたしは見守っている。',
           onPageShow: () => {
             seMagic.play();
           }
         },
         {
-          speaker: '第1章 ― エデンの園を後に',
+          speaker: '失楽園・エデンの園を後に',
           body: '★★ 第1章：天地創造とエデンの園 完 ★★\n\n（次は第2章『ノアの箱舟とバベルの塔』へ続く！）',
           onPageNext: () => {
             updateDivineCommand();

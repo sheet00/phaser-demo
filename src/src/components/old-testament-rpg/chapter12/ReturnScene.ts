@@ -20,11 +20,12 @@ export default class ReturnScene extends ChronicleScene {
     this.caption('故郷エルサレムへの道', 480, 135, 17);
     this.caption('帰還した民', 200, 370);
     this.setTarget(650, 520, '故郷へ入る');
-    this.objective.setText('ペルシア王の許可を受け、エルサレムへ帰ろう');
     this.progress.setText('1 / 3　帰還');
+    this.objective.setText('ペルシア王の許可を受け、エルサレムへ帰ろう');
     this.talk([
-      { speaker: '回復の約束', body: '七十年の捕囚の時を経て、ペルシア王が帰還を許した。\n民はエルサレムへ戻り、やがて第二神殿を建て直した。' },
-      { speaker: 'ネヘミヤの時代へ', body: 'その後も、都の城壁は壊れたままだった。\nネヘミヤは民を励まし、城壁の再建に取りかかる。' },
+      { speaker: 'キュロス王の帰還の勅令', body: '捕囚から70年。ペルシアのキュロス王が神に動かされ、奇跡の勅令を出した。\n「エルサレムに上り、主の神殿を再建せよ！」民は歓喜の涙とともに故郷へと帰還した。' },
+      { speaker: '荒廃した都と崩れた城壁', body: 'ゼルバベルらの指導で神殿（第二神殿）は再建されたが、周囲の敵からの妨害はやまず、\n都を守る城壁は崩れたまま、焼き払われた門も放置されていた。' },
+      { speaker: '総督ネヘミヤの奮起', body: 'ペルシア王宮で側近を務めていたユダヤ人ネヘミヤは、故郷の荒廃を聞いて断食祈祷。\n王の許しを得て総督として赴任し、民を一つに束ねて城壁再建に立ち上がる！' },
     ]);
   }
 
@@ -69,7 +70,7 @@ export default class ReturnScene extends ChronicleScene {
     this.setTarget(240, 520, '西の城壁を積む');
     this.progress.setText('2 / 3　1日目');
     this.objective.setText('三つの現場で石を積み、民とともに城壁を再建しよう');
-    this.talk([{ speaker: 'ネヘミヤ', body: '妨害があっても恐れるな。\n工具を手に働き、武器を携え、互いの家族を守ろう。' }]);
+    this.talk([{ speaker: 'ネヘミヤ', body: '敵の妨害や武力攻撃の脅しがあっても決して恐れるな！\n片手で工具を持ち、もう一方の手で武器を握り、愛する家族と都を守り抜くのだ！' }]);
   }
 
   private buildSection() {
@@ -95,7 +96,7 @@ export default class ReturnScene extends ChronicleScene {
       if (this.builtSections < 3) {
         this.setTarget([240, 480, 720][this.builtSections], 520, this.builtSections === 1 ? '中央の城壁を積む' : '東の城壁を積む');
       } else {
-        this.talk([{ speaker: '再建した民', body: '五十二日で城壁が完成した！\n私たちの神が、この働きを支えてくださった。' }], () => this.enterHope());
+        this.talk([{ speaker: '五十二日目の奇跡', body: '奇跡的にもわずか52日間で、周囲の城壁が完全に修復された！\n周囲の敵国も、これがイスラエルの神の助けによって成し遂げられた御業だと悟った。' }], () => this.enterHope());
       }
     });
   }
@@ -122,7 +123,10 @@ export default class ReturnScene extends ChronicleScene {
   private revealDawn() {
     this.busy = true;
     this.stop(); this.marker.setVisible(false);
-    this.talk([{ speaker: 'マラキ', body: '「わたしの名を恐れるあなたがたには、義の太陽が昇る。」\n民は、来たる救い主を待ち望んだ。' }], () => {
+    this.talk([
+      { speaker: '預言者マラキ', body: '「見よ、わたしの名を恐れるあなたがたには、義の太陽が昇り、その翼に癒やしがある！」' },
+      { speaker: '真の救い主を待ち望んで', body: '神殿と城壁は再建されたが、民が本当に待ち望むのは、罪から世界を救う真の王「メシア（救い主）」であった。' },
+    ], () => {
       const dawn = this.add.graphics().setDepth(40).setAlpha(0);
       dawn.fillStyle(0xffd28c, .2).fillRect(0, 104, 960, 576);
       for (let radius = 280; radius >= 40; radius -= 40) dawn.fillStyle(0xffe3a4, .045).fillCircle(480, 215, radius);
@@ -134,8 +138,8 @@ export default class ReturnScene extends ChronicleScene {
       this.scenery.add(promise);
       this.tweens.add({ targets: promise, alpha: 1, duration: 1400, delay: 1000 });
       this.time.delayedCall(3000, () => this.talk([
-        { speaker: '新約聖書へ続く希望', body: '創造、契約、救い、王国、捕囚、そして帰還。\n旧約の物語は、救い主の到来を待ち望んで結ばれる。' },
-        { speaker: 'エンディング', body: '第12章 完 ─ 新約聖書につづく！\n章メニューから、気になる時代をもう一度旅できます。' },
+        { speaker: '四百年の沈黙と約束の継承', body: '天地創造から始まり、アブラハムの契約、出エジプト、ダビデ王国の栄光、\nそして捕囚と帰還を経て──神の救いの約束は世代を超えて受け継がれた。' },
+        { speaker: 'ベツレヘムの星へ・新約聖書へ', body: 'マラキの預言から約400年後、暗闇の世を照らすベツレヘムの星が輝く──\n物語は新約聖書、イエス・キリストの降誕へと受け継がれていく！' },
       ], () => this.complete('旧約聖書の旅 ─ 帰還と、救い主を待ち望む希望', '第12章をもう一度')));
     });
   }

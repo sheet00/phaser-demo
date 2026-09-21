@@ -93,8 +93,8 @@ export default class AbrahamScene extends Phaser.Scene {
     });
     this.setCommand('天を見上げ、神の約束を聞きなさい。');
     this.talk([
-      { speaker: '神の約束', body: '空を見上げなさい。あなたの子孫を、夜空の星のように増やそう。' },
-      { speaker: '神からの命令', body: 'あなたの子イサクを連れ、モリアの山へ行きなさい。\nそこで、わたしに捧げなさい。' }
+      { speaker: '星空の契約', body: '空を見上げなさい。あなたの子孫を、夜空の星のように増やそう。' },
+      { speaker: 'モリアの山への試練', body: 'あなたの子イサクを連れ、モリアの山へ行きなさい。\nそこで、わたしに捧げなさい。' }
     ], () => {
       this.phase = 'travel';
       this.setCommand('イサクとともにモリア山へ行き、神の命令を聞きなさい。');
@@ -212,8 +212,8 @@ export default class AbrahamScene extends Phaser.Scene {
         this.hint.setText('第3章 完 · 章メニューから遊び直せます');
         this.talk([
           { speaker: 'アブラハム', body: '主が備えてくださった雄羊を、身代わりとして捧げました。' },
-          { speaker: '第3章 ― アブラハムとイサク 完', body: '神はイサクを止め、雄羊を備えられた。\n父子は守られ、約束は続いていく。' },
-          { speaker: '次の物語へ', body: 'やがて約束はヤコブ、そしてヨセフへと受け継がれていく――。\n第4章「ヤコブとヨセフ」へ続く。' }
+          { speaker: '信仰の試練と主の備え', body: '神はイサクを止め、雄羊を備えられた。\n父子は守られ、約束は続いていく。' },
+          { speaker: '約束の継承・ヤコブとヨセフへ', body: 'やがて約束はヤコブ、そしてヨセフへと受け継がれていく――。\n第4章「ヤコブとヨセフ」へ続く。' }
         ], this.nextChapter);
       } });
     } });

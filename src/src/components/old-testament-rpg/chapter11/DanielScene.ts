@@ -27,8 +27,9 @@ export default class DanielScene extends ChronicleScene {
     this.progress.setText('祈り 0 / 3');
     this.objective.setText('禁令に屈せず、朝・昼・夕の祈りを捧げよう');
     this.talk([
-      { speaker: '王の禁令', body: '王以外の神や人に祈ってはならない。\n逆らった者は、獅子の穴に投げ込まれる。' },
-      { speaker: 'ダニエル', body: 'それでも私は、いつものように一日三度、\nエルサレムに向かって神に祈ります。' },
+      { speaker: '捕囚の地の青年ダニエル', body: 'バビロン捕囚の民の中から王宮に召し出されたユダヤ人青年ダニエル。\n神から類まれな知恵を与えられ、バビロニア滅亡後も新王朝メド・ペルシアで重臣となった。' },
+      { speaker: '総督たちの嫉妬と罠', body: 'だが異邦人ダニエルの出世を妬んだ同僚たちが罠を仕掛けた。\n「30日間、王以外の神や人に祈る者は獅子の穴に投げる」という禁令を王に作らせたのだ。' },
+      { speaker: 'ダニエル', body: '「それでも私は、一日三度、エルサレムに向かって窓を開き、\nひざまずいて感謝と祈りを捧げることを決してやめません。」' },
     ]);
   }
 
@@ -49,7 +50,7 @@ export default class DanielScene extends ChronicleScene {
         this.busy = false;
         this.hint.setText(`${hour}の祈りを捧げた。SPACE / 目印をタップ：次の祈り`);
       } else this.talk([
-        { speaker: '王に訴える人々', body: 'ダニエルは禁令を守らず、神に祈っています。\n王よ、ご自分の定めた法に従ってください。' },
+        { speaker: '総督たちの告発', body: 'ダニエルは禁令を守らず、神に祈っています。\n王よ、ご自分の定めた法に従い、獅子の穴へ落としてください！' },
         { speaker: 'ダレイオス王', body: 'ダニエルよ、お前の神が救ってくださるように。\n王は悲しみながら、獅子の穴へ連れて行かせた。' },
       ], () => this.enterDen());
     });
@@ -99,7 +100,7 @@ export default class DanielScene extends ChronicleScene {
         this.scenery.add(seal);
         this.tweens.add({ targets: seal, alpha: .35, duration: 600, yoyo: true, repeat: -1 });
       });
-      this.time.delayedCall(1000, () => this.talk([{ speaker: '神の守り', body: '神は御使いを送り、獅子の口を塞がれた。\nダニエルは傷つけられず、信頼のうちに夜を過ごした。' }], () => this.morning()));
+      this.time.delayedCall(1000, () => this.talk([{ speaker: '御使いによる保護', body: '神は御使いを送り、獅子の口を塞がれた。\nダニエルは傷つけられず、信頼のうちに夜を過ごした。' }], () => this.morning()));
     });
   }
 
@@ -111,9 +112,10 @@ export default class DanielScene extends ChronicleScene {
     this.tweens.add({ targets: dawn, alpha: 1, duration: 1000 });
     this.person(740, 460, 594, 'ダレイオス王');
     this.time.delayedCall(1100, () => this.talk([
-      { speaker: '朝、王が駆けつけた', body: 'ダニエルよ！　お前の仕える神は、\n獅子からお前を救うことがおできになったか？' },
+      { speaker: 'ダレイオス王', body: 'ダニエルよ！　お前の仕える神は、\n獅子からお前を救うことがおできになったか！？' },
       { speaker: 'ダニエル', body: '神が御使いを送り、獅子の口を塞いでくださいました。\n私は無傷です。王よ、いつまでも生きられますように。' },
-      { speaker: 'ダレイオス王の布告', body: 'ダニエルの神は、生ける神である。\n私の国のすべての民は、この神を畏れ敬うように。' },
+      { speaker: 'ダレイオス王', body: 'ダニエルの神こそ、生ける永遠の神である！\n私の国のすべての民は、この神を畏れ敬え！' },
+      { speaker: '七十年の終わりと解放の光', body: 'ダニエルの揺るがぬ祈りの中、預言者エレミヤが告げた「捕囚の70年」が終わろうとしていた。\nやがてペルシアのキュロス王が、全ユダヤ人を揺るがす奇跡の帰還令を出す──' },
     ], () => this.complete('第11章 完 ─ 揺るがぬ信仰と神の保護', '第12章 帰還とメシア待望へ')));
   }
 }

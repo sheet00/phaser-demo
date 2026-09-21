@@ -24,8 +24,10 @@ export default class SolomonScene extends ChronicleScene {
     this.objective.setText('二人の母親のもとへ進み、知恵をもって裁こう');
     this.progress.setText('1 / 3　知恵');
     this.talk([
-      { speaker: '神', body: 'ソロモンよ、あなたに何を与えようか。' },
-      { speaker: 'ソロモン', body: '民を正しく治めるため、聞き分ける心をください。\n富や長寿よりも、善悪を見分ける知恵を求めます。' },
+      { speaker: 'ギブオンの夜の祈り', body: '偉大な父ダビデ王の跡を継ぎ、第3代イスラエル王となった青年ソロモン。\nある夜、ギブオンで主に祈りを捧げると、夢の中に神が現れた。' },
+      { speaker: '神', body: 'ソロモンよ、あなたに何を授けようか。何でも願いなさい。' },
+      { speaker: 'ソロモン', body: '私はまだ若く、善悪を判断できません。多くの民を正しく導くため、\n長寿や富ではなく「聞き分ける心（知恵）」を私にください。' },
+      { speaker: '知恵と富の約束', body: '神はその謙虚な願いを喜ばれ、前代未聞の知恵に加え、\n求めなかった富と誉れをもソロモンに授けられた。' },
     ]);
   }
 
@@ -40,13 +42,16 @@ export default class SolomonScene extends ChronicleScene {
 
   private judge() {
     this.talk([
-      { speaker: '二人の母親', body: 'どちらも「この赤子は私の子だ」と訴えている。\nソロモンは二人の心を確かめようとした。' },
+      { speaker: '二人の母親の訴え', body: 'どちらも「この赤子は私の子だ」と訴えている。\nソロモンは二人の心を確かめようとした。' },
       { speaker: 'ソロモン', body: '二人とも我が子だと言うなら、赤子を二つに分けよ。' },
       { speaker: '母親B', body: 'それだけはおやめください！\nどうか生かしてください。その人に渡してください。' },
     ], () => {
       this.busy = true;
       this.tweens.add({ targets: this.baby, x: this.mother.x - 18, y: this.mother.y + 5, duration: 750,
-        onComplete: () => this.talk([{ speaker: 'ソロモンの裁き', body: '赤子を殺してはならない。命を守ろうとした母親Bに返しなさい。\n民は王に与えられた知恵を知った。' }], () => this.enterBuilding()),
+        onComplete: () => this.talk([
+          { speaker: '名裁判と神の知恵', body: '本当の母親は我が子の命を奪えない。生かそうとした母親Bに返しなさい。\nこの名裁断に全イスラエルは驚嘆し、王に神の知恵が宿っていることを知った。' },
+          { speaker: '父ダビデの悲願へ', body: '知恵による平和のもと、ソロモンは父ダビデの悲願であった\n「契約の箱を納める黄金の神殿」の建設へと乗り出す！' },
+        ], () => this.enterBuilding()),
       });
     });
   }
@@ -84,7 +89,7 @@ export default class SolomonScene extends ChronicleScene {
       this.tweens.add({ targets: piece, y: finalY, alpha: 1, duration: 350, delay: index * 32, ease: 'Sine.easeOut' });
     });
     this.time.delayedCall(this.temple.length * 32 + 450, () => this.talk([
-      { speaker: '神殿の完成', body: '年月をかけた建設を終え、黄金の神殿が完成した。\n王国は繁栄し、ソロモンの知恵は遠くの国にも伝わった。' },
+      { speaker: 'エルサレム黄金神殿の完成', body: '7年の歳月をかけ、石とレバノン杉、そして純金に輝く神殿が完成した！\nソロモンの知恵と王国の繁栄は遠方にも轟き、南のアラビアからシェバの女王が訪れた。' },
     ], () => {
       this.phase = 'glory'; this.busy = false;
       this.person(730, 440, 486, 'シェバの女王').setTint(0xffdfa1);
@@ -103,8 +108,9 @@ export default class SolomonScene extends ChronicleScene {
     this.tweens.add({ targets: cloud, alpha: 1, scale: 1.15, duration: 1600 });
     this.cameras.main.flash(850, 255, 236, 183);
     this.time.delayedCall(1800, () => this.talk([
-      { speaker: '民たち', body: '雲が神殿を満たした！　主の栄光がここにある！' },
-      { speaker: '第8章 完', body: '神の知恵による統治と、民の中に建てられた神殿。\n栄えた王国は、次の時代に大きな分かれ道を迎える。' },
+      { speaker: '主の栄光の雲', body: '主の栄光の雲が神殿を満たした！　主が私たちの真ん中におられる！' },
+      { speaker: '栄華の影と偶像礼拝', body: 'しかし絶頂の繁栄の中、ソロモンは晩年に多くの異教の妻たちを迎え、\n偶像礼拝を許し、巨大建築のために民へ重税と過酷な賦役を課してしまった。' },
+      { speaker: '王国分裂の暗雲', body: '「必ず王国を引き裂く」という神の警告どおり、\nソロモンの死後、王国は南北真っ二つに分裂することになる──' },
     ], () => this.complete('第8章 完 ─ 知恵の裁きと黄金神殿', '第9章 王国の分裂と預言者エリヤへ')));
   }
 }

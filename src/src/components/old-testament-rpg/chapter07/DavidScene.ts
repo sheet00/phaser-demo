@@ -10,12 +10,28 @@ export default class DavidScene extends ChronicleScene {
 
   protected startChapter() {
     this.playerLabel.setText('少年ダビデ');
+    this.player.setFrame(379).setScale(2.8);
     this.floor(5);
     for (let row = 0; row < 12; row++) {
       this.tile(12, row, 59); this.tile(13, row, 0); this.tile(14, row, 0); this.tile(15, row, 61);
     }
-    for (const [x, y] of [[1, 1], [4, 2], [17, 2], [18, 6]]) this.tree(x, y);
+    for (const [x, y] of [[1, 1], [4, 2], [18, 1], [19, 7]]) this.tree(x, y);
+
+    // イスラエル陣営
+    this.caption('イスラエル陣営', 250, 310, 13);
+    this.person(200, 390, 594);
     this.person(260, 380, 594, 'サウル王');
+    this.person(320, 400, 594);
+
+    // 対岸のペリシテ陣営と巨人ゴリアテ
+    this.caption('ペリシテ陣営', 810, 310, 13);
+    this.person(740, 420, 594).setTint(0xcf9380);
+    this.person(880, 420, 594).setTint(0xcf9380);
+    const startGoliath = this.person(810, 470, 594).setScale(7).setTint(0xceaaa1);
+    this.caption('巨人ゴリアテ', 810, 390, 16);
+    this.caption('「誰か俺と一騎打ちできる奴はいないのか！」', 780, 345, 12);
+    this.tweens.add({ targets: startGoliath, y: '-=8', yoyo: true, repeat: -1, duration: 800, ease: 'Sine.easeInOut' });
+
     this.stone = this.add.image(558, 510, this.tileKey, 1137).setScale(1.3);
     this.scenery.add(this.stone);
     this.caption('エラの谷 ─ イスラエルとペリシテの戦い', 480, 136, 17);
@@ -23,8 +39,10 @@ export default class DavidScene extends ChronicleScene {
     this.progress.setText('1 / 3　小石');
     this.objective.setText('小川の岸へ進み、小石を拾って投石器に備えよう');
     this.talk([
-      { speaker: 'サウル王', body: '兵士たちが巨人ゴリアテを恐れている。\n羊飼いの少年よ、お前に立ち向かえるのか？' },
-      { speaker: 'ダビデ', body: '羊を守ってくださった主が、今も守ってくださいます。\n小川で小石を拾い、投石器を手に向かいます。' },
+      { speaker: 'エラの谷の脅威', body: '民の願いで初代王となったサウル。だが強国ペリシテが再び襲来！\n敵の身長3mの巨人ゴリアテに脅され、サウル王と全軍は恐怖で震え上がっていた。' },
+      { speaker: '羊飼いダビデの志願', body: 'そこへ兄たちに弁当を届けに来た羊飼いの少年ダビデ。\n巨人の罵倒と怯える軍を見たダビデは、「僕が戦います！」とサウル王に名乗り出た。' },
+      { speaker: 'サウル王', body: '大人の兵士すら恐れる巨人に、羊飼いのお前が立ち向かえるというのか……！？' },
+      { speaker: 'ダビデ', body: '熊や狼から羊を守ってくださった主が、巨人の手からも僕を救われます！\n鎧はいりません。小川で小石を拾い、いつもの投石器で立ち向かいます！' },
     ]);
   }
 
@@ -40,13 +58,15 @@ export default class DavidScene extends ChronicleScene {
         { speaker: 'ダビデ', body: 'お前は剣と槍で来る。\n私は万軍の主の名によって立ち向かう！' },
       ], () => this.throwStone());
     } else this.talk([
-      { speaker: '王ダビデ', body: 'やがてダビデはイスラエルの王となり、\nエルサレムを都に定めた。' },
-      { speaker: '第7章 完', body: '神は外見ではなく、心を見られる。\n少年の信仰による勝利から、統一王国の物語が始まる。' },
+      { speaker: 'イスラエルの民', body: '主があなたをイスラエルの牧者として立てられました。\n苦難の逃亡を乗り越えたダビデ様、全イスラエルの王として私たちを導いてください！' },
+      { speaker: '王ダビデ', body: '主よ、私のような羊飼いを王に立ててくださり感謝します。\nエルサレムを都と定め、神の箱を迎え入れて主をほめたたえる国を築こう！' },
+      { speaker: '少年の信仰から統一王国へ', body: '神は外見ではなく、心を見られる。\n少年の信仰による勝利から、全イスラエルを治める統一王国の栄光が始まる。' },
     ], () => this.complete('第7章 完 ─ 信仰による勝利と王ダビデ', '第8章 ソロモンと黄金神殿へ'));
   }
 
   private enterBattle() {
     this.clearStage(); this.phase = 'battle';
+    this.player.setFrame(379).setScale(2.8);
     this.floor(8);
     for (let row = 6; row < 10; row++) for (let col = 0; col < 20; col++) this.tile(col, row, 6);
     for (const col of [1, 3, 16, 18]) {
@@ -80,7 +100,12 @@ export default class DavidScene extends ChronicleScene {
         projectile.destroy();
         this.cameras.main.shake(250, .004);
         this.tweens.add({ targets: this.goliath, angle: 90, y: 585, alpha: .55, duration: 650, ease: 'Cubic.easeIn',
-          onComplete: () => this.talk([{ speaker: 'イスラエルの民', body: '石が額に命中した！　ゴリアテが倒れた！\n主がこの戦いに勝利を与えてくださった。' }], () => this.enterKingdom()),
+          onComplete: () => this.talk([
+            { speaker: 'イスラエルの民', body: '石が額に命中した！　ゴリアテが倒れた！\n主がこの戦いに勝利を与えてくださった。' },
+            { speaker: 'エラの谷の勝利と英雄', body: 'ゴリアテを倒し一躍英雄となったダビデ。\n民は「サウルは千を討ち、ダビデは万を討った！」と歌い称えた。' },
+            { speaker: 'サウル王の嫉妬と逃亡', body: 'だが激しい嫉妬に狂ったサウル王から命を狙われ、\nダビデは長年、荒野や洞窟を逃亡する苦難の日々を送ることになる。' },
+            { speaker: '試練を越えて王座へ', body: 'やがてサウル王が戦死したのち、神と民の願いによって\nダビデは全イスラエルの王として油を注がれ、即位した──' },
+          ], () => this.enterKingdom()),
         });
       } });
     } });
@@ -93,10 +118,20 @@ export default class DavidScene extends ChronicleScene {
     for (const col of [3, 16]) { this.tile(col, 1, 698); this.tile(col, 2, 121); }
     for (const col of [9, 10]) this.tile(col, 6, 37);
     this.caption('統一王国 ─ 都エルサレム', 480, 136, 17);
-    this.person(660, 470, 594, '王ダビデ').setTint(0xffdc96);
-    this.playerLabel.setText('イスラエルの民');
-    this.setTarget(650, 530, '王の歩み');
-    this.objective.setText('王ダビデのもとへ進み、その後の歩みを聞こう');
+
+    // プレイヤー自身が成長し「王ダビデ」に即位
+    this.playerLabel.setText('王ダビデ');
+    this.player.setFrame(594).setTint(0xffdc96).setScale(3.5).setPosition(180, 520);
+
+    // 歓呼するイスラエルの民衆たち
+    this.person(360, 430, 487, '民衆');
+    this.person(450, 410, 378, '民衆');
+    this.person(540, 430, 325, '民衆');
+    this.caption('「ダビデ王万歳！主が選ばれた王！」', 450, 340, 13);
+
+    this.caption('エルサレムの玉座', 700, 430, 14);
+    this.setTarget(700, 520, '玉座へ即位');
+    this.objective.setText('玉座へ進み、イスラエル統一王国の即位を宣言しよう');
     this.progress.setText('3 / 3　王国');
   }
 }

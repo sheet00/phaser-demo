@@ -34,11 +34,12 @@ export default class ExileScene extends ChronicleScene {
     this.scenery.add(this.chains);
     this.person(780, 540, 594, 'バビロン兵');
     this.setTarget(670, 550, '捕囚の列へ');
-    this.objective.setText('燃える都を離れ、捕囚の民とともに歩もう');
     this.progress.setText('1 / 2　陥落');
+    this.objective.setText('燃える都を離れ、捕囚の民とともに歩もう');
     this.talk([
-      { speaker: '預言者エレミヤ', body: '神の警告を拒み続けた王国は、バビロンに敗れた。\nエルサレムの神殿は焼かれ、民は異国へ連れて行かれる。' },
-      { speaker: '捕囚の民', body: '主よ、私たちは契約を忘れていました。\nこの鎖とともに、故郷を離れなければならないのですか。' },
+      { speaker: '預言者エレミヤの涙', body: '北イスラエル滅亡後も、南ユダ王国は神との契約を破り続けた。\n預言者エレミヤが涙ながらに「主に立ち返らねば滅びる」と叫んだが、王も民も嘲笑した。' },
+      { speaker: 'エルサレム包囲と神殿炎上', body: '紀元前586年、大国新バビロニアのネブカドネザル王がエルサレムを包囲。\n都は破られ、ソロモンの栄光を誇った黄金神殿は無残に焼き払われてしまった。' },
+      { speaker: '鎖につながれたバビロン捕囚', body: '生き残った民は首に鎖をかけられ、何千キロも離れた異国バビロンへと強制連行された。\nこれがイスラエル史上最大の悲劇「バビロン捕囚」である。' },
     ]);
   }
 
@@ -72,7 +73,7 @@ export default class ExileScene extends ChronicleScene {
     this.setTarget(490, 540, '川辺で祈る');
     this.progress.setText('2 / 2　祈り');
     this.objective.setText('川のほとりに座り、故郷シオンを思って祈ろう');
-    this.talk([{ speaker: '異国の川辺', body: '武器も都も失った民は、川辺に座って泣いた。\n故郷シオンを思い、神への祈りが生まれる。' }]);
+    this.talk([{ speaker: '哀歌・バビロンの川のほとりで', body: '「バビロンの川のほとり、そこに私たちは座り、シオンを思い出して泣いた。」\n国も神殿も失った民は、異国の地で初めて、自分たちが神を捨てた罪の深さを悟った。' }]);
   }
 
   private prayByRiver() {
@@ -83,8 +84,9 @@ export default class ExileScene extends ChronicleScene {
     this.scenery.add(tear);
     this.tweens.add({ targets: tear, y: tear.y + 35, alpha: 0, duration: 750, repeat: 1 });
     this.time.delayedCall(1700, () => this.talk([
-      { speaker: '捕囚の民', body: 'シオンを思い出して、涙が流れる。\n主よ、私たちの罪を赦し、あなたのもとへ立ち返らせてください。' },
-      { speaker: '第10章 完', body: '契約を忘れた民への裁き。けれど、祈りは異国にも届く。\n試練の中で、回復を待つ信仰が育まれていく。' },
+      { speaker: '捕囚の民の祈り', body: 'シオンを思って涙が溢れる。\n主よ、私たちの罪を赦し、いつの日か故郷へ立ち返らせてください！' },
+      { speaker: '異国の王宮に灯る希望', body: '苦難の捕囚期、主は民を完全に見捨ててはおられなかった。\nバビロンの王宮で仕えるユダヤ人たちの中に、信仰を守り抜く青年「ダニエル」がいた。' },
+      { speaker: '新たな帝国と試練の夜へ', body: 'やがてバビロニア帝国が滅び、覇権は新興メド・ペルシアへと移る。\n大帝国の王宮を舞台に、ダニエルの命がけの信仰の戦いが始まる──' },
     ], () => this.complete('第10章 完 ─ 捕囚の地から、悔い改めの祈り', '第11章 獅子の穴のダニエルへ')));
   }
 

@@ -111,7 +111,7 @@ export default class NoahChapterScene extends Phaser.Scene {
         this.destination = new Phaser.Math.Vector2(Phaser.Math.Clamp(pointer.worldX, 45, 915), Phaser.Math.Clamp(pointer.worldY, 380, 650));
       }
     });
-    this.talk([{ speaker: '神からの司令', body: 'ノアよ、洪水が近づいている。\nつがいの動物たちに触れ、箱舟へ避難させなさい。' }]);
+    this.talk([{ speaker: '大洪水と箱舟の備え', body: 'ノアよ、洪水が近づいている。\nつがいの動物たちに触れ、箱舟へ避難させなさい。' }]);
   }
 
   private tile(col: number, row: number, frame: number, parent = this.scenery) {
@@ -178,8 +178,8 @@ export default class NoahChapterScene extends Phaser.Scene {
     this.time.delayedCall(1500, () => {
       this.setCommand('この虹を、あなたたちと結ぶ契約のしるしとする。');
       this.talk([
-        { speaker: '神の約束 ― 虹の契約', body: 'この虹を契約のしるしとする。\n再び洪水によって、すべての生き物を滅ぼすことはしない。' },
-        { speaker: '時は流れ、シナルの平野へ', body: 'ノアの子孫たちは地上に増え広がり、一つの言葉を話していた。\nやがて自分たちの名を高めようと、天に届く塔を築き始めた。' }
+        { speaker: '契約の虹と神の誓い', body: 'この虹を契約のしるしとする。\n再び洪水によって、すべての生き物を滅ぼすことはしない。' },
+        { speaker: 'シナルの平野と高慢の塔', body: 'ノアの子孫たちは地上に増え広がり、一つの言葉を話していた。\nやがて自分たちの名を高めようと、天に届く塔を築き始めた。' }
       ], () => {
         dove.destroy(); leaf.destroy(); rainbow.destroy();
         this.tweens.killTweensOf(this.boat);
@@ -216,7 +216,7 @@ export default class NoahChapterScene extends Phaser.Scene {
     this.babelConversationStarted = true;
     this.talk([
       { speaker: '建設者', body: 'こんにちは！ 私たちは同じ言葉で話し、力を合わせている。\nレンガを積んで、町と塔を建てよう！' },
-      { speaker: '建設者たちの誇り', body: '「天に届く塔を建て、われわれの名を上げよう！\n地の全面に散らされないようにしよう！」' }
+      { speaker: '天に届く塔への野望', body: '「天に届く塔を建て、われわれの名を上げよう！\n地の全面に散らされないようにしよう！」' }
     ], () => this.startBabelConstruction());
   }
 
@@ -244,7 +244,7 @@ export default class NoahChapterScene extends Phaser.Scene {
     this.time.delayedCall(2850, () => {
       this.setCommand('塔が高くなった。人々は自分たちの名を誇っている。');
       this.hint.setText('建設が終わった。SPACE / タップで神の戒めを聞く');
-      this.talk([{ speaker: '神の声', body: '彼らは一つの民で、皆一つの言葉を使っている。\nこれは彼らの始めたことだ。高慢な思いを改めなさい。' }], () => this.scatter());
+      this.talk([{ speaker: '主なる神', body: '彼らは一つの民で、皆一つの言葉を使っている。\nこれは彼らの始めたことだ。高慢な思いを改めなさい。' }], () => this.scatter());
     });
   }
 
@@ -256,7 +256,7 @@ export default class NoahChapterScene extends Phaser.Scene {
     this.builderLabels.forEach(label => label.setText('指示が通じない…').setPosition(label.x, label.y));
     this.setCommand('同じ指示が通じなくなり、建設は止まった。');
     this.hint.setText('人々は立ち止まり、互いの言葉を聞き返している……');
-    this.talk([{ speaker: '神の声', body: '人々は自分たちの力を誇り、高慢になった。\nさあ、彼らの言葉を混乱させ、互いに通じなくしよう。' }], () => {
+    this.talk([{ speaker: '主なる神', body: '人々は自分たちの力を誇り、高慢になった。\nさあ、彼らの言葉を混乱させ、互いに通じなくしよう。' }], () => {
       this.setCommand('言葉が通じず、工事は止まった。人々は全地へ散っていく。');
       this.hint.setText('人々は塔を離れ、世界各地へ去っていく……');
       this.builders.forEach((builder, index) => {
@@ -268,8 +268,8 @@ export default class NoahChapterScene extends Phaser.Scene {
         this.setCommand('高慢を捨て、わたしの導きに耳を傾けなさい。');
         this.hint.setText('第2章 完 · 上部の章メニューから遊び直せます');
         this.talk([
-          { speaker: '第2章 ― ノアの箱舟とバベルの塔 完', body: '洪水は罪への裁き。箱舟と虹は、神の憐れみと契約のしるし。\nバベルの人々は高慢を戒められ、世界各地へ散っていった。' },
-          { speaker: '次の物語へ', body: 'やがて神は、アブラハムという一人の人を呼び出す。\n第3章「アブラハムとイサク」へ続く。' }
+          { speaker: '裁きと憐れみ・言葉の混乱', body: '洪水は罪への裁き。箱舟と虹は、神の憐れみと契約のしるし。\nバベルの人々は高慢を戒められ、世界各地へ散っていった。' },
+          { speaker: '信仰の父アブラハムの召命へ', body: 'やがて神は、アブラハムという一人の人を呼び出す。\n第3章「アブラハムとイサク」へ続く。' }
         ], this.nextChapter);
       });
     });

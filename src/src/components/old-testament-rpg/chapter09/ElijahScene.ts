@@ -24,8 +24,9 @@ export default class ElijahScene extends ChronicleScene {
     this.objective.setText('アハブ王に会い、カルメル山へ向かおう');
     this.setTarget(630, 530, 'アハブ王');
     this.talk([
-      { speaker: '分裂した王国', body: 'ソロモンの死後、王国は北のイスラエルと南のユダに分裂。\n北のアハブ王の時代、バアル崇拝が広がり、干ばつが続いた。' },
-      { speaker: 'エリヤ', body: 'いつまで二つのものの間で迷うのか。\n主が神なら、主に従え。カルメル山で確かめよう。' },
+      { speaker: '引き裂かれた南北王国', body: 'ソロモン王の死後、過酷な重税に反発した10部族が反乱を起こし、\n王国は「北イスラエル」と「南ユダ」の二つに分裂してしまった。' },
+      { speaker: 'アハブ王と嵐の神バアル', body: '特に北イスラエルのアハブ王と王妃イゼベルは神を捨て、異教の嵐の神バアルを崇拝。\n預言者エリヤは神の裁きを宣言し、国中が3年半もの大干ばつに見舞われていた。' },
+      { speaker: 'エリヤ', body: '「いつまで主とバアルの二つの間で迷うのか！\n火をもって答える神こそ真の神だ。カルメル山で白黒つけよう！」' },
     ]);
   }
 
@@ -103,7 +104,10 @@ export default class ElijahScene extends ChronicleScene {
       this.tweens.add({ targets: [fire, glow], alpha: 0, duration: 1300 });
     } });
     this.time.delayedCall(2100, () => {
-      this.talk([{ speaker: '民たち', body: '主こそ神です！　主こそ神です！\n祭壇もたきぎも石も、水までも焼き尽くされた。' }], () => {
+      this.talk([
+        { speaker: 'イスラエルの民', body: '主こそ神です！　主こそ神です！\n天からの火が、たきぎも石も、溝の水までも焼き尽くされた！' },
+        { speaker: 'エリヤ', body: 'バアルの偽預言者たちは退けられた。\n主よ、悔い改めたこの地に、約束の雨を降らせてください！' },
+      ], () => {
         this.phase = 'rain'; this.busy = false;
         this.progress.setText('3 / 3　雨の約束');
         this.objective.setText('エリヤとともに、海の方から来る雲を見よう');
@@ -125,8 +129,9 @@ export default class ElijahScene extends ChronicleScene {
       this.tweens.add({ targets: drop, x: '-=32', y: '+=240', alpha: .15, duration: 700, delay: i * 32, repeat: -1 });
     }
     this.time.delayedCall(1900, () => this.talk([
-      { speaker: 'エリヤ', body: '海の方に小さな雲が見える。\n長い干ばつが終わり、恵みの雨が地を潤す！' },
-      { speaker: '第9章 完', body: '民は偶像から、生ける神へ心を向けた。\n預言者は王にも民にも、主に立ち返るよう語り続けた。' },
+      { speaker: 'エリヤ', body: '海の方に小さな雲が見える。\n3年半の干ばつが終わり、主が注がれる恵みの大雨が地を潤す！' },
+      { speaker: '預言者たちの警告と滅亡への道', body: '民は奇跡に驚いたが、その後の歴代の王たちも再び神に背き続けた。\n預言者たちが涙ながらに「主に立ち返れ」と警告したが、民は耳を塞いだ。' },
+      { speaker: 'やがて迫る帝国の鉄槌', body: 'やがて北イスラエルはアッシリアに滅ぼされ、\n南ユダ王国にも、大帝国バビロニアによる破滅の時が迫っていた──' },
     ], () => this.complete('第9章 完 ─ 火の奇跡と恵みの雨', '第10章 バビロン捕囚へ')));
   }
 }
