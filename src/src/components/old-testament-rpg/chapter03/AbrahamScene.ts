@@ -1,7 +1,7 @@
+import { FONT_FAMILY } from '../typography';
 import Phaser from 'phaser';
 import { buildAbrahamMap, createBush, createSheep } from './map';
 
-const FONT_FAMILY = '"Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif';
 
 type Phase = 'stars' | 'travel' | 'altar' | 'ram' | 'offering' | 'complete';
 

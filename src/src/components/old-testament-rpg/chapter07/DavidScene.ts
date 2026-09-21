@@ -11,11 +11,20 @@ export default class DavidScene extends ChronicleScene {
   protected startChapter() {
     this.playerLabel.setText('少年ダビデ');
     this.player.setFrame(379).setScale(2.8);
-    this.floor(5);
+    this.floor(5, 0xd7e6b3);
+    this.landscape.patch(1, 4, 10, 7, 'earth', 0xdfcfac);
+    this.landscape.patch(16, 4, 4, 7, 'earth', 0xdfcfac);
     for (let row = 0; row < 12; row++) {
       this.tile(12, row, 59); this.tile(13, row, 0); this.tile(14, row, 0); this.tile(15, row, 61);
     }
     for (const [x, y] of [[1, 1], [4, 2], [18, 1], [19, 7]]) this.tree(x, y);
+    for (const col of [6, 9, 17]) {
+      this.tile(col, 1, 618); this.tile(col + 1, 1, 619);
+      this.tile(col, 2, 675); this.tile(col + 1, 2, 676);
+    }
+    this.landscape.supplies(7, 3);
+    this.landscape.plants([[0, 4], [1, 10], [10, 2], [11, 5], [11, 9], [16, 2], [18, 10]]);
+    for (const row of [2, 6, 10]) this.tile(14, row, 652);
 
     // イスラエル陣営
     this.caption('イスラエル陣営', 250, 310, 13);
@@ -68,7 +77,11 @@ export default class DavidScene extends ChronicleScene {
     this.clearStage(); this.phase = 'battle';
     this.player.setFrame(379).setScale(2.8);
     this.floor(8);
-    for (let row = 6; row < 10; row++) for (let col = 0; col < 20; col++) this.tile(col, row, 6);
+    this.landscape.patch(0, 5, 20, 6, 'earth', 0xe1ceac);
+    this.landscape.ridge(20, 0xc4b89e);
+    this.landscape.plants([[0, 4], [5, 4], [14, 3], [19, 5], [1, 11], [18, 11]], true);
+    this.landscape.supplies(1, 4);
+    this.landscape.supplies(17, 4);
     for (const col of [1, 3, 16, 18]) {
       this.tile(col, 2, 618); this.tile(col + 1, 2, 619);
       this.tile(col, 3, 675); this.tile(col + 1, 3, 676);
@@ -113,10 +126,17 @@ export default class DavidScene extends ChronicleScene {
 
   private enterKingdom() {
     this.clearStage(); this.phase = 'kingdom';
-    this.floor(5);
-    for (let row = 2; row < 7; row++) for (let col = 3; col < 17; col++) this.tile(col, row, row === 2 ? 698 : 121);
-    for (const col of [3, 16]) { this.tile(col, 1, 698); this.tile(col, 2, 121); }
-    for (const col of [9, 10]) this.tile(col, 6, 37);
+    this.floor(5, 0xd5dfb3);
+    this.landscape.terrace(2, 5, 16, 7, 0xe7dcc4);
+    this.landscape.facade(3, 1, 14, 5, 0xead9b6);
+    this.landscape.patch(12, 6, 5, 6, 'rug', 0xc0d7c8);
+    for (const col of [3, 7, 12, 16]) this.landscape.column(col, 4, 0xf3dfad);
+    for (const col of [0, 18]) {
+      this.landscape.tree(col, 2);
+      this.landscape.tree(col, 7);
+    }
+    this.tile(14, 6, 133);
+    for (const col of [12, 16]) { this.tile(col, 6, 475); this.landscape.glow(col, 6); }
     this.caption('統一王国 ─ 都エルサレム', 480, 136, 17);
 
     // プレイヤー自身が成長し「王ダビデ」に即位

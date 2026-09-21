@@ -1,7 +1,8 @@
+import { FONT_FAMILY } from '../typography';
 import Phaser from 'phaser';
+import { Scenery } from '../scenery';
 
 const TILES = 'joshua_tiles';
-const FONT_FAMILY = '"Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif';
 type Phase = 'march' | 'trumpet' | 'collapse' | 'samson_find' | 'samson_battle' | 'battling' | 'complete';
 type Page = { speaker: string; body: string };
 const ROUTE = [[200, 520], [200, 206], [760, 206], [760, 520], [480, 566]];
@@ -99,20 +100,21 @@ export default class JoshuaScene extends Phaser.Scene {
   }
 
   private tree(col: number, row: number) {
-    this.tile(col, row, 583);
-    this.tile(col, row + 1, 640);
+    new Scenery(this, this.scenery, TILES).tree(col, row);
   }
 
   private buildJericho() {
-    for (let row = 0; row < 12; row++) for (let col = 0; col < 20; col++) {
-      this.tile(col, row, col >= 3 && col <= 16 && row >= 1 && row <= 10 ? 6 : 5);
-    }
+    const art = new Scenery(this, this.scenery, TILES);
+    art.ground(5, 0xd2deb2);
+    art.patch(3, 1, 14, 10, 'earth', 0xdfcba4);
+    art.patch(5, 2, 10, 6, 'stone', 0xc6b89a);
+    art.plants([[0, 4], [1, 3], [18, 4], [19, 6], [2, 11], [17, 11]]);
     for (const [x, y] of [[0, 1], [18, 1], [1, 6], [18, 8], [0, 9]]) this.tree(x, y);
-    for (let row = 0; row < 4; row++) for (let col = 0; col < 8; col++) {
-      const frame = (row === 0 ? 697 : row === 3 ? 811 : 754) + (col === 0 ? 0 : col === 7 ? 2 : 1);
-      this.wall.push(this.tile(6 + col, 3 + row, frame));
+    this.wall.push(...art.facade(6, 3, 8, 4, 0xe1cba5));
+    for (const col of [5, 14]) {
+      for (let row = 2; row < 7; row++) this.wall.push(this.tile(col, row, row === 2 ? 698 : row === 6 ? 868 : 873, 0xceb994));
+      this.wall.push(this.tile(col, 3, 98));
     }
-    for (const col of [5, 14]) for (let row = 2; row < 7; row++) this.wall.push(this.tile(col, row, row === 2 ? 698 : 121));
     this.wall.push(this.tile(9, 6, 37));
     this.wall.push(this.tile(10, 6, 37));
     this.scenery.add(this.add.text(480, 132, 'エリコ ─ 七日目、最後の一周', this.style(16, '#fff0c2', '#374231')).setOrigin(.5));
@@ -205,7 +207,13 @@ export default class JoshuaScene extends Phaser.Scene {
     this.weaponBadge = undefined;
     this.scenery.removeAll(true);
     this.wall = [];
-    for (let row = 0; row < 12; row++) for (let col = 0; col < 20; col++) this.tile(col, row, row >= 7 && row <= 9 ? 6 : 8);
+    const art = new Scenery(this, this.scenery, TILES);
+    art.ground(8, 0xdfccaa);
+    art.patch(0, 6, 20, 5, 'earth', 0xd5bd98);
+    art.ridge(20, 0xb7aa91);
+    art.plants([[1, 5], [3, 10], [15, 4], [17, 9], [19, 10]], true);
+    art.supplies(6, 4);
+    art.supplies(11, 4);
     for (const [x, y] of [[0, 2], [3, 1], [16, 1], [18, 5], [1, 9]]) {
       this.tile(x, y, 540);
       this.tile(x, y + 1, 597);
@@ -223,7 +231,7 @@ export default class JoshuaScene extends Phaser.Scene {
     }
 
     const boneBg = this.add.circle(0, 0, 22, 0xfff2b0, 0.45);
-    const boneText = this.add.text(0, 0, '🦴', { fontSize: '24px' }).setOrigin(0.5);
+    const boneText = this.add.text(0, 0, '🦴', this.style(24)).setOrigin(0.5);
     const boneLabel = this.add.text(0, 24, 'ロバのあご骨', this.style(11, '#ffffff', '#3f2d1c')).setOrigin(0.5);
     this.jawbone = this.add.container(440, 520, [boneBg, boneText, boneLabel]).setDepth(25);
     this.tweens.add({ targets: this.jawbone, y: 512, duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });

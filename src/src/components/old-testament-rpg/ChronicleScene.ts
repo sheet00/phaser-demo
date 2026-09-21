@@ -1,6 +1,7 @@
+import { FONT_FAMILY } from './typography';
 import Phaser from 'phaser';
+import { Scenery } from './scenery';
 
-const FONT_FAMILY = '"Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif';
 export type ChroniclePage = { speaker: string; body: string };
 
 export default abstract class ChronicleScene extends Phaser.Scene {
@@ -87,12 +88,15 @@ export default abstract class ChronicleScene extends Phaser.Scene {
   }
 
   protected floor(frame: number, tint = 0xffffff) {
-    for (let row = 0; row < 12; row++) for (let col = 0; col < 20; col++) this.tile(col, row, frame, tint);
+    this.landscape.ground(frame, tint);
+  }
+
+  protected get landscape() {
+    return new Scenery(this, this.scenery, this.tileKey);
   }
 
   protected tree(col: number, row: number, dead = false) {
-    this.tile(col, row, dead ? 540 : 583);
-    this.tile(col, row + 1, dead ? 597 : 640);
+    this.landscape.tree(col, row, dead ? 'dry' : 'green');
   }
 
   protected person(x: number, y: number, frame = 486, label?: string) {

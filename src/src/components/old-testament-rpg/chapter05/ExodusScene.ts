@@ -1,18 +1,19 @@
 import Phaser from 'phaser';
-import { buildMountain, buildSea, MOUNTAIN_HEIGHT, MOUNTAIN_WIDTH, SEA_HEIGHT, SEA_WIDTH, TILES } from './map';
+import { buildCallStage, buildMountain, buildSea, CALL_HEIGHT, CALL_WIDTH, MOUNTAIN_HEIGHT, MOUNTAIN_WIDTH, SEA_HEIGHT, SEA_WIDTH, TILES } from './map';
 import { ExodusHud, textStyle } from './ui';
 
-type Phase = 'shore' | 'parting' | 'crossing' | 'arrival' | 'mountain' | 'receiving' | 'descending' | 'calf' | 'breaking' | 'complete';
+type Phase = 'call' | 'shore' | 'parting' | 'crossing' | 'arrival' | 'mountain' | 'receiving' | 'descending' | 'calf' | 'breaking' | 'complete';
 type Page = { speaker: string; body: string };
 
 export default class ExodusScene extends Phaser.Scene {
-  private phase: Phase = 'shore';
+  private phase: Phase = 'call';
   private player!: Phaser.Physics.Arcade.Sprite;
   private playerLabel!: Phaser.GameObjects.Text;
   private staff!: Phaser.GameObjects.Image;
   private scenery!: Phaser.GameObjects.Container;
-  private north!: Phaser.GameObjects.Container;
-  private south!: Phaser.GameObjects.Container;
+  private callMarker?: Phaser.GameObjects.Text;
+  private north?: Phaser.GameObjects.Container;
+  private south?: Phaser.GameObjects.Container;
   private people: Phaser.GameObjects.Image[] = [];
   private mountainPeople: Phaser.GameObjects.Image[] = [];
   private calfContainer?: Phaser.GameObjects.Container;
@@ -33,7 +34,10 @@ export default class ExodusScene extends Phaser.Scene {
   }
 
   init() {
-    this.phase = 'shore';
+    this.phase = 'call';
+    this.callMarker = undefined;
+    this.north = undefined;
+    this.south = undefined;
     this.people = [];
     this.mountainPeople = [];
     this.calfContainer = undefined;
@@ -52,29 +56,17 @@ export default class ExodusScene extends Phaser.Scene {
 
   create() {
     this.scenery = this.add.container(0, 0);
-    const sea = buildSea(this, this.scenery);
-    this.north = sea.north;
-    this.south = sea.south;
-    this.player = this.physics.add.sprite(345, 530, 'roguelike_characters', 325).setScale(3.5).setDepth(20);
+    this.player = this.physics.add.sprite(220, 520, 'roguelike_characters', 325).setScale(3.5).setDepth(20);
     this.player.setCollideWorldBounds(true);
     this.player.body!.setSize(10, 10).setOffset(3, 6);
-    this.playerLabel = this.add.text(345, 481, 'モーセ', { ...textStyle(14, '#fff0c2'), backgroundColor: '#2b4658' }).setOrigin(.5).setDepth(30);
-    this.staff = this.add.image(368, 523, TILES, 415).setScale(3).setOrigin(.5, 1).setDepth(21);
-    this.physics.world.setBounds(60, 457, 382, 145);
-    this.cameras.main.setBounds(0, 0, SEA_WIDTH, SEA_HEIGHT).startFollow(this.player, true, .12, .12);
+    this.playerLabel = this.add.text(220, 471, 'モーセ', { ...textStyle(14, '#fff0c2'), backgroundColor: '#2b4658' }).setOrigin(.5).setDepth(30);
+    this.staff = this.add.image(243, 513, TILES, 415).setScale(3).setOrigin(.5, 1).setDepth(21);
+
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.keys = this.input.keyboard!.addKeys('W,A,S,D,SPACE') as typeof this.keys;
     this.input.keyboard!.addCapture(['SPACE', 'UP', 'DOWN', 'LEFT', 'RIGHT']);
     this.hud = new ExodusHud(this, () => this.action(), () => this.advanceDialogue());
-    this.hud.setObjective('海辺で杖を掲げ、民のために道を開こう。');
-    this.hud.setProgress('1 / 3  紅海のほとり');
-    this.hud.setAction('SPACE / ここをタップ：杖を掲げる');
-    this.worldLabel(398, 407, '紅海 ─ 杖を掲げる場所');
-    this.worldLabel(1800, 417, '対岸の荒野 → シナイ山');
-    for (let i = 0; i < 6; i++) {
-      this.people.push(this.add.image(275 - i * 27, 532 + i % 2 * 24, 'roguelike_characters', [486, 379, 325][i % 3]).setScale(2.8).setDepth(18));
-    }
-    for (let i = 0; i < 90; i++) this.trail.push(new Phaser.Math.Vector2(Math.max(100, 345 - i * 5), 530));
+
     this.input.on('pointerdown', this.onPointer, this);
     this.scale.on('resize', this.onResize, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -84,14 +76,125 @@ export default class ExodusScene extends Phaser.Scene {
       if (this.audioContext) void this.audioContext.close().catch(() => {});
       this.audioContext = null;
     });
+
+    this.startCallStage();
+  }
+
+  private startCallStage() {
+    this.phase = 'call';
+    this.scenery.removeAll(true);
+    buildCallStage(this, this.scenery);
+
+    this.player.setPosition(220, 520);
+    this.player.setVelocity(0, 0);
+    this.physics.world.setBounds(60, 420, 840, 240);
+    this.cameras.main.removeBounds();
+    this.cameras.main.stopFollow();
+    this.cameras.main.centerOn(480, 360);
+
+    this.worldLabel(480, 150, '神の山ホレブ ─ 荒野の奥');
+    this.callMarker = this.worldLabel(720, 415, '▼ 燃え盛る柴（神の火）');
+    this.tweens.add({
+      targets: this.callMarker,
+      y: 407,
+      duration: 600,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+
+    this.hud.setObjective('荒野の奥、燃え盛る柴に近づいて神の声を聞こう。');
+    this.hud.setProgress('0 / 3  神の山ホレブ ─ 神の召命');
+    this.hud.setAction('矢印 / WASD / 地面をタップ：燃える柴へ近づく →');
+
     this.talk([
-      { speaker: '紅海の前で震える民', body: '奴隷として苦しんだ地を出たのに、前には海、後ろには追っ手……。\nモーセ、どこへ進めばよいのですか？' },
-      { speaker: '主なる神', body: '恐れるな。杖を上げ、海に手を伸ばしなさい。\n民は海の中の乾いた道を進む。' },
+      {
+        speaker: '荒野の羊飼いモーセ',
+        body: 'エジプトを出てミディアンの地で羊を飼い、幾年が過ぎただろう……。\nイスラエルの同胞たちは今もエジプトで過酷な奴隷の苦役に喘いでいる。'
+      },
+      {
+        speaker: '不思議な光景',
+        body: '見よ、向こうの柴が燃え盛っている！\n火に包まれているのに、柴は燃え尽きない……。近づいて確かめてみよう。'
+      }
     ]);
+  }
+
+  private triggerCallDialogue() {
+    this.stop();
+    this.hud.setObjective('燃え盛る柴の中から、神の御声が響きわたる！');
+    this.hud.setAction('神のことばを聞こう');
+    this.cameras.main.flash(500, 255, 230, 180);
+    this.cameras.main.shake(600, .004);
+    this.rumble();
+
+    this.talk([
+      {
+        speaker: '主なる神',
+        body: 'モーセよ、モーセよ！ 近寄ってはならない。\nあなたの足の履物を脱ぎなさい。あなたが立っている場所は聖なる地である。'
+      },
+      {
+        speaker: '主なる神',
+        body: 'わたしはあなたの父の神、アブラハムの神、イサクの神、ヤコブの神である。\nわたしはエジプトにいるわが民の苦しみをつぶさに見、その叫びを聞いた。'
+      },
+      {
+        speaker: '主なる神',
+        body: '今、わたしはあなたをファラオのもとに遣わす。\nわが民イスラエルの子らをエジプトから導き出すのだ！'
+      },
+      {
+        speaker: 'モーセ',
+        body: '主よ、私のような者がファラオの前に立ち、民を救い出すことなどできましょうか……？'
+      },
+      {
+        speaker: '主なる神',
+        body: 'わたしが必ずあなたと共にいる。\nあなたの手にある杖を携え、エジプトへ向かいなさい。わたしが奇跡を行い、海さえも道となろう！'
+      },
+      {
+        speaker: 'エジプト脱出と紅海への追撃',
+        body: 'モーセは召命を受けエジプトへ向かった。十の災いを経て、ついに民を率いて脱出する。\nしかし怒るファラオの戦車隊が背後に迫り、民は紅海のほとりへと追い詰められた――！'
+      }
+    ], () => {
+      this.enterShore();
+    });
+  }
+
+  private enterShore() {
+    this.stop();
+    this.cameras.main.fade(600, 0, 0, 0, false, (_cam: Phaser.Cameras.Scene2D.Camera, progress: number) => {
+      if (progress === 1) {
+        this.scenery.removeAll(true);
+        const sea = buildSea(this, this.scenery);
+        this.north = sea.north;
+        this.south = sea.south;
+        this.phase = 'shore';
+        this.player.setPosition(345, 530);
+        this.player.setVelocity(0, 0);
+        this.physics.world.setBounds(60, 457, 382, 145);
+        this.cameras.main.setBounds(0, 0, SEA_WIDTH, SEA_HEIGHT).startFollow(this.player, true, .12, .12);
+        this.hud.setObjective('海辺で杖を掲げ、民のために道を開こう。');
+        this.hud.setProgress('1 / 3  紅海のほとり');
+        this.hud.setAction('SPACE / ここをタップ：杖を掲げる');
+        this.worldLabel(398, 407, '紅海 ─ 杖を掲げる場所');
+        this.worldLabel(1800, 417, '対岸の荒野 → シナイ山');
+        this.people = [];
+        for (let i = 0; i < 6; i++) {
+          this.people.push(this.add.image(275 - i * 27, 532 + i % 2 * 24, 'roguelike_characters', [486, 379, 325][i % 3]).setScale(2.8).setDepth(18));
+        }
+        this.trail = [];
+        for (let i = 0; i < 90; i++) this.trail.push(new Phaser.Math.Vector2(Math.max(100, 345 - i * 5), 530));
+        this.cameras.main.fadeIn(600);
+        this.talk([
+          { speaker: '紅海の前で震える民', body: '奴隷として苦しんだ地を出たのに、前には海、後ろには追っ手……。\nモーセ、どこへ進めばよいのですか？' },
+          { speaker: '主なる神', body: '恐れるな。杖を上げ、海に手を伸ばしなさい。\n民は海の中の乾いた道を進む。' },
+        ]);
+      }
+    });
   }
 
   private onResize(size: Phaser.Structs.Size) {
     this.hud.resize(size.width, size.height);
+    if (this.phase === 'call') {
+      this.cameras.main.centerOn(480, 360);
+    }
   }
 
   private worldLabel(x: number, y: number, text: string) {
@@ -128,9 +231,19 @@ export default class ExodusScene extends Phaser.Scene {
 
   private onPointer(pointer: Phaser.Input.Pointer) {
     if (this.pages.length) { this.advanceDialogue(); return; }
-    if (!['shore', 'crossing', 'mountain', 'descending'].includes(this.phase)) return;
+    if (!['call', 'shore', 'crossing', 'mountain', 'descending'].includes(this.phase)) return;
     const point = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-    if (this.phase === 'shore' && point.x > 330 && point.x < 510 && Math.abs(point.y - 530) < 120) {
+    if (this.phase === 'call') {
+      if (point.x > 620 && point.x < 820 && Math.abs(point.y - 510) < 140) {
+        if (this.player.x > 580) {
+          this.action();
+        } else {
+          this.destination = new Phaser.Math.Vector2(650, 520);
+        }
+      } else {
+        this.destination = new Phaser.Math.Vector2(Phaser.Math.Clamp(point.x, 80, 880), Phaser.Math.Clamp(point.y, 440, 640));
+      }
+    } else if (this.phase === 'shore' && point.x > 330 && point.x < 510 && Math.abs(point.y - 530) < 120) {
       this.action();
     } else if (this.phase === 'mountain' && point.y < 350 && this.player.y < 390) {
       this.action();
@@ -143,7 +256,10 @@ export default class ExodusScene extends Phaser.Scene {
 
   private action() {
     if (this.pages.length) { this.advanceDialogue(); return; }
-    if (this.phase === 'shore') {
+    if (this.phase === 'call') {
+      if (this.player.x < 580) { this.hud.setAction('燃え盛る柴のそばまで近づこう →'); return; }
+      this.triggerCallDialogue();
+    } else if (this.phase === 'shore') {
       if (this.player.x < 305) { this.hud.setAction('海辺のモーセを右へ進めよう →'); return; }
       this.partSea();
     } else if (this.phase === 'mountain') {
@@ -162,13 +278,15 @@ export default class ExodusScene extends Phaser.Scene {
     this.rumble();
     this.tweens.add({ targets: this.staff, angle: -35, duration: 450, yoyo: true, hold: 900 });
     this.cameras.main.shake(950, .003);
-    this.tweens.add({ targets: this.north, y: -96, duration: 1600, ease: 'Sine.easeInOut' });
-    this.tweens.add({ targets: this.south, y: 96, duration: 1600, ease: 'Sine.easeInOut', onComplete: () => {
-      this.phase = 'crossing';
-      this.physics.world.setBounds(60, 457, SEA_WIDTH - 120, 145);
-      this.hud.setObjective('民を率いて、海の中の乾いた道を右へ渡ろう。');
-      this.hud.setAction('矢印 / WASD / 地面をタップ：右へ進む →');
-    } });
+    if (this.north) this.tweens.add({ targets: this.north, y: -96, duration: 1600, ease: 'Sine.easeInOut' });
+    if (this.south) {
+      this.tweens.add({ targets: this.south, y: 96, duration: 1600, ease: 'Sine.easeInOut', onComplete: () => {
+        this.phase = 'crossing';
+        this.physics.world.setBounds(60, 457, SEA_WIDTH - 120, 145);
+        this.hud.setObjective('民を率いて、海の中の乾いた道を右へ渡ろう。');
+        this.hud.setAction('矢印 / WASD / 地面をタップ：右へ進む →');
+      } });
+    }
   }
 
   private arrive() {
@@ -199,7 +317,7 @@ export default class ExodusScene extends Phaser.Scene {
     this.phase = 'mountain';
     this.player.setPosition(480, 1240);
     this.physics.world.setBounds(394, 280, 172, 1005);
-    this.cameras.main.setBounds(0, 0, MOUNTAIN_WIDTH, MOUNTAIN_HEIGHT);
+    this.cameras.main.setBounds(0, 0, MOUNTAIN_WIDTH, MOUNTAIN_HEIGHT).startFollow(this.player, true, .12, .12);
     this.cameras.main.centerOn(480, 1240);
     this.hud.setObjective('石段を上へ登り、山頂で神のことばを聞こう。');
     this.hud.setAction('矢印 / WASD / 地面をタップ：山頂へ ↑');
@@ -368,7 +486,7 @@ export default class ExodusScene extends Phaser.Scene {
     const action = Phaser.Input.Keyboard.JustDown(this.keys.SPACE);
     if (this.pages.length) { if (action) this.advanceDialogue(); return; }
     if (action) this.action();
-    if (!['shore', 'crossing', 'mountain', 'descending'].includes(this.phase)) return;
+    if (!['call', 'shore', 'crossing', 'mountain', 'descending'].includes(this.phase)) return;
     const direction = new Phaser.Math.Vector2(
       Number(this.cursors.right.isDown || this.keys.D.isDown) - Number(this.cursors.left.isDown || this.keys.A.isDown),
       Number(this.cursors.down.isDown || this.keys.S.isDown) - Number(this.cursors.up.isDown || this.keys.W.isDown),
@@ -378,11 +496,17 @@ export default class ExodusScene extends Phaser.Scene {
       direction.copy(this.destination).subtract(this.player);
       if (direction.length() < 10) { direction.set(0, 0); this.destination = null; }
     }
-    const speed = this.phase === 'shore' ? 230 : 330;
+    const speed = (this.phase === 'call' || this.phase === 'shore') ? 230 : 330;
     direction.normalize().scale(speed);
     this.player.setVelocity(direction.x, direction.y);
     if (direction.x) this.player.setFlipX(direction.x < 0);
-    if (this.phase === 'crossing') {
+    if (this.phase === 'call') {
+      if (this.player.x > 580) {
+        this.hud.setAction('SPACE / ここをタップ：燃える柴を調べる');
+      } else {
+        this.hud.setAction('矢印 / WASD / 地面をタップ：燃える柴へ近づく →');
+      }
+    } else if (this.phase === 'crossing') {
       if (Phaser.Math.Distance.BetweenPoints(this.trail[0], this.player) > 5) {
         this.trail.unshift(new Phaser.Math.Vector2(this.player.x, this.player.y));
         this.trail.length = Math.min(110, this.trail.length);

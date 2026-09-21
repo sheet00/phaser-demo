@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { Scenery } from '../scenery';
 
 export function addAbrahamTile(scene: Phaser.Scene, parent: Phaser.GameObjects.Container, col: number, row: number, frame: number, tint = 0xffffff) {
   const image = scene.add.image(col * 48, 110 + row * 48, 'abraham_tiles', frame).setOrigin(0).setScale(3).setTint(tint);
@@ -8,21 +9,14 @@ export function addAbrahamTile(scene: Phaser.Scene, parent: Phaser.GameObjects.C
 
 export function buildAbrahamMap(scene: Phaser.Scene, scenery: Phaser.GameObjects.Container) {
   scenery.removeAll(true);
-
-  // 1. 地面ベース（山頂の岩肌と草地）
-  for (let row = 0; row < 12; row++) {
-    for (let col = 0; col < 20; col++) {
-      const frame = row < 2 ? 8 : row < 5 ? 6 : 5;
-      const tint = row < 2 ? 0x8a9aa8 : row < 5 ? 0xa8b4a0 : 0xffffff;
-      addAbrahamTile(scene, scenery, col, row, frame, tint);
-    }
-  }
-
-  // 2. モリア山頂の岩稜シルエット（北側の険しい岩峰）
-  for (let col = 0; col < 20; col++) {
-    addAbrahamTile(scene, scenery, col, 1, 1137, 0x6e7885);
-    if (col % 2 === 1) addAbrahamTile(scene, scenery, col, 2, 1138, 0x828f9d);
-  }
+  const art = new Scenery(scene, scenery, 'abraham_tiles', 110);
+  art.ground(5, 0x839b9e);
+  art.patch(2, 3, 16, 6, 'earth', 0x9aa8b6);
+  art.patch(3, 7, 10, 4, 'earth', 0xb3b5ac);
+  art.ridge(20, 0x8194b1);
+  art.plants([[0, 8], [2, 6], [4, 2], [7, 4], [16, 6], [18, 9]], true, 0x929da9);
+  art.tree(1, 2, 'fir', 0x809e9f);
+  art.tree(17, 1, 'fir', 0x809e9f);
 
   // 3. 山肌の木々・岩（左右の崖沿い）
   const trees = [[0, 2], [1, 5], [18, 2], [19, 6]];
@@ -34,16 +28,17 @@ export function buildAbrahamMap(scene: Phaser.Scene, scenery: Phaser.GameObjects
     addAbrahamTile(scene, scenery, rc, rr, 1137, 0x7c8577);
   }
 
-  // 4. 祭壇周辺の石畳
-  for (let row = 6; row < 12; row++) {
-    for (let col = 11; col < 15; col++) addAbrahamTile(scene, scenery, col, row, 121);
-  }
+  art.terrace(10, 6, 6, 6, 0xc0c6cb);
 
   // 5. 祭壇と薪・篝火
   const altar = scene.add.container(0, 0).setDepth(12);
-  for (const [col, row] of [[12, 7], [13, 7], [12, 8], [13, 8]]) addAbrahamTile(scene, altar, col, row, 119);
-  addAbrahamTile(scene, altar, 11, 7, 398);
-  addAbrahamTile(scene, altar, 14, 7, 398);
+  for (const [col, row] of [[12, 7], [13, 7], [12, 8], [13, 8]]) addAbrahamTile(scene, altar, col, row, 120, 0xc2c8d1);
+  addAbrahamTile(scene, altar, 12, 7, 179);
+  addAbrahamTile(scene, altar, 13, 7, 179);
+  addAbrahamTile(scene, altar, 11, 7, 473);
+  addAbrahamTile(scene, altar, 14, 7, 473);
+  art.glow(11, 7, 0xffd6a0, 2);
+  art.glow(14, 7, 0xffd6a0, 2);
   scenery.add(scene.add.text(624, 408, 'モリア山の祭壇', {
     fontFamily: '"Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", Meiryo, sans-serif',
     fontSize: '17px', color: '#fff0c2', backgroundColor: '#513c27',

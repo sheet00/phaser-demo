@@ -59,10 +59,17 @@ export function buildEdenMap(scene: Phaser.Scene, obstaclesGroup: Phaser.Physics
   const tileset = map.addTilesetImage('eden', 'roguelike_sheet', 16, 16, 0, 1);
   if (!tileset) throw new Error('エデンの園のタイルセットを読み込めませんでした。');
   map.createLayer(0, tileset, 0, 0)!.setScale(TILE_SCALE).setDepth(-30);
+  for (let row = 0; row < MAP_ROWS; row++) for (let col = 0; col < MAP_COLS; col++) {
+    const terrainTile = map.getTileAt(col, row);
+    if (terrainTile) terrainTile.tint = water[row][col] ? 0xb2e0dd
+      : [0xd6e5b3, 0xcbdca7, 0xdeebbf][Math.floor((Math.sin(col * .42) + Math.cos(row * .53) + 2) * .7)];
+  }
   for (let row = 0; row < MAP_ROWS; row++) {
     for (let col = 0; col < MAP_COLS; col++) {
       if (bridges[row][col]) {
-        tile(col, row, 123, -20);
+        tile(col, row, 179, -20);
+        if (col === 9 || col === 24) tile(col, row, 1356, -19);
+        if (col === 10 || col === 25) tile(col, row, 1362, -19);
       } else if (paths[row][col] && !water[row][col]) {
         tile(col, row, edgeFrame(paths, col, row, [518, 519, 522, 575, 6, 579, 632, 635, 636]), -20);
       }
@@ -81,6 +88,8 @@ export function buildEdenMap(scene: Phaser.Scene, obstaclesGroup: Phaser.Physics
   const tree = (col: number, row: number, fruit = false) => {
     const depth = (row + 1) * TILE_SIZE;
     const frames = fruit ? [593, 650] : random.pick([[583, 640], [585, 642], [586, 643]]);
+    scene.add.ellipse((col + .65) * TILE_SIZE, (row + .85) * TILE_SIZE,
+      TILE_SIZE * 1.35, TILE_SIZE * .42, 0x1c3d35, .16).setDepth(-15);
     tile(col, row - 1, frames[0], depth);
     tile(col, row, frames[1], depth);
     occupied.add(`${col},${row - 1}`);
@@ -97,14 +106,19 @@ export function buildEdenMap(scene: Phaser.Scene, obstaclesGroup: Phaser.Physics
   for (let row = 2; row < MAP_ROWS - 2; row++) {
     for (let col = 2; col < MAP_COLS - 2; col++) {
       if (water[row][col] || paths[row][col] || occupied.has(`${col},${row}`)) continue;
-      const flowerBed = (col >= 9 && col <= 12 && row >= 16 && row <= 19)
-        || (col >= 23 && col <= 27 && row >= 15 && row <= 18);
+      const flowerBed = Math.hypot((col - 10.5) / 2, (row - 17.5) / 2) < 1
+        || Math.hypot((col - 25) / 2.5, (row - 16.5) / 2) < 1;
       if (flowerBed) {
         tile(col, row, random.pick([513, 514, 570, 571, 684, 685]));
       } else if (random.frac() < 0.18) {
         tile(col, row, random.pick([533, 534, 651, 652, 653]));
       }
     }
+  }
+  for (let row = 1; row < MAP_ROWS - 1; row++) for (let col = 1; col < MAP_COLS - 1; col++) {
+    if (!water[row][col] || bridges[row][col]) continue;
+    const bank = !water[row - 1][col] || !water[row + 1][col];
+    if (bank && (col + row) % 4 === 0) tile(col, row, (col + row) % 8 === 0 ? 652 : 651, -18);
   }
   // 木は上下2枚の原寸タイルで構成し、中央の木も同じ縮尺に揃える。
   tree(18, 13, true);

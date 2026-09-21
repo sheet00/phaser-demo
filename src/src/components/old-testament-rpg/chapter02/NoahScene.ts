@@ -1,7 +1,7 @@
+import { FONT_FAMILY } from '../typography';
 import Phaser from 'phaser';
 import { addBabelBlock, addNoahTile, buildArkMap, buildBabelMap } from './map';
 
-const FONT_FAMILY = '"Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif';
 
 type Phase = 'rescue' | 'flood' | 'covenant' | 'babel' | 'babelBuilding' | 'scattering' | 'complete';
 type AnimalPair = { sprites: Phaser.GameObjects.Image[]; label: Phaser.GameObjects.Text; saved: boolean };

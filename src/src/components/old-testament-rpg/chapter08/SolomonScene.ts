@@ -13,8 +13,17 @@ export default class SolomonScene extends ChronicleScene {
   protected startChapter() {
     this.playerLabel.setText('ソロモン');
     this.player.setFrame(594).setTint(0xffdf8f);
-    this.floor(121);
-    for (let col = 0; col < 20; col++) for (let row = 0; row < 3; row++) this.tile(col, row, 121, 0xe4d7b4);
+    this.floor(121, 0xe3d7bf);
+    this.landscape.facade(0, 0, 20, 3, 0xefdfb9);
+    this.landscape.patch(2, 4, 16, 8, 'stone', 0xf3e8cf);
+    this.landscape.patch(11, 5, 6, 6, 'rug', 0xe5d8ad);
+    for (const col of [1, 18]) {
+      this.landscape.column(col, 7, 0xe8ce8e);
+      this.tile(col, 5, 475); this.landscape.glow(col, 5);
+    }
+    for (const col of [3, 16]) {
+      this.tile(col, 1, 50); this.tile(col, 2, 107); this.tile(col, 3, 164);
+    }
     for (const col of [1, 5, 14, 18]) { this.tile(col, 2, 1096); this.tile(col, 3, 1153); }
     this.caption('知恵の法廷', 480, 135, 17);
     this.person(600, 420, 486, '母親A').setTint(0xe4b5ba);
@@ -80,16 +89,18 @@ export default class SolomonScene extends ChronicleScene {
     this.clearStage(); this.phase = 'building';
     this.player.setFrame(594).setTint(0xffdf8f);
     this.floor(8);
-    this.temple = [];
-    for (let row = 5; row >= 2; row--) for (let col = 6; col < 14; col++) this.temple.push(this.tile(col, row, 121, 0xf0cb7f));
-    for (const col of [6, 13]) {
-      this.temple.push(this.tile(col, 3, 1096, 0xffd983));
-      this.temple.push(this.tile(col, 4, 1153, 0xffd983));
+    this.landscape.terrace(4, 5, 12, 7, 0xe7d6b3);
+    this.landscape.patch(8, 7, 4, 5, 'rug', 0xc3d9c9);
+    for (const col of [0, 18]) {
+      this.landscape.tree(col, 1);
+      this.landscape.tree(col, 7);
     }
-    for (let col = 6; col < 14; col++) this.temple.push(this.tile(col, 2, 1269, 0xffdf8f));
-    this.temple.push(this.tile(9, 0, 1210, 0xffd26d), this.tile(10, 0, 1211, 0xffd26d));
-    for (let col = 8; col <= 11; col++) this.temple.push(this.tile(col, 1, col === 8 ? 1210 : col === 11 ? 1211 : 1215, 0xffd26d));
-    this.temple.push(this.tile(9, 5, 37), this.tile(10, 5, 37));
+    this.landscape.facade(0, 2, 4, 4, 0xd5c7ad);
+    this.landscape.facade(16, 2, 4, 4, 0xd5c7ad);
+    this.landscape.supplies(1, 9);
+    this.landscape.supplies(17, 9);
+    this.temple = [];
+    this.temple = this.landscape.temple(6, 0, 8, 0xffe1a0);
     this.temple.forEach(piece => piece.setAlpha(.12));
     for (const col of [2, 3, 16, 17]) { this.tile(col, 7, 179); this.tile(col, 8, 23); }
     this.person(290, 520, 487, '職人');

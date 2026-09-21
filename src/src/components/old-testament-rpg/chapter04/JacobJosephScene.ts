@@ -1,8 +1,8 @@
+import { FONT_FAMILY } from '../typography';
 import Phaser from 'phaser';
 import { drawChapterScenery } from './scenery';
 
-const FONT_FAMILY = '"Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif';
-type Phase = 'wrestling' | 'sold' | 'dream' | 'famine' | 'complete';
+type Phase = 'wrestling' | 'reconcile' | 'sold' | 'dream' | 'famine' | 'complete';
 type Page = { speaker: string; body: string };
 
 export default class JacobJosephScene extends Phaser.Scene {
@@ -40,9 +40,9 @@ export default class JacobJosephScene extends Phaser.Scene {
     this.scale.on('resize', () => this.updateCameraView());
     this.physics.world.setBounds(24, 170, 912, 492);
     this.scenery = this.add.container(0, 0);
-    this.player = this.physics.add.sprite(220, 520, 'roguelike_characters', 325).setScale(4.0).setDepth(25);
+    this.player = this.physics.add.sprite(480, 520, 'roguelike_characters', 325).setScale(4.0).setDepth(25);
     this.player.setCollideWorldBounds(true).body!.setSize(12, 10).setOffset(2, 6);
-    this.playerLabel = this.add.text(220, 476, 'ヤコブ', this.textStyle('#fff8e7', '#344f7a', '15px')).setOrigin(0.5).setDepth(30);
+    this.playerLabel = this.add.text(480, 476, 'ヤコブ', this.textStyle('#fff8e7', '#344f7a', '15px')).setOrigin(0.5).setDepth(30);
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.keys = this.input.keyboard!.addKeys('W,A,S,D,SPACE') as typeof this.keys;
     this.add.rectangle(480, 54, 928, 90, 0x101a35, 0.96).setStrokeStyle(1, 0xb79a56).setDepth(100);
@@ -76,6 +76,7 @@ export default class JacobJosephScene extends Phaser.Scene {
     this.phase = phase; this.actionLocked = false; this.destination = null; this.player.setVelocity(0, 0); this.scenery.removeAll(true); this.drawStage();
     const labels: Record<Phase, string> = {
       wrestling: '夜のヤボク川で神の使いに必死にしがみつき、助けの約束（祝福）を求めなさい。',
+      reconcile: '足を引きずりながら川を渡り、兄エサウの足元へ進んで心から赦しを請いなさい。',
       sold: '兄たちの妬みを越え、ヨセフの旅を見届けなさい。',
       dream: 'ファラオの夢を解き明かし、七年の備えを始めなさい。',
       famine: '穀物倉庫へ進み、食料を求めてひれ伏す兄たちと対面しなさい。',
@@ -89,19 +90,25 @@ export default class JacobJosephScene extends Phaser.Scene {
     drawChapterScenery(this, this.scenery, this.phase);
     const titles: Record<Phase, string> = {
       wrestling: '月夜のヤボク川 ─ 祝福を求めて',
+      reconcile: '夜明けのヤボク川 ─ 兄エサウとの対面',
       sold: 'カナンの荒野 ─ エジプトへ続く道',
       dream: 'エジプト王宮 ─ 七年の豊作、七年の飢饉',
       famine: '王の穀物倉庫 ─ 再び出会う兄弟',
       complete: '希望の朝 ─ 神は悪を善に変えられた',
     };
     this.addLabel(titles[this.phase], 480, 126);
-    this.target.set(700, 520);
     if (this.phase !== 'complete') {
+      const tx = this.phase === 'reconcile' ? 220 : 700;
+      this.target.set(tx, 520);
       const marker = this.add.graphics();
-      marker.lineStyle(2, 0xf7d78b, 0.85).strokeEllipse(700, 548, 68, 19);
-      marker.fillStyle(0xf7d78b).fillTriangle(694, 562, 706, 562, 700, 568);
+      marker.lineStyle(2, 0xf7d78b, 0.85).strokeEllipse(tx, 548, 68, 19);
+      marker.fillStyle(0xf7d78b).fillTriangle(tx - 6, 562, tx + 6, 562, tx, 568);
       this.scenery.add(marker);
-      this.addLabel(this.phase === 'wrestling' ? '神の使いにしがみつく' : this.phase === 'dream' ? 'ファラオに謁見する' : '兄たち', 700, 587);
+      const targetLabel = this.phase === 'wrestling' ? '神の使いにしがみつく'
+        : this.phase === 'reconcile' ? '兄エサウに赦しを請う'
+        : this.phase === 'dream' ? 'ファラオに謁見する'
+        : '兄たち';
+      this.addLabel(targetLabel, tx, 587);
     }
   }
 
@@ -110,11 +117,53 @@ export default class JacobJosephScene extends Phaser.Scene {
   private doAction() {
     if (this.actionLocked || this.phase === 'complete') return;
     this.actionLocked = true; this.destination = null; this.player.setVelocity(0, 0);
-    if (this.phase === 'wrestling') this.talk([
-      { speaker: '神の使い', body: '夜が明ける。恐れるなヤコブよ。\nお前が夜通し必死にしがみつき、叫び求めた祈りは神に届いた。' },
-      { speaker: 'イスラエルへの改名', body: '今日よりお前の名はヤコブ（人を出し抜く者）ではない。\n神にすがり祈り抜いた者「イスラエル」と名乗りなさい。兄を恐れず進め。' },
-      { speaker: '涙の和解・そして息子の時代へ', body: 'ヤコブは兄エサウと涙の和解を果たした。\nやがて時は流れ、物語はイスラエルの愛する息子「ヨセフ」へと受け継がれていく――' }
-    ], () => this.transition('sold'));
+    if (this.phase === 'wrestling') {
+      this.tweens.add({ targets: this.player, scaleY: 2.8, duration: 250, yoyo: true, repeat: 2 });
+      this.talk([
+        {
+          speaker: '神の使い',
+          body: '「夜が明ける。もう私を放しなさい。\nお前が夜通し必死にしがみつき、叫び求めた祈りは神に届いた。」'
+        },
+        {
+          speaker: 'ヤコブ',
+          body: '「私を祝福してくださらなければ、絶対に放しません！」'
+        },
+        {
+          speaker: 'イスラエルへの改名',
+          body: '「今日よりお前の名はヤコブ（人を出し抜く者）ではない。\n神にすがり祈り抜いた者『イスラエル』と名乗りなさい。\n股の関節は打たれたが、神が共にいる。恐れずに川を渡り、兄エサウのもとへ進め！」'
+        }
+      ], () => {
+        this.playerLabel.setText('イスラエル');
+        this.player.setPosition(580, 520);
+        this.player.setFlipX(true);
+        this.setPhase('reconcile');
+      });
+    } else if (this.phase === 'reconcile') {
+      this.player.setFlipX(true);
+      this.tweens.add({ targets: this.player, scaleY: 2.2, duration: 320, yoyo: true, repeat: 2 });
+      this.talk([
+        {
+          speaker: 'ヤコブの七度の平伏と心からの謝罪',
+          body: 'ヤコブは神に打たれて股の関節を痛め、足を引きずりながら兄の前に進み出た。\nそして地面に七度ひれ伏して泣き崩れた。\n「兄上……！ かつて私は己の知恵に溺れ、兄上を欺いて長子の祝福を奪いました。\n取り返しのつかない罪を犯した私をお赦しください！ 心よりお詫び申し上げます……！」'
+        },
+        {
+          speaker: 'エサウの衝撃と神の奇跡',
+          body: 'エサウ「ヤコブよ……！ お前のその足はどうしたのだ？\nかつて人を出し抜いていたお前が、足を引きずり、震えながら私にひれ伏している……。\n神よ、私はこいつを殺そうと400人の兵を率いてきたというのに、\nなぜだ……胸の怒りと殺意が、みるみる涙へと溶けていく……！」'
+        },
+        {
+          speaker: '涙の疾走と抱擁',
+          body: 'エサウは武器を投げ捨て、駆け寄って弟ヤコブを抱き起こした！\n「立て、ヤコブ！ もう何も言うな！ 生きて再びお前の顔を見られた……\nそれだけで十分だ！」二人は首を抱き合い、声をあげて熱い涙を流した。'
+        },
+        {
+          speaker: '神の御顔を見るように',
+          body: 'ヤコブ「兄上、どうか私の家畜の贈り物をお受け取りください。\n兄上のお顔を拝見することは、まるで【神の御顔】を見るようです。\n神が私の祈りを聞き、兄上の寛大な心を通して私を赦してくださいました！」'
+        },
+        {
+          speaker: '和解の成就とヨセフの時代へ',
+          body: '20年の憎しみは、ヤコブの徹底した悔い改めと神の奇跡によって完全な愛と平和へ変えられた。\nやがて時は流れ、物語はイスラエルの愛する息子「ヨセフ」へと受け継がれていく──'
+        }
+      ], () => this.transition('sold'));
+    }
     if (this.phase === 'sold') this.talk([
       { speaker: '兄たち', body: '父上は末っ子のヨセフばかり可愛がって、あいつだけに特別な着物を与えた。許せない……！' },
       { speaker: '兄たち', body: 'おい、そのヨセフがやってきたぞ！ 商人に売り飛ばして、エジプトへ追放してしまおう！' },
@@ -149,11 +198,15 @@ export default class JacobJosephScene extends Phaser.Scene {
       },
       {
         speaker: 'ヨセフ',
-        body: '恐れないでください。\n兄さんたちは僕に悪を行いましたが、神はそれを善に変え、\n多くの命を救うために僕を先に行かせたのです。すべてを赦します。'
+        body: '「恐れないでください。\n兄さんたちは僕に悪を行いましたが、神はそれを善に変え、\n多くの命を救うために僕を先に行かせたのです。すべてを赦します。」'
       },
       {
         speaker: '神の配慮・涙の抱擁',
-        body: '兄弟は抱き合って涙を流し、過去の憎しみを越えて奇跡の和解を果たしました。'
+        body: '兄弟は抱き合って涙を流し、過去の憎しみを越えて奇跡の和解を果たした。\nヤコブの一族全員がエジプトに招かれ、手厚く保護されて大民族へと繁栄していく。'
+      },
+      {
+        speaker: '四百年の歳月と出エジプトへの序曲',
+        body: 'だが数百年後、ヨセフの功績を知らない新しいファラオが即位し、民を過酷な奴隷に落としてしまう。\n400年の苦難の叫びの中、神は一人の男「モーセ」に直接使命を言い渡す──！'
       }
     ], () => this.transition('complete'));
   }

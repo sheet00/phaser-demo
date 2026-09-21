@@ -20,14 +20,15 @@ export default class DanielScene extends ChronicleScene {
     this.physics.world.setBounds(190, 260, 580, 360);
 
     // 外の地面（中庭）
-    this.floor(5);
+    this.floor(5, 0xb9cdb1);
+    this.landscape.plants([[0, 3], [1, 10], [18, 3], [19, 10]], false, 0xb9cdb1);
     for (const [col, row] of [[1, 1], [0, 4], [1, 7], [18, 1], [19, 4], [18, 7]]) {
       this.tree(col, row);
     }
 
     // 建物の床（木板）
     for (let row = 3; row <= 10; row++) {
-      for (let col = 3; col <= 16; col++) this.tile(col, row, 119);
+      for (let col = 3; col <= 16; col++) this.tile(col, row, 179, 0xd8c4a7);
     }
 
     // 北外壁・パラペット天端（row 0）
@@ -72,14 +73,7 @@ export default class DanielScene extends ChronicleScene {
     }
 
     // 緑の絨毯（col 7〜12, row 6〜8）
-    const carpet = [
-      [922, 923, 923, 923, 923, 924],
-      [979, 980, 980, 980, 980, 981],
-      [1036, 1037, 1037, 1037, 1037, 1038],
-    ];
-    for (let r = 0; r < 3; r++) {
-      for (let c = 0; c < 6; c++) this.tile(7 + c, 6 + r, carpet[r][c]);
-    }
+    this.landscape.patch(7, 6, 6, 4, 'rug', 0xafd2bb);
 
     // 会議机・椅子
     this.tile(9, 6, 190);
@@ -96,6 +90,13 @@ export default class DanielScene extends ChronicleScene {
     // 棚と壺
     this.tile(15, 4, 137);
     this.tile(15, 5, 25);
+    for (const col of [4, 15]) {
+      this.tile(col, 8, 143);
+      this.tile(col, 9, 140);
+      this.tile(col, 3, 475);
+      this.landscape.glow(col, 3, 0xffd9a2, 2);
+    }
+    this.landscape.glow(9, 2, 0xe8f3ed, 3);
 
     this.person(320, 530, 594, 'ダレイオス王');
     this.caption('メド・ペルシア 王宮 ─ エルサレムに向く窓', 480, 136, 17);
@@ -142,10 +143,26 @@ export default class DanielScene extends ChronicleScene {
   private enterDen() {
     this.clearStage(); this.phase = 'den'; this.busy = true;
     this.physics.world.setBounds(35, 375, 890, 280);
-    this.floor(6, 0x5b626e);
-    for (let row = 2; row < 11; row++) for (let col = 2; col < 18; col++) this.tile(col, row, 121, 0x667185);
-    for (let col = 1; col < 19; col++) { this.tile(col, 2, 698, 0x727983); this.tile(col, 10, 698, 0x727983); }
-    for (let row = 3; row < 10; row++) { this.tile(1, row, 121, 0x404955); this.tile(18, row, 121, 0x404955); }
+    this.floor(9, 0x4d596e);
+    for (let row = 2; row < 11; row++) for (let col = 2; col < 18; col++) {
+      this.tile(col, row, row > 4 ? 7 : 120, row > 4 ? 0x77828f : 0x58677e);
+    }
+    for (let col = 1; col < 19; col++) {
+      this.tile(col, 1, col === 1 ? 704 : col === 18 ? 706 : 705, 0x7b8aa1);
+      this.tile(col, 2, 120, 0x68768b);
+      this.tile(col, 3, 120, 0x68768b);
+      this.tile(col, 10, 705, 0x66748b);
+    }
+    for (const col of [4, 7, 12, 15]) this.tile(col, 2, 98, 0x8d9fb3);
+    for (let row = 2; row < 10; row++) {
+      this.tile(1, row, 761, 0x5c6a80);
+      this.tile(18, row, 763, 0x5c6a80);
+    }
+    this.landscape.plants([[2, 4], [3, 8], [5, 9], [14, 9], [16, 4], [17, 8]], true, 0x8893a0);
+    for (const col of [2, 17]) {
+      this.tile(col, 3, 473, 0xe1c399);
+      this.landscape.glow(col, 3, 0xffc988, 2.5);
+    }
     this.caption('獅子の穴 ─ 信仰の夜', 480, 136, 17);
     for (const [x, y] of [[220, 505], [760, 505], [660, 370]]) {
       const lion = this.add.image(x, y, 'daniel_lion').setDisplaySize(105, 105);

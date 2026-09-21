@@ -1,6 +1,7 @@
+export { FONT_FAMILY } from '../typography';
+import { FONT_FAMILY } from '../typography';
 import Phaser from 'phaser';
 
-export const FONT_FAMILY = '"Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", Meiryo, sans-serif';
 
 export function textStyle(size = 17, color = '#ffffff'): Phaser.Types.GameObjects.Text.TextStyle {
   return { fontFamily: FONT_FAMILY, fontSize: `${size}px`, color, resolution: 3, padding: { top: 6, bottom: 4, left: 4, right: 4 } };

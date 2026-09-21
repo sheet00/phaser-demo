@@ -11,6 +11,13 @@ export default class ExileScene extends ChronicleScene {
   protected startChapter() {
     this.playerLabel.setText('捕囚の民');
     this.floor(6, 0x8b8588);
+    this.landscape.patch(1, 6, 18, 6, 'stone', 0x9a9290);
+    const westRuins = this.landscape.facade(0, 1, 4, 5, 0x847b79);
+    const eastRuins = this.landscape.facade(16, 1, 4, 5, 0x847b79);
+    [...westRuins, ...eastRuins].forEach((piece, index) => {
+      if (index % 6 === 0) piece.destroy();
+    });
+    this.landscape.plants([[1, 6], [3, 9], [5, 10], [14, 9], [17, 6], [18, 10]], true, 0x9b9290);
     for (let row = 1; row <= 5; row++) for (let col = 5; col < 15; col++) {
       if ((col + row) % 5 !== 0) this.tile(col, row, row === 1 ? 698 : 121, 0x786868);
     }
@@ -21,7 +28,8 @@ export default class ExileScene extends ChronicleScene {
     for (const [col, row] of [[1, 2], [3, 4], [17, 2], [18, 6]]) this.tree(col, row, true);
     for (const col of [4, 7, 11, 15]) this.tile(col, 6, 1137);
     for (const col of [6, 9, 13]) {
-      const fire = this.tile(col, 4, 398).setTint(0xffae70);
+      const fire = this.tile(col, 4, 470).setTint(0xffae70);
+      this.landscape.glow(col, 4, 0xff8245, 2.4);
       this.tweens.add({ targets: fire, alpha: .45, scaleY: 3.6, duration: 220 + col * 12, yoyo: true, repeat: -1 });
       const smoke = this.add.graphics().setPosition(col * 48 + 24, 280);
       smoke.fillStyle(0xaaa0a0, .4).fillEllipse(0, 0, 75, 40);
@@ -62,10 +70,14 @@ export default class ExileScene extends ChronicleScene {
     this.captives = [];
     this.phase = 'river';
     this.floor(5, 0x839493);
+    this.landscape.patch(1, 5, 9, 7, 'earth', 0xbab7a5);
+    this.landscape.facade(15, 0, 5, 4, 0xa2aabd);
     for (let row = 0; row < 12; row++) {
       this.tile(11, row, 59); this.tile(12, row, 0); this.tile(13, row, 0); this.tile(14, row, 61);
     }
     for (const [col, row] of [[0, 1], [3, 2], [6, 0], [17, 1], [18, 7]]) this.tree(col, row);
+    this.landscape.plants([[0, 6], [2, 10], [9, 2], [10, 5], [10, 10], [15, 5], [16, 10]], false, 0xa0b8ae);
+    for (const row of [2, 6, 10]) this.tile(13, row, 652, 0xb0c4c7);
     for (const col of [1, 4, 8]) { this.tile(col, 8, 140); this.tile(col, 9, 23); }
     this.caption('バビロン ─ ユーフラテス川のほとり', 480, 132, 17);
     for (let i = 0; i < 4; i++) this.person(310 + i * 55, 425, i % 2 ? 486 : 325).setScale(3, 2.4).setTint(0xb1bcca);

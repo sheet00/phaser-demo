@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
+import { afterFontsReady, CRISP_RENDERING } from './typography';
 
 type ChapterGameHostProps = {
   scene: new (onNextChapter?: () => void) => Phaser.Scene;
@@ -14,27 +15,29 @@ export default function ChapterGameHost({ scene: Scene, chapter, onNextChapter }
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
-    const game = new Phaser.Game({
-      type: Phaser.AUTO,
-      parent: host,
-      width: window.innerWidth,
-      height: Math.max(1, window.innerHeight - 78),
-      pixelArt: true,
-      backgroundColor: '#111b30',
-      scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH },
-      input: { keyboard: { target: host } },
-      physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 } } },
-      scene: new Scene(onNextChapter),
+    return afterFontsReady(() => {
+      const game = new Phaser.Game({
+        type: Phaser.AUTO,
+        parent: host,
+        width: window.innerWidth,
+        height: Math.max(1, window.innerHeight - 78),
+        ...CRISP_RENDERING,
+        backgroundColor: '#111b30',
+        scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH },
+        input: { keyboard: { target: host } },
+        physics: { default: 'arcade', arcade: { gravity: { x: 0, y: 0 } } },
+        scene: new Scene(onNextChapter),
+      });
+      gameRef.current = game;
+      const resize = () => gameRef.current?.scale.resize(window.innerWidth, Math.max(1, window.innerHeight - 78));
+      window.addEventListener('resize', resize);
+      host.focus({ preventScroll: true });
+      return () => {
+        window.removeEventListener('resize', resize);
+        game.destroy(true);
+        if (gameRef.current === game) gameRef.current = null;
+      };
     });
-    gameRef.current = game;
-    const resize = () => gameRef.current?.scale.resize(window.innerWidth, Math.max(1, window.innerHeight - 78));
-    window.addEventListener('resize', resize);
-    host.focus({ preventScroll: true });
-    return () => {
-      window.removeEventListener('resize', resize);
-      game.destroy(true);
-      if (gameRef.current === game) gameRef.current = null;
-    };
   }, [Scene, onNextChapter]);
 
   return <div ref={hostRef} tabIndex={0}

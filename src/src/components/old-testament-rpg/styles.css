@@ -7,6 +7,10 @@
   font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
 }
 
+.old-testament-game canvas {
+  image-rendering: auto;
+}
+
 .old-testament-chapter-bar {
   position: absolute;
   inset: 0 0 auto;

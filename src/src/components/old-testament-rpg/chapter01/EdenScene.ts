@@ -1,3 +1,4 @@
+import { TEXT_STYLE } from '../typography';
 import Phaser from 'phaser';
 import { MAP_WIDTH, MAP_HEIGHT } from './constants';
 import { buildEdenMap } from './map';
@@ -118,11 +119,13 @@ export function createEdenScene(onNextChapter: () => void) {
     const tagBg = this.add.rectangle(0, 0, 76, 24, 0x111111, 0.85)
       .setStrokeStyle(1.5, 0x2ecc71);
     const tagText = this.add.text(0, 0, 'アダム', {
+      ...TEXT_STYLE,
       fontSize: '13px',
       color: '#ffffff',
       fontStyle: 'bold',
-      padding: { top: 3, bottom: 2, left: 2, right: 2 }
+      padding: { top: 6, bottom: 4, left: 4, right: 4 }
     }).setOrigin(0.5);
+    tagBg.setSize(Math.max(76, tagText.width + 12), tagText.height + 4);
     playerTag.add([tagBg, tagText]);
 
     this.physics.add.collider(player, obstaclesGroup);
@@ -166,6 +169,7 @@ export function createEdenScene(onNextChapter: () => void) {
     const treeLabelContainer = this.add.container(treeCenterX, treeCenterY - 110).setDepth(4000);
     const treeLabelBg = this.add.rectangle(0, 0, 240, 26, 0x111111, 0.88).setStrokeStyle(1.5, 0x7f8c8d);
     const treeLabelText = this.add.text(0, 0, '🍎 善悪の知識の木 (まだ触れない)', {
+      ...TEXT_STYLE,
       fontSize: '13px',
       color: '#bdc3c7',
       fontStyle: 'bold',
@@ -213,6 +217,7 @@ export function createEdenScene(onNextChapter: () => void) {
     const exitLabelContainer = this.add.container(exitX, exitY - 60).setDepth(4000);
     const exitLabelBg = this.add.rectangle(0, 0, 210, 26, 0x111111, 0.88).setStrokeStyle(1.5, 0x34495e);
     const exitLabelText = this.add.text(0, 0, '🚪 エデンの東の門 (閉ざされている)', {
+      ...TEXT_STYLE,
       fontSize: '13px',
       color: '#95a5a6',
       fontStyle: 'bold',
@@ -281,6 +286,7 @@ export function createEdenScene(onNextChapter: () => void) {
       const labelContainer = this.add.container(cfg.x, cfg.y - 50).setDepth(cfg.y + 100);
       const labelBg = this.add.rectangle(0, 0, 70, 24, 0x111111, 0.88).setStrokeStyle(1.5, 0xf39c12);
       const labelText = this.add.text(0, 0, '？？？', {
+        ...TEXT_STYLE,
         fontSize: '12px',
         color: '#f39c12',
         fontStyle: 'bold',

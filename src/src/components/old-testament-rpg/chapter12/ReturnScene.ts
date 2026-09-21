@@ -12,7 +12,11 @@ export default class ReturnScene extends ChronicleScene {
   protected startChapter() {
     this.playerLabel.setText('帰還した民');
     this.floor(8);
-    for (let row = 7; row < 10; row++) for (let col = 0; col < 20; col++) this.tile(col, row, 6);
+    this.landscape.patch(0, 6, 20, 5, 'earth', 0xd8c3a0);
+    this.landscape.facade(8, 1, 5, 4, 0xbfb69f);
+    this.landscape.facade(14, 2, 5, 3, 0xbfb69f);
+    this.landscape.plants([[0, 4], [5, 2], [7, 4], [17, 10], [19, 9]], true);
+    this.landscape.supplies(1, 4);
     for (const [x, y] of [[1, 2], [4, 1], [16, 2], [18, 6]]) this.tree(x, y, true);
     for (let i = 0; i < 5; i++) this.person(100 + i * 50, 430, i % 2 ? 486 : 325);
     for (const col of [9, 10, 11, 13, 14, 15]) this.tile(col, 5, 121);
@@ -37,12 +41,9 @@ export default class ReturnScene extends ChronicleScene {
   }
 
   private temple() {
-    for (let row = 2; row <= 5; row++) for (let col = 7; col <= 12; col++) this.tile(col, row, 121, 0xd8c8aa);
-    this.tile(9, 0, 1210); this.tile(10, 0, 1211);
-    this.tile(8, 1, 1210); this.tile(9, 1, 1215); this.tile(10, 1, 1215); this.tile(11, 1, 1211);
-    for (let col = 7; col <= 12; col++) this.tile(col, 2, 1269);
-    for (const col of [7, 12]) { this.tile(col, 3, 1096); this.tile(col, 4, 1153); }
-    this.tile(9, 5, 37); this.tile(10, 5, 37);
+    this.landscape.temple(7, 0, 6, 0xe8dcc0);
+    this.landscape.facade(1, 2, 4, 4, 0xbec4b8);
+    this.landscape.facade(15, 2, 4, 4, 0xbec4b8);
   }
 
   private enterRebuilding() {
@@ -50,12 +51,17 @@ export default class ReturnScene extends ChronicleScene {
     this.phase = 'building';
     this.playerLabel.setText('ネヘミヤ');
     this.floor(8);
+    this.landscape.terrace(0, 6, 20, 6, 0xd9cdb5);
+    this.landscape.supplies(0, 9);
+    this.landscape.supplies(18, 9);
     this.temple();
     this.caption('第二神殿と、再建される城壁', 480, 145, 16);
     this.wall = [];
     for (const start of [1, 7, 13]) {
       for (let row = 0; row < 3; row++) for (let col = 0; col < 5; col++) {
-        const piece = this.tile(start + col, 6 + row, row === 0 ? 698 : 121).setAlpha(.1);
+        const edge = col === 0 ? 0 : col === 4 ? 2 : 1;
+        const frame = (row === 0 ? [697, 698, 699] : row === 1 ? [872, 873, 874] : [869, 868, 871])[edge];
+        const piece = this.tile(start + col, 6 + row, frame, 0xe3d4b8).setAlpha(.1);
         this.wall.push(piece);
       }
     }
@@ -107,12 +113,19 @@ export default class ReturnScene extends ChronicleScene {
     this.workers = []; this.wall = [];
     this.phase = 'hope';
     this.floor(5, 0x67778f);
+    this.landscape.terrace(1, 7, 18, 5, 0xb6bed0);
+    this.landscape.patch(8, 8, 4, 4, 'rug', 0xb0d0cd);
     this.temple();
     for (let col = 1; col < 19; col++) {
       this.tile(col, 6, 698, 0xa6acb9);
-      this.tile(col, 7, col === 9 || col === 10 ? 37 : 121, 0xa6acb9);
+      this.tile(col, 7, col === 9 || col === 10 ? 37 : 868, 0xa6acb9);
     }
     for (const [col, row] of [[0, 2], [3, 1], [16, 1], [18, 3]]) this.tree(col, row);
+    this.landscape.plants([[0, 9], [2, 10], [17, 10], [19, 9]], false, 0xadc7b0);
+    for (const col of [6, 13]) {
+      this.tile(col, 6, 475);
+      this.landscape.glow(col, 6, 0xffd6a0, 2);
+    }
     for (let i = 0; i < 5; i++) this.person(260 + i * 80, 586, i % 2 ? 486 : 325);
     this.person(740, 440, 325, '預言者マラキ');
     this.playerLabel.setText('帰還した民');

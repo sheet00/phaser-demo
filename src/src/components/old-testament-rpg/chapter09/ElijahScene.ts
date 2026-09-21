@@ -23,17 +23,20 @@ export default class ElijahScene extends ChronicleScene {
   protected startChapter() {
     this.playerLabel.setText('エリヤ');
     this.floor(8);
+    this.landscape.patch(1, 6, 8, 6, 'earth', 0xddc6a2);
+    this.landscape.patch(11, 6, 8, 6, 'earth', 0xc5b4a9);
+    this.landscape.plants([[0, 5], [1, 10], [8, 2], [11, 2], [18, 10], [19, 5]], true);
 
     // 南王国ユダ（左側：エルサレムの宮殿と神殿の柱）
-    for (let row = 3; row < 6; row++) for (let col = 2; col < 8; col++) this.tile(col, row, 121, 0xdfd2b5);
-    this.tile(4, 5, 37); // 扉
+    this.landscape.facade(2, 2, 6, 4, 0xe3d1ad);
+    this.landscape.terrace(2, 6, 6, 2, 0xd9c7a3);
     this.tile(2, 3, 1096, 0xd4af37); this.tile(2, 4, 1153, 0xd4af37);
     this.tile(7, 3, 1096, 0xd4af37); this.tile(7, 4, 1153, 0xd4af37);
     this.caption('南王国ユダ（エルサレム）', 240, 198, 16);
 
     // 北王国イスラエル（右側：アハブ王のサマリア宮殿・異教バアル神殿）
-    for (let row = 3; row < 6; row++) for (let col = 12; col < 18; col++) this.tile(col, row, 121, 0x8c7094);
-    this.tile(14, 5, 37); // 扉
+    this.landscape.facade(12, 2, 6, 4, 0xb5a4bd);
+    this.landscape.terrace(12, 6, 6, 2, 0xb9abc3);
     this.tile(12, 3, 1096, 0xa855f7); this.tile(12, 4, 1153, 0xa855f7);
     this.tile(17, 3, 1096, 0xa855f7); this.tile(17, 4, 1153, 0xa855f7);
     this.caption('北王国イスラエル（サマリア）', 720, 198, 16);
@@ -94,28 +97,25 @@ export default class ElijahScene extends ChronicleScene {
       }
     }
 
-    // 2. 最上部の山頂岩稜（カルメル山の険しい岩峰シルエット）
-    for (let col = 0; col < 20; col++) {
-      this.tile(col, 0, 1137, 0x8a7e6b);
-      if (col % 3 !== 0) this.tile(col, 1, 1138, 0xa39682);
-    }
+    this.landscape.ridge(20, 0xa69c89);
+    this.landscape.patch(1, 7, 18, 5, 'earth', 0xcbb591);
+    this.landscape.plants([[1, 10], [7, 2], [9, 5], [16, 2], [18, 10]], true, 0xb6a38d);
 
     // 3. 枯れ木（3年半の干ばつで枯れ果てた木々）
     this.treePositions = [[0, 2], [1, 5], [18, 2], [19, 6]].map(([col, row]) => ({ col, row }));
     for (const { col, row } of this.treePositions) this.tree(col, row, true);
 
     // 4. 左側：バアル陣営の高台（石畳・柱・篝火・偶像）
-    for (let row = 3; row <= 5; row++) {
-      for (let col = 2; col <= 6; col++) {
-        this.tile(col, row, 121, 0x8c7094); // 紫がかった石畳
-      }
-    }
+    this.landscape.terrace(1, 3, 7, 4, 0xad9ab1);
+    this.landscape.terrace(10, 3, 6, 5, 0xe0d0b0);
     // バアル高台の柱
     this.tile(2, 3, 1096, 0xb89ec0); this.tile(2, 4, 1153, 0xb89ec0);
     this.tile(6, 3, 1096, 0xb89ec0); this.tile(6, 4, 1153, 0xb89ec0);
     // 紫色の怪しい篝火
-    this.tile(2, 5, 398, 0xd8b4e2);
-    this.tile(6, 5, 398, 0xd8b4e2);
+    this.tile(2, 5, 473, 0xd8b4e2);
+    this.tile(6, 5, 473, 0xd8b4e2);
+    this.landscape.glow(2, 5, 0xc7a0dc);
+    this.landscape.glow(6, 5, 0xc7a0dc);
 
     // バアル偶像（奥・壇上）
     for (let i = 0; i < 3; i++) this.tile(3 + i, 4, 1137, 0x6e5275);
