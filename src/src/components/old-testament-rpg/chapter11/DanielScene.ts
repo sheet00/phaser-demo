@@ -16,14 +16,90 @@ export default class DanielScene extends ChronicleScene {
 
   protected startChapter() {
     this.playerLabel.setText('ダニエル');
-    this.player.setFrame(379);
-    this.floor(121);
-    for (let row = 0; row < 3; row++) for (let col = 0; col < 20; col++) this.tile(col, row, 121, 0xc2b699);
-    for (const col of [1, 5, 14, 18]) { this.tile(col, 2, 1096); this.tile(col, 3, 1153); }
-    this.tile(12, 2, 98); this.tile(13, 2, 98);
-    this.person(300, 380, 594, 'ダレイオス王');
-    this.caption('メド・ペルシア ─ エルサレムに向く窓', 480, 136, 17);
-    this.setTarget(650, 500, '窓辺で祈る');
+    this.player.setFrame(379).setPosition(480, 520);
+    this.physics.world.setBounds(190, 260, 580, 360);
+
+    // 外の地面（中庭）
+    this.floor(5);
+    for (const [col, row] of [[1, 1], [0, 4], [1, 7], [18, 1], [19, 4], [18, 7]]) {
+      this.tree(col, row);
+    }
+
+    // 建物の床（木板）
+    for (let row = 3; row <= 10; row++) {
+      for (let col = 3; col <= 16; col++) this.tile(col, row, 119);
+    }
+
+    // 北外壁・パラペット天端（row 0）
+    this.tile(3, 0, 700);
+    for (let col = 4; col <= 15; col++) this.tile(col, 0, 698);
+    this.tile(16, 0, 701);
+
+    // 北壁面上部（row 1）
+    this.tile(3, 1, 872);
+    for (let col = 4; col <= 15; col++) this.tile(col, 1, 873);
+    this.tile(16, 1, 874);
+
+    // 北壁面下部（row 2）
+    this.tile(3, 2, 869);
+    for (let col = 4; col <= 15; col++) this.tile(col, 2, 868);
+    this.tile(16, 2, 871);
+
+    // エルサレムに向く大アーチ窓（Sample2.png スタイル: 3連）
+    for (const col of [8, 10, 12]) {
+      this.tile(col, 1, 159);
+      this.tile(col, 2, 216);
+    }
+
+    // 左右外壁（row 3〜10）
+    for (let row = 3; row <= 10; row++) {
+      this.tile(3, row, 756);
+      this.tile(16, row, 756);
+    }
+
+    // 南外壁・エントランス（row 11）
+    this.tile(3, 11, 757);
+    for (let col = 4; col <= 8; col++) this.tile(col, 11, 698);
+    this.tile(9, 11, 32); // 木製ドア
+    this.tile(10, 11, 698);
+    for (let col = 11; col <= 15; col++) this.tile(col, 11, 698);
+    this.tile(16, 11, 758);
+
+    // 装飾柱
+    for (const col of [5, 14]) {
+      this.tile(col, 3, 1096);
+      this.tile(col, 4, 1153);
+    }
+
+    // 緑の絨毯（col 7〜12, row 6〜8）
+    const carpet = [
+      [922, 923, 923, 923, 923, 924],
+      [979, 980, 980, 980, 980, 981],
+      [1036, 1037, 1037, 1037, 1037, 1038],
+    ];
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 6; c++) this.tile(7 + c, 6 + r, carpet[r][c]);
+    }
+
+    // 会議机・椅子
+    this.tile(9, 6, 190);
+    this.tile(10, 6, 190);
+    this.tile(9, 7, 197);
+    this.tile(10, 7, 198);
+    this.tile(9, 8, 191);
+    this.tile(10, 8, 191);
+
+    // ダニエルの書斎机・書見台
+    this.tile(4, 4, 194);
+    this.tile(4, 5, 360);
+
+    // 棚と壺
+    this.tile(15, 4, 137);
+    this.tile(15, 5, 25);
+
+    this.person(320, 530, 594, 'ダレイオス王');
+    this.caption('メド・ペルシア 王宮 ─ エルサレムに向く窓', 480, 136, 17);
+    this.setTarget(480, 295, '窓辺で祈る');
     this.progress.setText('祈り 0 / 3');
     this.objective.setText('禁令に屈せず、朝・昼・夕の祈りを捧げよう');
     this.talk([
@@ -44,6 +120,13 @@ export default class DanielScene extends ChronicleScene {
     this.prayers++;
     const hour = ['朝', '昼', '夕'][this.prayers - 1];
     this.progress.setText(`${hour}の祈り ${this.prayers} / 3`);
+
+    // 窓から光が差し込み、ダニエルがひざまずいて祈る演出
+    const windowGlow = this.add.graphics().setPosition(480, 200).setAlpha(0);
+    windowGlow.fillStyle(0xffe8aa, 0.25).fillCircle(0, 0, 70);
+    this.scenery.add(windowGlow);
+    this.tweens.add({ targets: windowGlow, alpha: 1, duration: 300, yoyo: true, hold: 400 });
+
     this.tweens.add({ targets: this.player, scaleY: 2.8, duration: 250, yoyo: true, hold: 350 });
     this.time.delayedCall(900, () => {
       if (this.prayers < 3) {
@@ -58,6 +141,7 @@ export default class DanielScene extends ChronicleScene {
 
   private enterDen() {
     this.clearStage(); this.phase = 'den'; this.busy = true;
+    this.physics.world.setBounds(35, 375, 890, 280);
     this.floor(6, 0x5b626e);
     for (let row = 2; row < 11; row++) for (let col = 2; col < 18; col++) this.tile(col, row, 121, 0x667185);
     for (let col = 1; col < 19; col++) { this.tile(col, 2, 698, 0x727983); this.tile(col, 10, 698, 0x727983); }

@@ -7,7 +7,7 @@ export default class ReturnScene extends ChronicleScene {
   private wall: Phaser.GameObjects.Image[] = [];
   private builtSections = 0;
 
-  constructor() { super('return', '第12章　帰還とメシア待望'); }
+  constructor(onNextChapter?: () => void) { super('return', '第12章　帰還とメシア待望', onNextChapter); }
 
   protected startChapter() {
     this.playerLabel.setText('帰還した民');
@@ -114,11 +114,11 @@ export default class ReturnScene extends ChronicleScene {
     }
     for (const [col, row] of [[0, 2], [3, 1], [16, 1], [18, 3]]) this.tree(col, row);
     for (let i = 0; i < 5; i++) this.person(260 + i * 80, 586, i % 2 ? 486 : 325);
-    this.person(740, 460, 325, '預言者マラキ');
+    this.person(740, 440, 325, '預言者マラキ');
     this.playerLabel.setText('帰還した民');
     this.progress.setText('3 / 3　希望');
     this.objective.setText('再建された都で、マラキの約束を聞こう');
-    this.setTarget(735, 520, 'マラキのことば');
+    this.setTarget(740, 550, 'マラキのことば');
   }
 
   private revealDawn() {
@@ -141,15 +141,19 @@ export default class ReturnScene extends ChronicleScene {
       this.time.delayedCall(3000, () => this.talk([
         { speaker: '四百年の沈黙と約束の継承', body: '天地創造から始まり、アブラハムの契約、出エジプト、ダビデ王国の栄光、\nそして捕囚と帰還を経て──神の救いの約束は世代を超えて受け継がれた。' },
         { speaker: 'ベツレヘムの星へ・新約聖書へ', body: 'マラキの預言から約400年後、暗闇の世を照らすベツレヘムの星が輝く──\n物語は新約聖書、イエス・キリストの降誕へと受け継がれていく！' },
-      ], () => this.complete('旧約聖書の旅 ─ 帰還と、救い主を待ち望む希望', '第12章をもう一度')));
-    });
-  }
+      ], () => {
+        const fin = this.add.text(480, 310, '── 完 ──\n旧約聖書RPG 全12章 完結', {
+          ...this.textStyle(26, '#ffd700', '#111b30'),
+          fontStyle: 'bold',
+          align: 'center',
+          lineSpacing: 10,
+          padding: { top: 16, bottom: 16, left: 24, right: 24 }
+        }).setOrigin(0.5).setDepth(90).setAlpha(0);
+        this.scenery.add(fin);
+        this.tweens.add({ targets: fin, alpha: 1, duration: 1200 });
 
-  protected finishAction() {
-    this.phase = 'return';
-    this.builtSections = 0;
-    this.finished = false;
-    this.clearStage();
-    this.startChapter();
+        this.complete('【全12章 完結】天地創造からメシア待望へ ─ 旧約聖書RPG 完', 'メニューへもどる');
+      }));
+    });
   }
 }

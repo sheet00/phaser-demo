@@ -29,7 +29,11 @@ export default function OldTestamentRpgGame() {
     entry.available && chapterId === `chapter-${String(entry.number).padStart(2, '0')}`,
   );
   const nextChapter = useCallback(() => {
-    if (chapter && chapter.number < CHAPTERS.length) navigate(getChapterPath(chapter.number + 1));
+    if (chapter && chapter.number < CHAPTERS.length) {
+      navigate(getChapterPath(chapter.number + 1));
+    } else {
+      navigate('/');
+    }
   }, [chapter, navigate]);
   const [chapterSession, setChapterSession] = useState(0);
 

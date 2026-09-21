@@ -181,7 +181,11 @@ export default abstract class ChronicleScene extends Phaser.Scene {
     const point = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
     if (this.finished || point.y >= 680 || Phaser.Math.Distance.BetweenPoints(point, this.target) < 85
       && Phaser.Math.Distance.BetweenPoints(this.player, this.target) < 125) { this.action(); return; }
-    this.destination = new Phaser.Math.Vector2(Phaser.Math.Clamp(point.x, 55, 905), Phaser.Math.Clamp(point.y, 398, 632));
+    const bounds = this.physics.world.bounds;
+    this.destination = new Phaser.Math.Vector2(
+      Phaser.Math.Clamp(point.x, bounds.left + 20, bounds.right - 20),
+      Phaser.Math.Clamp(point.y, bounds.top + 23, bounds.bottom - 23),
+    );
   }
 
   update() {
