@@ -10,6 +10,7 @@ export default function TopPage() {
     { id: 'rpg', title: 'RPG ADVENTURE', description: '広大な世界を冒険しよう' },
     { id: 'old-testament-rpg', title: 'OLD TESTAMENT RPG', description: '天地創造、出エジプト… 聖なる物語の冒険へ' },
     { id: 'aws-card-game', title: 'AWS BUILDER CARDS', description: 'AWSサービスを組み合わせて最強のアーキテクチャを構築せよ！' },
+    { id: 'dominion', title: 'DOMINION', description: 'カードで王国を育てよう。CPUと対戦するデッキ構築ゲーム' },
   ];
 
   const handleSelectGame = (gameId: string) => {
@@ -27,24 +28,31 @@ export default function TopPage() {
       navigate('/old-testament-rpg');
     } else if (gameId === 'aws-card-game') {
       navigate('/aws-card-game');
+    } else if (gameId === 'dominion') {
+      navigate('/dominion');
     }
   };
 
   return (
     <div style={{
       width: '100vw',
-      height: '100vh',
+      minHeight: '100vh',
+      height: '100%',
+      overflowY: 'auto',
+      boxSizing: 'border-box',
+      padding: '32px 0',
       backgroundColor: '#0a0a0a', // 元の深い黒に戻す
       color: '#fff',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent: 'safe center',
       fontFamily: "'Exo 2', sans-serif"
     }}>
       <h1 style={{ 
         fontSize: '3.5rem', 
-        marginBottom: '4rem', 
+        marginBottom: '3rem',
+        flexShrink: 0,
         letterSpacing: '0.5rem',
         textTransform: 'uppercase',
         fontWeight: 900,
@@ -53,7 +61,7 @@ export default function TopPage() {
         PHASER DEMO
       </h1>
 
-      <div style={{ display: 'grid', gap: '2rem', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', width: '80%', maxWidth: '1000px' }}>
+      <div style={{ display: 'grid', gap: '2rem', gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))', width: '80%', maxWidth: '1000px', flexShrink: 0 }}>
         {games.map((game) => (
           <div
             key={game.id}
