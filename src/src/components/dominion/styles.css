@@ -63,24 +63,18 @@
 .dominion-controls.needs-choice { border-top: 2px solid var(--dom-gold); background: #34422a; }
 .dominion-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
 .dominion-sidebar { min-width: 0; padding: 12px 10px; background: #10271f; border-left: 1px solid var(--dom-line); }
-.dominion-inspector { padding: 12px; background: #e7e3d4; border: 1px solid #aca183; border-radius: 5px; color: #25352c; box-shadow: 0 4px 14px #0003; }
-.dominion-section-title { display: flex; align-items: center; justify-content: space-between; color: #67715e; font-size: 12px; }
+.dominion-card-tooltip { position: fixed; z-index: 100; width: min(300px, calc(100vw - 16px)); max-height: calc(100dvh - 16px); overflow: hidden; padding: 14px 16px; border: 3px solid; border-radius: 7px; color: #25352c; box-shadow: 0 8px 28px #0006; pointer-events: none; }
+.dominion-tooltip-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .dominion-cost { display: inline-flex; align-items: center; gap: 5px; min-height: 28px; color: #2c3525; font-weight: 700; font-size: 15px; }
 .dominion-cost svg { width: 16px; height: 16px; color: #b58b2c; }
-.dominion-inspector h2 { margin: 5px 0 0; font-size: 22px; }
+.dominion-card-tooltip h2 { margin: 5px 0 0; font-size: 22px; }
 .dominion-english { margin: 0 0 17px; letter-spacing: 2px; font-size: 11px; color: #6a735d; }
 .dominion-card-kind { padding: 7px 0; border-top: 1px solid #b5b6a2; border-bottom: 1px solid #b5b6a2; font-size: 13px; }
-.dominion-description { min-height: 105px; line-height: 1.9; margin: 12px 0; }
-.dominion-card-picker { display: block; font-size: 12px; color: #5b6958; }
-.dominion-card-picker select { display: block; width: 100%; margin-top: 6px; padding: 8px 5px; border: 1px solid #999f8b; background: #f0edde; color: #24362a; border-radius: 3px; }
-.dominion-inspector.type-treasure { border-top: 5px solid #c5a658; }
-.dominion-inspector.type-victory { border-top: 5px solid #79a17c; }
-.dominion-inspector.type-curse { border-top: 5px solid #a187b8; }
-.dominion-inspector.type-action { border-top: 5px solid #c6c3b4; }
-.dominion-log-panel { margin-top: 23px; }
+.dominion-description { line-height: 1.9; margin: 12px 0; }
+.dominion-log-panel { margin-top: 0; }
 .dominion-log-panel h2 { margin: 0 0 10px; font-size: 14px; color: #d4d7c6; }
 .dominion-log-panel h2 span { float: right; font-size: 10px; letter-spacing: 1px; color: #7f9788; }
-.dominion-log { height: 250px; overflow: auto; padding-right: 7px; scrollbar-color: #617961 transparent; }
+.dominion-log { height: max(400px, calc(100dvh - 190px)); overflow: auto; padding-right: 7px; scrollbar-color: #617961 transparent; }
 .dominion-log p { margin: 0 0 6px; color: #adc3b1; font-size: 13px; line-height: 1.75; overflow-wrap: anywhere; }
 .dominion-log p.log-turn { color: #e1cc95; margin-top: 16px; }
 .dominion-trash { margin-top: 18px; border-top: 1px solid var(--dom-line); padding-top: 14px; }
@@ -132,3 +126,26 @@
   .dominion-scores > div { padding: 15px 8px; }
   .dominion-result h2 { font-size: 26px; }
 }
+
+.dominion-choice-panel { padding: 12px; background: #233e30; border-top: 2px solid var(--dom-gold); }
+.dominion-choice-panel > p { margin: 0 0 10px; line-height: 1.8; }
+.dominion-choice-cards { display: flex; gap: 10px; overflow: auto; max-height: 190px; padding: 4px; }
+.dominion button.dominion-choice-card { display: flex; flex: 0 0 150px; flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px; border-width: 3px; color: #25352c; }
+.dominion-choice-card > span { font-size: 13px; }
+.dominion button.dominion-choice-card[aria-disabled="true"] { cursor: default; }
+.dominion-choice-card strong { font-size: 16px; }
+
+.dominion-setup { display: grid; align-items: center; justify-items: center; padding: 28px 16px; background: radial-gradient(ellipse at top, #315841, #10271f 75%); }
+.dominion-setup-inner { width: 100%; max-width: 680px; }
+.dominion-setup h1 { margin: 8px 0 12px; font-size: 28px; color: #f1dfb4; }
+.dominion-mode-options { display: grid; gap: 12px; padding: 0; margin: 28px 0 18px; border: 0; }
+.dominion-mode-options legend { margin-bottom: 12px; font-size: 16px; font-weight: 700; }
+.dominion-mode-options label { display: flex; align-items: flex-start; gap: 12px; padding: 18px; border: 2px solid #617961; border-radius: 8px; background: #163225; cursor: pointer; }
+.dominion-mode-options label.selected { border-color: var(--dom-gold); background: #2c432e; }
+.dominion-mode-options label:focus-within { outline: 3px solid #ffe6a0; outline-offset: 3px; }
+.dominion-mode-options input { margin-top: 5px; accent-color: #dec17d; width: 18px; height: 18px; flex-shrink: 0; }
+.dominion-mode-options strong { display: block; font-size: 20px; margin-bottom: 6px; color: #f1dfb4; }
+.dominion-mode-options span span { display: block; line-height: 1.8; }
+.dominion-mode-description { padding: 16px 18px; border: 1px solid var(--dom-line); border-radius: 6px; background: #10271f; }
+.dominion-mode-description h2 { font-size: 16px; margin: 0 0 8px; }
+.dominion-mode-description p { margin: 0; line-height: 1.9; color: #bac9b8; }

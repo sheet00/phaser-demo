@@ -2,25 +2,25 @@ import Phaser from 'phaser';
 import { icon } from '@fortawesome/fontawesome-svg-core';
 import { faCoins } from '@fortawesome/free-solid-svg-icons';
 import { FONT_FAMILY, TEXT_STYLE } from '../old-testament-rpg/typography';
-import { BASE, CARDS, KINGDOM } from './cards';
+import { BASE, CARDS } from './cards';
 import type { CardId } from './cards';
 import { canBuy, canChoose, canGain, canPlay, inputPlayer } from './engine';
 import type { Card } from './engine';
 import type { DominionStore } from './store';
 import { actionSound, SOUND_FILES } from './audio';
-
-const COLORS = { treasure: 0xc5a658, victory: 0x79a17c, curse: 0xa187b8, action: 0xc6c3b4 };
+import { cardAppearance } from './cardAppearance';
+import type { CardInspection } from './cardAppearance';
 
 export class DominionScene extends Phaser.Scene {
   private store: DominionStore;
-  private inspect: (id: CardId) => void;
+  private inspect: (card: CardInspection | null) => void;
   private onReady: () => void;
   private table!: Phaser.GameObjects.Container;
   private dirty = true;
   private handPage = 0;
   private playedPage = 0;
 
-  constructor(store: DominionStore, inspect: (id: CardId) => void, onReady: () => void) {
+  constructor(store: DominionStore, inspect: (card: CardInspection | null) => void, onReady: () => void) {
     super('DominionTable');
     this.store = store;
     this.inspect = inspect;
@@ -29,13 +29,13 @@ export class DominionScene extends Phaser.Scene {
 
   preload() {
     const assets = `${import.meta.env.BASE_URL}assets/`;
-    const sheets = `${assets}kenney_boardgame-pack/Spritesheets/`;
-    this.load.atlasXML('dominion-backs', `${sheets}playingCardBacks.png`, `${sheets}playingCardBacks.xml`);
-    const coinSvg = icon(faCoins, { styles: { color: '#b58b2c' } }).html.join('');
+    // Canvas用の独立したSVG画像には、HTML内のSVGと異なり名前空間が必要。
+    const coinSvg = icon(faCoins, {
+      attributes: { xmlns: 'http://www.w3.org/2000/svg' },
+      styles: { color: '#9a701b' },
+    }).html.join('');
     // PhaserのXHRLoaderはdata URLをatobで復号するため、Base64で渡す。
     this.load.svg('dominion-coin', `data:image/svg+xml;base64,${btoa(coinSvg)}`, { width: 64, height: 64 });
-    const lightCoinSvg = icon(faCoins, { styles: { color: '#ffffff' } }).html.join('');
-    this.load.svg('dominion-coin-light', `data:image/svg+xml;base64,${btoa(lightCoinSvg)}`, { width: 64, height: 64 });
     for (const [key, file] of Object.entries(SOUND_FILES)) {
       this.load.audio(`dominion-${key}`, `${assets}kenney_casino-audio/Audio/${file}`);
     }
@@ -97,34 +97,26 @@ export class DominionScene extends Phaser.Scene {
   }
 
   private card(x: number, y: number, width: number, height: number, id: CardId, options: {
-    compact?: boolean; spriteBackground?: boolean; count?: number; enabled?: boolean; action?: () => void;
+    compact?: boolean; count?: number; enabled?: boolean; action?: () => void;
   } = {}) {
     const definition = CARDS[id];
     const compact = options.compact ?? false;
-    const spriteBackground = options.spriteBackground ?? false;
-    const accent = COLORS[definition.type];
+    const appearance = cardAppearance(definition);
+    const { accent, background } = appearance;
     const group = this.add.container(x, y);
     this.table.add(group);
     const shadow = this.add.rectangle(3, 4, width, height, 0x000000, 0.25).setOrigin(0);
-    const frame = definition.type === 'victory' ? 'cardBack_green1.png' : definition.type === 'treasure' ? 'cardBack_red1.png' : 'cardBack_blue1.png';
-    const face = this.textures.exists('dominion-backs')
-      ? this.add.image(0, 0, 'dominion-backs', frame).setOrigin(0).setDisplaySize(width, height)
-      : this.add.rectangle(0, 0, width, height, spriteBackground ? 0x315d7b : 0xeee9d9).setOrigin(0);
-    group.add([shadow, face]);
-    if (!spriteBackground) {
-      const paper = this.add.rectangle(5, 5, width - 10, height - 10, 0xeee9d9).setOrigin(0);
-      const band = this.add.rectangle(5, 5, width - 10, compact ? 25 : 28, accent).setOrigin(0);
-      group.add([paper, band]);
-    }
+    const face = this.add.rectangle(0, 0, width, height, background).setOrigin(0);
+    const band = this.add.rectangle(0, 0, width, compact ? 28 : 32, accent).setOrigin(0);
+    group.add([shadow, face, band]);
     const body = this.add.rectangle(0, 0, width, height, 0x000000, 0).setOrigin(0)
       .setStrokeStyle(options.enabled ? 3 : 1, options.enabled ? 0xf5d47c : 0x827a61);
     group.add(body);
-    const label = (left: number, top: number, value: string, size = 14, bold = false, color = spriteBackground ? '#ffffff' : '#262e29') => {
+    const label = (left: number, top: number, value: string, size = 14, bold = false, color = '#262e29') => {
       const object = this.add.text(left, top, value, {
         ...TEXT_STYLE, fontFamily: FONT_FAMILY, fontSize: `${size}px`, fontStyle: bold ? 'bold' : 'normal', color,
         align: 'center', lineSpacing: 3,
       });
-      if (spriteBackground) object.setShadow(0, 1, '#183026', 2, false, true);
       group.add(object);
       return object;
     };
@@ -133,13 +125,18 @@ export class DominionScene extends Phaser.Scene {
       label(width / 2, 46, definition.summary, 13).setOrigin(0.5, 0);
     }
     const coinY = height - 16;
-    const coinTexture = spriteBackground ? 'dominion-coin-light' : 'dominion-coin';
+    const coinTexture = 'dominion-coin';
     if (this.textures.exists(coinTexture)) {
-      group.add(this.add.image(14, coinY, coinTexture).setDisplaySize(15, 15));
+      group.add(this.add.image(14, coinY, coinTexture).setDisplaySize(18, 18));
     }
     label(31, coinY - 1, String(definition.cost), 14, true).setOrigin(0.5);
-    label(width - 5, coinY - 1, compact ? definition.type === 'action' ? '使用中' : definition.summary : definition.kind.includes('リアクション') ? '反応' : definition.kind.includes('アタック') ? '攻撃' : definition.kind,
-      13, false, spriteBackground ? '#ffffff' : '#525648').setOrigin(1, 0.5);
+    // 小型カードではコストと種別の重なりを避け、通常カードは効果と種別を分ける。
+    const kindLabel = compact
+      ? definition.type !== 'action' ? id === 'gardens' ? '勝利点' : definition.summary.replaceAll(' ', '')
+        : appearance.label === 'アクション' ? '行動' : appearance.label
+      : appearance.label;
+    label(width - 3, coinY - 1, kindLabel,
+      13, false, '#394238').setOrigin(1, 0.5);
     if (options.count !== undefined) {
       const badge = this.add.rectangle(width - 7, -3, 26, 23, options.count === 0 ? 0x5d5d56 : 0x344e48).setStrokeStyle(1, 0xb9b59d);
       group.add(badge);
@@ -148,19 +145,28 @@ export class DominionScene extends Phaser.Scene {
     }
     const hit = this.add.zone(0, 0, width, height).setOrigin(0).setInteractive({ useHandCursor: true });
     group.add(hit);
-    hit.on('pointerover', () => {
+    const inspect = (pointer: Phaser.Input.Pointer) => {
+      const bounds = this.game.canvas.getBoundingClientRect();
+      this.inspect({ id, x: bounds.left + pointer.x, y: bounds.top + pointer.y });
+    };
+    hit.on('pointerover', (pointer: Phaser.Input.Pointer) => {
       body.setStrokeStyle(3, 0xf5d47c);
-      this.inspect(id);
+      inspect(pointer);
     });
-    hit.on('pointerout', () => body.setStrokeStyle(options.enabled ? 3 : 1, options.enabled ? 0xf5d47c : 0x827a61));
+    hit.on('pointermove', inspect);
+    hit.on('pointerout', () => {
+      body.setStrokeStyle(options.enabled ? 3 : 1, options.enabled ? 0xf5d47c : 0x827a61);
+      this.inspect(null);
+    });
     hit.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      this.inspect(id);
+      inspect(pointer);
       if (!pointer.rightButtonDown() && options.enabled) options.action?.();
     });
   }
 
   private paint() {
     this.dirty = false;
+    this.inspect(null);
     this.table.removeAll(true);
     const state = this.store.getSnapshot();
     const width = this.scale.width;
@@ -176,17 +182,15 @@ export class DominionScene extends Phaser.Scene {
     this.text(width - 20, 5, `ターン ${opponent.turns}`, 14, '#a9c1b4').setOrigin(1, 0);
     this.text(19, 45, '基本カード', 14, '#b9c8b7', true);
     this.text(266, 45, '王国カード', 14, '#b9c8b7', true);
-    this.text(width - 18, 45, '最初のゲーム · 基本セット', 13, '#a2b8a7').setOrigin(1, 0);
-    if (this.textures.exists('dominion-backs')) {
-      for (let i = 0; i < Math.min(opponent.hand.length, 5); i++) {
-        this.table.add(this.add.image(width - 220 + i * 16, 3, 'dominion-backs', 'cardBack_red3.png').setOrigin(0).setDisplaySize(24, 33));
-      }
-      for (let i = 0; i < Math.min(player.deck.length, 3); i++) {
-        this.table.add(this.add.image(144 + i * 2, 282 - i * 2, 'dominion-backs', 'cardBack_blue3.png').setOrigin(0).setDisplaySize(35, 48));
-      }
-      this.text(184, 280, '山札', 13);
-      this.text(190, 306, String(player.deck.length), 14, '#f1deaa', true);
+    this.text(width - 18, 45, this.store.mode === 'basic' ? '最初のゲーム · 基本セット' : 'ランダム10種類 · 基本セット', 13, '#a2b8a7').setOrigin(1, 0);
+    for (let i = 0; i < Math.min(opponent.hand.length, 5); i++) {
+      this.panel(width - 220 + i * 16, 3, 24, 33, 0x376b60).setStrokeStyle(1, 0xb9b59d);
     }
+    for (let i = 0; i < Math.min(player.deck.length, 3); i++) {
+      this.panel(144 + i * 2, 282 - i * 2, 35, 48, 0x376b60).setStrokeStyle(1, 0xb9b59d);
+    }
+    this.text(184, 280, '山札', 13);
+    this.text(190, 306, String(player.deck.length), 14, '#f1deaa', true);
 
     const supplyAction = (id: CardId) => () => {
       this.store.dispatch(0, { type: this.store.getSnapshot().pending?.kind === 'gain' ? 'gain' : 'buy', card: id });
@@ -199,7 +203,7 @@ export class DominionScene extends Phaser.Scene {
     const cardWidth = Math.min(155, (width - 296 - 4 * 14) / 5);
     const kingdomWidth = cardWidth * 5 + 56;
     const kingdomLeft = 266 + Math.max(0, (width - 286 - kingdomWidth) / 2);
-    KINGDOM.forEach((id, index) => {
+    state.kingdom.forEach((id, index) => {
       this.card(kingdomLeft + (index % 5) * (cardWidth + 14), 76 + Math.floor(index / 5) * 144, cardWidth, 132, id, {
         count: state.supply[id], enabled: humanInput && (canBuy(state, id) || canGain(state, id)), action: supplyAction(id),
       });
@@ -220,7 +224,7 @@ export class DominionScene extends Phaser.Scene {
     }
     if (!played.length) this.text(width / 2, 420, '使用したカードがここに並びます', 14, '#90ad9e').setOrigin(0.5);
     groups.slice(this.playedPage * playedSlots, (this.playedPage + 1) * playedSlots).forEach(([id, count], index) => {
-      this.card(22 + index * 110, 392, 98, 60, id, { compact: true, spriteBackground: true, count });
+      this.card(22 + index * 110, 392, 98, 60, id, { compact: true, count });
     });
 
     const handY = height - 142;
@@ -240,7 +244,6 @@ export class DominionScene extends Phaser.Scene {
     const handLeft = Math.max(22, (width - hand.length * 130 + 10) / 2);
     hand.forEach((card: Card, index: number) => {
       this.card(handLeft + index * 130, handY, 120, 132, card.id, {
-        spriteBackground: true,
         enabled: humanInput && (canPlay(state, card) || canChoose(state, card)),
         action: () => this.store.dispatch(0, { type: this.store.getSnapshot().pending ? 'choose' : 'play', uid: card.uid }),
       });

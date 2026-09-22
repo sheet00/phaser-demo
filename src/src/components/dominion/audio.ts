@@ -22,7 +22,7 @@ export function actionSound(command: Command, previous: GameState): keyof typeof
     case 'choose': return 'discard';
     case 'end-turn': return 'turn';
     case 'done': return previous.pending?.kind === 'cellar' && previous.pending.discarded > 0 ? 'turn' : 'confirm';
-    case 'buy-phase': case 'reveal': case 'decline': return 'confirm';
+    case 'accept': case 'buy-phase': case 'reveal': case 'decline': return 'confirm';
     default: return null;
   }
 }

@@ -1,13 +1,18 @@
+import { FIRST_GAME } from './cards';
 import { createGame, reduceGame } from './engine';
 import type { Command, GameState, PlayerId } from './engine';
 
-export function createStore() {
-  let state = createGame();
+export type GameMode = 'basic' | 'random';
+
+export function createStore(mode: GameMode = 'random') {
+  const newGame = () => createGame(crypto.getRandomValues(new Uint32Array(1))[0], mode === 'basic' ? FIRST_GAME : undefined);
+  let state = newGame();
   const listeners = new Set<() => void>();
   const actionListeners = new Set<(command: Command, previous: GameState) => void>();
   const soundListeners = new Set<() => void>();
   let muted = false;
   return {
+    mode,
     getSnapshot: () => state,
     getMuted: () => muted,
     setMuted: (value: boolean) => {
@@ -35,7 +40,7 @@ export function createStore() {
       listeners.forEach(listener => listener());
     },
     restart: () => {
-      state = createGame();
+      state = newGame();
       listeners.forEach(listener => listener());
     },
   };
