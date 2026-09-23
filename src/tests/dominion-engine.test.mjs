@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ALL_CARDS, CARDS, FIRST_GAME, KINGDOM } from '../src/components/dominion/cards.ts';
+import { ALL_CARDS, ALL_KINGDOM, CARDS, FIRST_GAME, KINGDOM } from '../src/components/dominion/cards.ts';
 import { botCommand, canBuy, canGain, createGame, inputPlayer, owned, reduceGame, score, supplyCards, choiceCards, canChoose } from '../src/components/dominion/engine.ts';
 
 function fixture() {
@@ -648,4 +648,106 @@ test('玉座の間の攻撃は毎回堀を選び、人間の選択待ちでCPU�
   assert.equal(state.players[0].discard[0].id, 'curse');
   assert.equal(state.pending, null);
   assert.equal(inputPlayer(state), 1);
+});
+
+
+test('陰謀26種類のうちアクションカードの選択効果をCPUが解決できる', () => {
+  const ids = ALL_CARDS.filter(id => !KINGDOM.includes(id) && !['copper', 'silver', 'gold', 'estate', 'duchy', 'province', 'curse'].includes(id));
+  assert.equal(ids.length, 26);
+  for (const id of ids) {
+    let state = fixture();
+    state.kingdom = [...new Set([id, ...FIRST_GAME])].slice(0, 10);
+    state.supply[id] = 10;
+    state.players[0].hand = cards(state, id, 'estate', 'copper', 'silver', 'village');
+    state.players[0].deck = cards(state, ...Array(12).fill('copper'));
+    state.players[1].hand = cards(state, 'estate', 'copper', 'silver', 'gold', 'copper');
+    state.players[1].deck = cards(state, ...Array(12).fill('copper'));
+    if (CARDS[id].type !== 'action') continue;
+    state = play(state, id);
+    let steps = 0;
+    while (state.pending && steps++ < 100) {
+      const actor = inputPlayer(state);
+      const command = botCommand(state, actor);
+      assert.ok(command, id);
+      const next = reduceGame(state, actor, command);
+      assert.notEqual(next, state, `${id}: ${JSON.stringify(command)}`);
+      state = next;
+    }
+    assert.equal(state.pending, null, id);
+    const ownedCards = [...state.players.flatMap(owned), ...state.trash];
+    assert.equal(new Set(ownedCards.map(card => card.uid)).size, ownedCards.length, id);
+  }
+});
+
+test('橋の値引きは購入に適用され、手番終了で解除される', () => {
+  let state = fixture();
+  state.players[0].hand = cards(state, 'bridge', 'gold', 'gold');
+  state = play(state, 'bridge');
+  state = reduceGame(state, 0, { type: 'buy-phase' });
+  state = reduceGame(state, 0, { type: 'treasures' });
+  assert.ok(canBuy(state, 'province'));
+  state = reduceGame(state, 0, { type: 'buy', card: 'province' });
+  assert.equal(state.coins, 0);
+  state = reduceGame(state, 0, { type: 'end-turn' });
+  assert.equal(state.costReduction, 0);
+});
+
+test('公爵は公領枚数、ハーレムと貴族は複合型の勝利点を数える', () => {
+  const state = fixture();
+  state.players[0].hand = cards(state, 'duke', 'duke', 'duchy', 'duchy', 'harem', 'nobles');
+  assert.equal(score(state.players[0]), 14);
+});
+
+
+test('寵臣と身代わりは効果選択前に外交官へリアクション機会を渡す', () => {
+  for (const id of ['minion', 'replace']) {
+    let state = fixture();
+    state.players[0].hand = cards(state, id, 'copper');
+    state.players[1].hand = cards(state, 'diplomat', 'copper', 'copper', 'estate', 'estate');
+    state.players[1].deck = cards(state, 'silver', 'gold');
+    state = play(state, id);
+    assert.equal(state.pending.kind, 'reaction');
+    assert.equal(inputPlayer(state), 1);
+    state = reduceGame(state, 1, { type: 'diplomat' });
+    assert.equal(state.players[1].hand.length, 7);
+    for (let i = 0; i < 3; i++) state = reduceGame(state, 1, { type: 'choose', uid: state.players[1].hand.find(card => card.id === 'copper' || card.id === 'estate').uid });
+    assert.equal(inputPlayer(state), 0);
+    assert.equal(state.pending.source, id);
+    if (id === 'minion') {
+      state = reduceGame(state, 0, { type: 'option', value: 'coins' });
+      assert.equal(state.coins, 2);
+      assert.equal(state.pending, null);
+    }
+  }
+});
+
+test('陰謀のみの抽選は26種類から10山を選び複合勝利点を8枚にする', () => {
+  const pool = ALL_CARDS.filter(id => CARDS[id].english === 'Nobles' || (!KINGDOM.includes(id) && !['copper', 'silver', 'gold', 'estate', 'duchy', 'province', 'curse'].includes(id)));
+  for (let seed = 1; seed <= 20; seed++) {
+    const state = createGame(seed, undefined, pool);
+    assert.equal(new Set(state.kingdom).size, 10);
+    assert.ok(state.kingdom.every(id => pool.includes(id)));
+    for (const id of ['nobles', 'mill', 'harem']) if (state.kingdom.includes(id)) assert.equal(state.supply[id], 8);
+  }
+});
+
+
+test('基本と陰謀の混合サプライでCPU対戦が停止せず終局する', () => {
+  for (let seed = 1; seed <= 20; seed++) {
+    let state = createGame(seed, undefined, ALL_KINGDOM);
+    const total = state.players.flatMap(owned).length + Object.values(state.supply).reduce((a, b) => a + b, 0);
+    let steps = 0;
+    while (state.phase !== 'ended' && steps++ < 8000) {
+      const actor = inputPlayer(state);
+      const command = botCommand(state, actor);
+      assert.ok(command, `seed ${seed}`);
+      const next = reduceGame(state, actor, command);
+      assert.notEqual(next, state, `seed ${seed}: ${JSON.stringify(command)}`);
+      state = next;
+      const cards = [...state.players.flatMap(owned), ...state.trash];
+      assert.equal(cards.length + Object.values(state.supply).reduce((a, b) => a + b, 0), total);
+      assert.equal(new Set(cards.map(card => card.uid)).size, cards.length);
+    }
+    assert.equal(state.phase, 'ended', `seed ${seed}`);
+  }
 });

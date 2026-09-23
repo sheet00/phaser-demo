@@ -4,7 +4,7 @@ import { faCoins } from '@fortawesome/free-solid-svg-icons';
 import { FONT_FAMILY, TEXT_STYLE } from '../old-testament-rpg/typography';
 import { BASE, CARDS } from './cards';
 import type { CardId } from './cards';
-import { canBuy, canChoose, canGain, canPlay, inputPlayer } from './engine';
+import { cardCost, canBuy, canChoose, canGain, canPlay, inputPlayer } from './engine';
 import type { Card } from './engine';
 import type { DominionStore } from './store';
 import { actionSound, SOUND_FILES } from './audio';
@@ -129,7 +129,7 @@ export class DominionScene extends Phaser.Scene {
     if (this.textures.exists(coinTexture)) {
       group.add(this.add.image(14, coinY, coinTexture).setDisplaySize(18, 18));
     }
-    label(31, coinY - 1, String(definition.cost), 14, true).setOrigin(0.5);
+    label(31, coinY - 1, String(cardCost(this.store.getSnapshot(), id)), 14, true).setOrigin(0.5);
     // 小型カードではコストと種別の重なりを避け、通常カードは効果と種別を分ける。
     const kindLabel = compact
       ? definition.type !== 'action' ? id === 'gardens' ? '勝利点' : definition.summary.replaceAll(' ', '')

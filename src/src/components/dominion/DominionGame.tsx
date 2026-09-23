@@ -4,13 +4,13 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBasketShopping, faBolt, faCircleQuestion, faCoins, faFlag, faTableCellsLarge, faVolumeHigh, faVolumeXmark } from '@fortawesome/free-solid-svg-icons';
 import Phaser from 'phaser';
 import { afterFontsReady, CRISP_RENDERING, FONT_FAMILY } from '../old-testament-rpg/typography';
-import { ALL_CARDS, CARDS, FIRST_GAME } from './cards';
+import { ALL_CARDS, CARDS, hasType } from './cards';
 import { cardAppearance } from './cardAppearance';
 import type { CardInspection } from './cardAppearance';
-import { botCommand, canChoose, canDone, choiceCards, inputPlayer, instruction, owned, score } from './engine';
+import { botCommand, canReactDiplomat, canChoose, canDone, choiceCards, inputPlayer, instruction, owned, score } from './engine';
 import type { Command, GameState } from './engine';
-import { createStore } from './store';
-import type { DominionStore, GameMode } from './store';
+import { basicKingdomFor, createStore } from './store';
+import type { DominionStore, ExpansionId, GameMode } from './store';
 import { DominionScene } from './DominionScene';
 import './styles.css';
 
@@ -90,11 +90,11 @@ function ChoicePanel({ state, send, onInspect }: {
   const panelRef = useRef<HTMLElement>(null);
   const visibleKind = pending?.player === 0 ? pending.kind : null;
   useEffect(() => { panelRef.current?.scrollIntoView({ block: 'nearest' }); }, [visibleKind]);
-  if (!pending || pending.player !== 0 || !['harbinger', 'vassal', 'library', 'sentry', 'bandit'].includes(pending.kind)) return null;
+  if (!pending || pending.player !== 0 || !['harbinger', 'vassal', 'library', 'sentry', 'bandit', 'expansion'].includes(pending.kind)) return null;
   const cards = choiceCards(state);
   return <section ref={panelRef} className="dominion-choice-panel" aria-label="効果で選択するカード">
     <p>{instruction(state)}</p>
-    <div className="dominion-choice-cards">{cards.map(card => {
+    <div className="dominion-choice-cards">{pending.kind === 'expansion' && pending.options.map(option => <button key={option.value} onClick={() => send({ type: 'option', value: option.value })}>{option.label}</button>)}{cards.map(card => {
       const definition = CARDS[card.id];
       const appearance = cardAppearance(definition);
       const selectable = canChoose(state, card);
@@ -116,6 +116,7 @@ function doneLabel(state: GameState): string {
   const pending = state.pending;
   if (!pending) return '';
   switch (pending.kind) {
+    case 'expansion': return '選択を終了';
     case 'cellar': return `選択完了 · ${pending.discarded}枚引く`;
     case 'chapel': return '廃棄を終了';
     case 'sentry': return pending.stage === 'trash' ? '廃棄を終えて次へ' : pending.stage === 'discard' ? '捨て札を終えて次へ' : 'この順番で戻す';
@@ -195,7 +196,7 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
   return <main className="dominion" style={{ fontFamily: FONT_FAMILY }}>
     <header className="dominion-header">
       <div className="dominion-brand"><span className="dominion-crest" aria-hidden="true">D</span><div><h1>DOMINION</h1><span>ドミニオン</span></div></div>
-      <div className="dominion-match"><span className="dominion-live-dot" /> あなた vs CPU <span className="dominion-muted">／ {store.mode === 'basic' ? '基本セット' : 'ランダム'}</span></div>
+      <div className="dominion-match"><span className="dominion-live-dot" /> あなた vs CPU <span className="dominion-muted">／ {store.expansions.map(id => id === 'base' ? '基本' : '陰謀').join('＋')} · {store.mode === 'basic' ? 'おすすめ' : 'ランダム'}</span></div>
       <nav aria-label="ゲームメニュー">
         <button onClick={() => store.setMuted(!muted)} aria-pressed={muted} aria-label="消音" title={muted ? '効果音をオン' : '効果音をオフ'}><FontAwesomeIcon icon={muted ? faVolumeXmark : faVolumeHigh} aria-hidden="true" /></button>
         <button onClick={() => setHelp(!help)} aria-expanded={help} aria-label="遊び方" title="遊び方"><FontAwesomeIcon icon={faCircleQuestion} aria-hidden="true" /><span className="dominion-menu-label">遊び方</span></button>
@@ -208,7 +209,7 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
       <h2>王国を育て、勝利点を集めよう</h2>
       <ol><li>手札のアクションカードをクリックして使用します。</li><li>「購入へ」→「財宝をすべて使用」でコインを用意します。</li><li>金色のサプライをクリックして購入。「ターン終了」でCPUへ交代します。</li></ol>
       <p>購入したカードは捨て札に入り、山札の補充後に引けるようになります。属州の山、またはサプライの3山が空になると、そのターンで終了。勝利点の多い方が勝ちです。</p>
-      <p>{store.mode === 'basic' ? '基本セットの「最初のゲーム」に指定された10種類で遊びます。' : '基本セット第2版の26種類から王国カード10種類をランダムに選びます。'}</p>
+      <p>{store.mode === 'basic' ? '選んだカード群に対応したおすすめの10種類で遊びます。' : '選んだカード群から王国カード10種類をランダムに選びます。'}</p>
       <p>カードにマウスを重ねるか右クリックすると詳細を表示します。マウスを離すと説明が閉じます。</p>
       <button onClick={() => setHelp(false)}>ゲームに戻る</button>
     </section>}
@@ -236,10 +237,10 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
             {state.pending && canInput ? <>
               {canDone(state) && <button onClick={() => send({ type: 'done' })}>{doneLabel(state)}</button>}
               {(state.pending.kind === 'library' || state.pending.kind === 'vassal') && <button className="primary" onClick={() => send({ type: 'accept' })}>{state.pending.kind === 'library' ? '手札に加える' : 'このカードを使用'}</button>}
-              {state.pending.kind === 'reaction' && <><button className="primary" onClick={() => send({ type: 'reveal' })}>堀を公開して防ぐ</button><button onClick={() => send({ type: 'decline' })}>公開しない</button></>}
+              {state.pending.kind === 'reaction' && <>{!state.pending.blocked && state.players[0].hand.some(card => card.id === 'moat') && <button className="primary" onClick={() => send({ type: 'reveal' })}>堀を公開して防ぐ</button>}{canReactDiplomat(state, 0) && <button onClick={() => send({ type: 'diplomat' })}>外交官を公開する</button>}<button onClick={() => send({ type: 'decline' })}>公開しない</button></>}
             </> : !ended && <>
               <button disabled={!ownTurn || state.phase !== 'action'} onClick={() => send({ type: 'buy-phase' })}>購入へ →</button>
-              <button className="primary" disabled={!ownTurn || state.phase !== 'buy' || state.bought || !state.players[0].hand.some(card => CARDS[card.id].type === 'treasure')} onClick={() => send({ type: 'treasures' })}>財宝をすべて使用</button>
+              <button className="primary" disabled={!ownTurn || state.phase !== 'buy' || state.bought || !state.players[0].hand.some(card => hasType(card.id, 'treasure'))} onClick={() => send({ type: 'treasures' })}>財宝をすべて使用</button>
               <button disabled={!ownTurn || state.phase !== 'buy'} onClick={() => send({ type: 'end-turn' })}>ターン終了 →</button>
             </>}
           </div>
@@ -259,6 +260,7 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
 
 export default function DominionGame() {
   const [mode, setMode] = useState<GameMode>('basic');
+  const [expansions, setExpansions] = useState<ExpansionId[]>(['base']);
   const [store, setStore] = useState<DominionStore | null>(null);
   if (store) return <Match store={store} onRestart={() => setStore(null)} />;
 
@@ -266,24 +268,36 @@ export default function DominionGame() {
     <section className="dominion-setup-inner" aria-labelledby="dominion-setup-title">
       <p className="dominion-eyebrow">DOMINION</p>
       <h1 id="dominion-setup-title">対戦の準備</h1>
-      <p className="dominion-muted">あなた vs CPU · 王国カードの選び方を選択</p>
+      <p className="dominion-muted">あなた vs CPU · 使用するセットとカードの選び方を選択</p>
       <fieldset className="dominion-mode-options">
-        <legend>ゲームモード</legend>
-        <label className={mode === 'basic' ? 'selected' : ''}>
-          <input type="radio" name="dominion-mode" value="basic" checked={mode === 'basic'} onChange={() => setMode('basic')} />
-          <span><strong>基本セット</strong><span>「最初のゲーム」の固定10種類。定番の組み合わせで遊べます。</span></span>
+        <legend>使用するセット</legend>
+        {([['base', '基本 · 26種類'], ['intrigue', '陰謀（拡張） · 26種類']] as const).map(([id, label]) => <label key={id} className={expansions.includes(id) ? 'selected' : ''}>
+          <input type="checkbox" checked={expansions.includes(id)} onChange={event => {
+            const next = event.target.checked ? [...expansions, id] : expansions.filter(value => value !== id);
+            setExpansions(next);
+            if (next.length > 1) setMode('random');
+          }} />
+          <span>{label}</span>
+        </label>)}
+      </fieldset>
+      <fieldset className="dominion-mode-options">
+        <legend>王国カード10種類の決め方</legend>
+        <label className={`${mode === 'basic' ? 'selected' : ''}${expansions.length > 1 ? ' unavailable' : ''}`}>
+          <input type="radio" name="dominion-mode" value="basic" checked={mode === 'basic'} disabled={expansions.length > 1} onChange={() => setMode('basic')} />
+          <span><strong>おすすめ</strong><span>選んだカード群に対応する固定10種類で遊びます。</span></span>
         </label>
         <label className={mode === 'random' ? 'selected' : ''}>
           <input type="radio" name="dominion-mode" value="random" checked={mode === 'random'} onChange={() => setMode('random')} />
-          <span><strong>ランダム</strong><span>基本セット第2版の全26種類から、開始時に10種類を選びます。</span></span>
+          <span><strong>ランダム</strong><span>選んだカード群から、毎回10種類を抽選します。</span></span>
         </label>
+        {expansions.length > 1 && <p className="dominion-mode-unavailable" role="status">複数のセットを選択中は、おすすめを選べません。</p>}
       </fieldset>
       <div className="dominion-mode-description" aria-live="polite">
-        {mode === 'basic' ? <><h2>使用する王国カード</h2><p>{FIRST_GAME.map(id => CARDS[id].name).join('・')}</p></>
-          : <><h2>毎回違う組み合わせ</h2><p>対戦を始めるたびに、重複のない10種類をランダムで選びます。</p></>}
+        {mode === 'basic' ? <><h2>使用する王国カード</h2><p>{basicKingdomFor(expansions).map(id => CARDS[id].name).join('・')}</p></>
+          : <><h2>毎回違う組み合わせ</h2><p>対戦を始めるたびに、選択したセットから重複のない10種類をランダムで選びます。</p></>}
       </div>
       <div className="dominion-result-actions">
-        <button className="primary" onClick={() => setStore(createStore(mode))}>対戦を始める</button>
+        <button className="primary" disabled={!expansions.length} onClick={() => setStore(createStore(mode, expansions))}>対戦を始める</button>
         <Link to="/">ゲーム一覧へ</Link>
       </div>
     </section>

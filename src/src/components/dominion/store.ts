@@ -1,11 +1,29 @@
-import { FIRST_GAME } from './cards';
+import { FIRST_GAME, KINGDOM } from './cards';
 import { createGame, reduceGame } from './engine';
 import type { Command, GameState, PlayerId } from './engine';
 
+import { INTRIGUE_KINGDOM } from './expansions/intrigueCards';
+
+export type ExpansionId = 'base' | 'intrigue';
 export type GameMode = 'basic' | 'random';
 
-export function createStore(mode: GameMode = 'random') {
-  const newGame = () => createGame(crypto.getRandomValues(new Uint32Array(1))[0], mode === 'basic' ? FIRST_GAME : undefined);
+const BASIC_KINGDOMS: Record<string, readonly import('./cards').CardId[]> = {
+  base: FIRST_GAME,
+  intrigue: ['baron', 'courtier', 'duke', 'harem', 'ironworks', 'masquerade', 'mill', 'nobles', 'patrol', 'replace'],
+  'base,intrigue': ['courtier', 'diplomat', 'minion', 'nobles', 'pawn', 'cellar', 'festival', 'library', 'sentry', 'vassal'],
+};
+
+export function basicKingdomFor(expansions: readonly ExpansionId[]) {
+  const key = [...expansions].sort().join(',');
+  return BASIC_KINGDOMS[key] ?? BASIC_KINGDOMS.base;
+}
+
+export function createStore(mode: GameMode = 'random', expansions: readonly ExpansionId[] = ['base']) {
+  const selected = [...new Set(expansions)];
+  const pool = [...(selected.includes('base') ? KINGDOM : []), ...(selected.includes('intrigue') ? INTRIGUE_KINGDOM : [])];
+  if (mode === 'random' && pool.length < 10) throw new Error('セットを1つ以上選択してください。');
+  const basicKingdom = basicKingdomFor(selected);
+  const newGame = () => createGame(crypto.getRandomValues(new Uint32Array(1))[0], mode === 'basic' ? basicKingdom : undefined, pool);
   let state = newGame();
   const listeners = new Set<() => void>();
   const actionListeners = new Set<(command: Command, previous: GameState) => void>();
@@ -13,6 +31,8 @@ export function createStore(mode: GameMode = 'random') {
   let muted = false;
   return {
     mode,
+    expansions: selected,
+    basicKingdom,
     getSnapshot: () => state,
     getMuted: () => muted,
     setMuted: (value: boolean) => {

@@ -1,5 +1,7 @@
-import { ALL_CARDS, BASE, CARDS, KINGDOM } from './cards.ts';
+import { ALL_CARDS, ALL_KINGDOM, BASE, CARDS, KINGDOM, hasType } from './cards.ts';
 import type { CardId } from './cards.ts';
+import type { ExpansionAPI, ExpansionPending, ExpansionTask } from './expansions/types.ts';
+import { intrigueEffect, intrigueChoice, intrigueBot } from './expansions/intrigue.ts';
 
 export type PlayerId = 0 | 1;
 export interface Card { uid: number; id: CardId }
@@ -13,10 +15,11 @@ export interface Player {
   turns: number;
 }
 export type Pending =
+  | ExpansionPending
   | { kind: 'cellar'; player: PlayerId; discarded: number }
   | { kind: 'trash'; player: PlayerId; source: 'mine' | 'remodel' }
   | { kind: 'gain'; player: PlayerId; maxCost: number; treasureOnly: boolean; toHand: boolean }
-  | { kind: 'reaction'; player: PlayerId; attack: Attack }
+  | { kind: 'reaction'; player: PlayerId; attack: Attack; blocked?: boolean; resume?: ExpansionTask }
   | { kind: 'militia'; player: PlayerId }
   | { kind: 'chapel'; player: PlayerId; remaining: number }
   | { kind: 'harbinger' | 'throneRoom' | 'bureaucrat' | 'moneylender' | 'topdeck' | 'bandit'; player: PlayerId }
@@ -24,10 +27,11 @@ export type Pending =
   | { kind: 'vassal' | 'library'; player: PlayerId; uid: number }
   | { kind: 'sentry'; player: PlayerId; stage: 'trash' | 'discard' | 'order'; order: number[] };
 
-type Attack = 'militia' | 'witch' | 'bureaucrat' | 'bandit';
+export type Attack = 'militia' | 'witch' | 'bureaucrat' | 'bandit' | 'swindler' | 'minion' | 'replace' | 'torturer';
 type Effect =
-  | { kind: 'action'; player: PlayerId; card: CardId }
-  | { kind: 'attack'; player: PlayerId; card: Attack }
+  | ({ kind: 'expansion' } & ExpansionTask)
+  | { kind: 'action'; player: PlayerId; card: CardId; uid?: number }
+  | { kind: 'attack'; player: PlayerId; card: Attack; blocked?: boolean; resume?: ExpansionTask }
   | { kind: 'library' | 'topdeck'; player: PlayerId };
 
 export interface GameState {
@@ -39,6 +43,9 @@ export interface GameState {
   coins: number;
   bought: boolean;
   merchants: number;
+  costReduction: number;
+  actionsPlayed: number;
+  masqueradePass: [Card | null, Card | null];
   silverPlayed: boolean;
   supply: Record<CardId, number>;
   kingdom: CardId[];
@@ -54,11 +61,12 @@ export interface GameState {
 }
 
 export type Command =
+  | { type: 'option'; value: string }
   | { type: 'play'; uid: number }
   | { type: 'choose'; uid: number }
   | { type: 'buy'; card: CardId }
   | { type: 'gain'; card: CardId }
-  | { type: 'buy-phase' | 'treasures' | 'end-turn' | 'done' | 'reveal' | 'decline' | 'resign' | 'accept' };
+  | { type: 'buy-phase' | 'treasures' | 'end-turn' | 'done' | 'reveal' | 'decline' | 'resign' | 'accept' | 'diplomat' };
 
 export function owned(player: Player): Card[] {
   return [...player.deck, ...player.hand, ...player.discard, ...player.played, ...player.aside];
@@ -66,7 +74,7 @@ export function owned(player: Player): Card[] {
 
 export function score(player: Player): number {
   const cards = owned(player);
-  return cards.reduce((sum, card) => sum + (card.id === 'gardens' ? Math.floor(cards.length / 10) : CARDS[card.id].points ?? 0), 0);
+  return cards.reduce((sum, card) => sum + (card.id === 'gardens' ? Math.floor(cards.length / 10) : card.id === 'duke' ? cards.filter(entry => entry.id === 'duchy').length : CARDS[card.id].points ?? 0), 0);
 }
 
 function log(state: GameState, message: string) {
@@ -124,6 +132,8 @@ function startTurn(state: GameState) {
   state.coins = 0;
   state.bought = false;
   state.merchants = 0;
+  state.costReduction = 0;
+  state.actionsPlayed = 0;
   state.silverPlayed = false;
   state.pending = null;
   state.effects = [];
@@ -132,23 +142,24 @@ function startTurn(state: GameState) {
   log(state, `── ${player.name}：ターン ${player.turns} ──`);
 }
 
-export function createGame(seed = Date.now(), kingdom?: readonly CardId[]): GameState {
-  if (kingdom && (kingdom.length !== 10 || new Set(kingdom).size !== 10 || kingdom.some(id => !KINGDOM.includes(id)))) {
+export function createGame(seed = Date.now(), kingdom?: readonly CardId[], pool: readonly CardId[] = KINGDOM): GameState {
+  if (kingdom && (kingdom.length !== 10 || new Set(kingdom).size !== 10 || kingdom.some(id => !ALL_KINGDOM.includes(id)))) {
     throw new Error("王国カードは重複のない10種類を指定してください。");
   }
+  if (pool.length < 10 || new Set(pool).size !== pool.length || pool.some(id => !ALL_KINGDOM.includes(id))) throw new Error('抽選対象の王国カードが不正です。');
   const player = (name: string): Player => ({ name, deck: [], hand: [], discard: [], played: [], aside: [], turns: 0 });
   const supply = Object.fromEntries(ALL_CARDS.map(id => [id, 0])) as Record<CardId, number>;
   Object.assign(supply, { copper: 46, silver: 40, gold: 30, estate: 8, duchy: 8, province: 8, curse: 10 });
   const state: GameState = {
     players: [player('あなた'), player('CPU')], active: 0, phase: 'action', actions: 1, buys: 1, coins: 0,
-    bought: false, merchants: 0, silverPlayed: false, supply, kingdom: [], effects: [], trash: [], pending: null, log: [], nextLog: 1,
+    bought: false, merchants: 0, costReduction: 0, actionsPlayed: 0, masqueradePass: [null, null], silverPlayed: false, supply, kingdom: [], effects: [], trash: [], pending: null, log: [], nextLog: 1,
     nextUid: 1, seed: (seed >>> 0) || 1, winner: null, endReason: '',
   };
-  const candidates = [...KINGDOM];
+  const candidates = [...pool];
   shuffle(state, candidates);
   state.kingdom = (kingdom ? [...kingdom] : candidates.slice(0, 10))
-    .sort((a, b) => CARDS[a].cost - CARDS[b].cost || KINGDOM.indexOf(a) - KINGDOM.indexOf(b));
-  for (const id of state.kingdom) state.supply[id] = CARDS[id].type === 'victory' ? 8 : 10;
+    .sort((a, b) => CARDS[a].cost - CARDS[b].cost || ALL_KINGDOM.indexOf(a) - ALL_KINGDOM.indexOf(b));
+  for (const id of state.kingdom) state.supply[id] = hasType(id, 'victory') ? 8 : 10;
   state.active = random(state) < 0.5 ? 0 : 1;
   for (const who of [0, 1] as const) {
     for (let i = 0; i < 10; i++) state.players[who].deck.push({ uid: state.nextUid++, id: i < 7 ? 'copper' : 'estate' });
@@ -167,19 +178,20 @@ export function inputPlayer(state: GameState): PlayerId {
 export function canPlay(state: GameState, card: Card): boolean {
   if (state.pending || state.phase === 'ended') return false;
   if (!state.players[state.active].hand.some(entry => entry.uid === card.uid)) return false;
-  return CARDS[card.id].type === 'action'
+  return hasType(card.id, 'action')
     ? state.phase === 'action' && state.actions > 0
-    : CARDS[card.id].type === 'treasure' && state.phase === 'buy' && !state.bought;
+    : hasType(card.id, 'treasure') && state.phase === 'buy' && !state.bought;
 }
 
 export function canBuy(state: GameState, id: CardId): boolean {
-  return !state.pending && state.phase === 'buy' && state.buys > 0 && supplyCards(state).includes(id) && state.supply[id] > 0 && CARDS[id].cost <= state.coins;
+  return !state.pending && state.phase === 'buy' && state.buys > 0 && supplyCards(state).includes(id) && state.supply[id] > 0 && cardCost(state, id) <= state.coins;
 }
 
 export function canGain(state: GameState, id: CardId): boolean {
   const pending = state.pending;
-  return pending?.kind === 'gain' && supplyCards(state).includes(id) && state.supply[id] > 0 && CARDS[id].cost <= pending.maxCost
-    && (!pending.treasureOnly || CARDS[id].type === 'treasure');
+  if (pending?.kind === 'expansion') return pending.zone === 'supply' && pending.choices.includes(id);
+  return pending?.kind === 'gain' && supplyCards(state).includes(id) && state.supply[id] > 0 && cardCost(state, id) <= pending.maxCost
+    && (!pending.treasureOnly || hasType(id, 'treasure'));
 }
 
 export function choiceCards(state: GameState): Card[] {
@@ -187,6 +199,10 @@ export function choiceCards(state: GameState): Card[] {
   if (!pending) return [];
   const player = state.players[pending.player];
   switch (pending.kind) {
+    case 'expansion': {
+      const zone = pending.zone === 'trash' ? state.trash : pending.zone === 'hand' ? player.hand : pending.zone === 'aside' ? player.aside : [];
+      return zone.filter(card => pending.choices.includes(String(card.uid)));
+    }
     case 'harbinger': return player.discard;
     case 'vassal': return player.discard.filter(card => card.uid === pending.uid);
     case 'library': return player.aside.filter(card => card.uid === pending.uid);
@@ -200,18 +216,20 @@ export function canChoose(state: GameState, card: Card): boolean {
   const pending = state.pending;
   if (!pending || !choiceCards(state).some(entry => entry.uid === card.uid)) return false;
   switch (pending.kind) {
+    case 'expansion': return true;
     case 'cellar': case 'militia': case 'chapel': case 'poacher': case 'harbinger': case 'topdeck': case 'sentry': return true;
-    case 'trash': return pending.source === 'remodel' || CARDS[card.id].type === 'treasure';
-    case 'throneRoom': case 'vassal': return CARDS[card.id].type === 'action';
-    case 'bureaucrat': return CARDS[card.id].type === 'victory';
+    case 'trash': return pending.source === 'remodel' || hasType(card.id, 'treasure');
+    case 'throneRoom': case 'vassal': return hasType(card.id, 'action');
+    case 'bureaucrat': return hasType(card.id, 'victory');
     case 'moneylender': return card.id === 'copper';
-    case 'bandit': return CARDS[card.id].type === 'treasure' && card.id !== 'copper';
+    case 'bandit': return hasType(card.id, 'treasure') && card.id !== 'copper';
     default: return false;
   }
 }
 
 export function canDone(state: GameState): boolean {
   const pending = state.pending;
+  if (pending?.kind === 'expansion') return pending.optional;
   return !!pending && (['cellar', 'chapel', 'harbinger', 'throneRoom', 'moneylender', 'vassal', 'library', 'sentry'].includes(pending.kind)
     || (pending.kind === 'trash' && pending.source === 'mine'));
 }
@@ -226,10 +244,11 @@ function gainPrompt(state: GameState, player: PlayerId, maxCost: number, treasur
 
 function opponent(who: PlayerId): PlayerId { return who === 0 ? 1 : 0; }
 
-function moveCard(state: GameState, who: PlayerId, from: 'hand' | 'discard' | 'aside', uid: number, to: 'deck' | 'discard' | 'hand' | 'played' | 'trash') {
+function moveCard(state: GameState, who: PlayerId, from: 'hand' | 'discard' | 'aside' | 'played' | 'trash', uid: number, to: 'deck' | 'discard' | 'hand' | 'played' | 'trash') {
   const player = state.players[who];
-  const index = player[from].findIndex(card => card.uid === uid);
-  const card = player[from].splice(index, 1)[0];
+  const origin = from === 'trash' ? state.trash : player[from];
+  const index = origin.findIndex(card => card.uid === uid);
+  const card = origin.splice(index, 1)[0];
   (to === 'trash' ? state.trash : player[to]).push(card);
   if (to === 'trash' || to === 'discard') log(state, `${player.name}：${CARDS[card.id].name}を${to === 'trash' ? '廃棄' : '捨て札へ'}。`);
   return card;
@@ -237,13 +256,14 @@ function moveCard(state: GameState, who: PlayerId, from: 'hand' | 'discard' | 'a
 
 function resolveAttack(state: GameState, who: PlayerId, attack: Attack) {
   const player = state.players[who];
+  if (intrigueEffect(state, expansionAPI, { player: who, source: attack, step: 'attack' })) return;
   switch (attack) {
     case 'militia':
       if (player.hand.length > 3) state.pending = { kind: 'militia', player: who };
       break;
     case 'witch': gain(state, who, 'curse'); break;
     case 'bureaucrat':
-      if (player.hand.some(card => CARDS[card.id].type === 'victory')) state.pending = { kind: 'bureaucrat', player: who };
+      if (player.hand.some(card => hasType(card.id, 'victory'))) state.pending = { kind: 'bureaucrat', player: who };
       else log(state, `${player.name}：勝利点なし。手札を公開：${player.hand.map(card => CARDS[card.id].name).join('・') || 'なし'}。`);
       break;
     case 'bandit':
@@ -252,15 +272,17 @@ function resolveAttack(state: GameState, who: PlayerId, attack: Attack) {
         if (card) player.aside.push(card);
       }
       log(state, `${player.name}：山賊で公開：${player.aside.map(card => CARDS[card.id].name).join('・') || 'なし'}。`);
-      if (player.aside.some(card => CARDS[card.id].type === 'treasure' && card.id !== 'copper')) state.pending = { kind: 'bandit', player: who };
+      if (player.aside.some(card => hasType(card.id, 'treasure') && card.id !== 'copper')) state.pending = { kind: 'bandit', player: who };
       else player.discard.push(...player.aside.splice(0));
       break;
   }
 }
 
-function actionEffect(state: GameState, who: PlayerId, id: CardId) {
+function actionEffect(state: GameState, who: PlayerId, id: CardId, uid?: number) {
   const player = state.players[who];
   log(state, `${player.name}：${CARDS[id].name}を使用。`);
+  state.actionsPlayed++;
+  if (intrigueEffect(state, expansionAPI, { player: who, source: id, step: 'play', uid })) return;
   const attack = (card: Attack) => state.effects.unshift({ kind: 'attack', player: opponent(who), card });
   switch (id) {
     case 'village': state.actions += 2; draw(state, who, 1); break;
@@ -274,7 +296,7 @@ function actionEffect(state: GameState, who: PlayerId, id: CardId) {
       if (player.hand.length) state.pending = { kind: 'trash', player: who, source: 'remodel' };
       break;
     case 'mine':
-      if (player.hand.some(card => CARDS[card.id].type === 'treasure')) state.pending = { kind: 'trash', player: who, source: 'mine' };
+      if (player.hand.some(card => hasType(card.id, 'treasure'))) state.pending = { kind: 'trash', player: who, source: 'mine' };
       break;
     case 'militia': state.coins += 2; attack(id); break;
     case 'chapel':
@@ -290,7 +312,7 @@ function actionEffect(state: GameState, who: PlayerId, id: CardId) {
       if (card) {
         player.discard.push(card);
         log(state, `${player.name}：家臣で${CARDS[card.id].name}を捨て札へ。`);
-        if (CARDS[card.id].type === 'action') state.pending = { kind: 'vassal', player: who, uid: card.uid };
+        if (hasType(card.id, 'action')) state.pending = { kind: 'vassal', player: who, uid: card.uid };
       }
       break;
     }
@@ -305,7 +327,7 @@ function actionEffect(state: GameState, who: PlayerId, id: CardId) {
       break;
     }
     case 'throneRoom':
-      if (player.hand.some(card => CARDS[card.id].type === 'action')) state.pending = { kind: 'throneRoom', player: who };
+      if (player.hand.some(card => hasType(card.id, 'action'))) state.pending = { kind: 'throneRoom', player: who };
       break;
     case 'bandit': gain(state, who, 'gold'); attack(id); break;
     case 'festival': state.actions += 2; state.buys++; state.coins += 2; break;
@@ -335,10 +357,13 @@ function resolveEffects(state: GameState) {
     const effect = state.effects.shift()!;
     const player = state.players[effect.player];
     switch (effect.kind) {
-      case 'action': actionEffect(state, effect.player, effect.card); break;
+      case 'action': actionEffect(state, effect.player, effect.card, effect.uid); break;
+      case 'expansion': intrigueEffect(state, expansionAPI, effect); break;
       case 'attack':
-        if (player.hand.some(card => card.id === 'moat')) state.pending = { kind: 'reaction', player: effect.player, attack: effect.card };
-        else resolveAttack(state, effect.player, effect.card);
+        if ((!effect.blocked && player.hand.some(card => card.id === 'moat')) || canReactDiplomat(state, effect.player)) {
+          state.pending = { kind: 'reaction', player: effect.player, attack: effect.card, blocked: effect.blocked, resume: effect.resume };
+        } else if (effect.resume) intrigueEffect(state, expansionAPI, { ...effect.resume, blocked: effect.blocked });
+        else if (!effect.blocked) resolveAttack(state, effect.player, effect.card);
         break;
       case 'topdeck':
         if (player.hand.length) state.pending = { kind: 'topdeck', player: effect.player };
@@ -347,7 +372,7 @@ function resolveEffects(state: GameState) {
         while (player.hand.length < 7) {
           const card = takeTop(state, effect.player);
           if (!card) break;
-          if (CARDS[card.id].type === 'action') {
+          if (hasType(card.id, 'action')) {
             player.aside.push(card);
             state.pending = { kind: 'library', player: effect.player, uid: card.uid };
             state.effects.unshift(effect);
@@ -365,7 +390,7 @@ function resolveEffects(state: GameState) {
 function play(state: GameState, uid: number) {
   const who = state.active;
   const card = moveCard(state, who, 'hand', uid, 'played');
-  if (CARDS[card.id].type === 'treasure') {
+  if (hasType(card.id, 'treasure')) {
     log(state, `${state.players[who].name}：${CARDS[card.id].name}を使用。`);
     state.coins += CARDS[card.id].coins ?? 0;
     if (card.id === 'silver' && !state.silverPlayed) {
@@ -375,7 +400,7 @@ function play(state: GameState, uid: number) {
     }
   } else {
     state.actions--;
-    state.effects.unshift({ kind: 'action', player: who, card: card.id });
+    state.effects.unshift({ kind: 'action', player: who, card: card.id, uid: card.uid });
   }
 }
 
@@ -420,9 +445,12 @@ function valid(state: GameState, actor: PlayerId, command: Command): boolean {
     case 'gain': return canGain(state, command.card);
     case 'done': return canDone(state);
     case 'accept': return pending?.kind === 'library' || pending?.kind === 'vassal';
-    case 'reveal': case 'decline': return pending?.kind === 'reaction';
+    case 'reveal': return pending?.kind === 'reaction' && !pending.blocked && hand.some(card => card.id === 'moat');
+    case 'decline': return pending?.kind === 'reaction';
+    case 'diplomat': return pending?.kind === 'reaction' && canReactDiplomat(state, actor);
+    case 'option': return pending?.kind === 'expansion' && pending.zone === 'options' && pending.choices.includes(command.value);
     case 'buy-phase': return !pending && state.phase === 'action';
-    case 'treasures': return !pending && state.phase === 'buy' && !state.bought && hand.some(card => CARDS[card.id].type === 'treasure');
+    case 'treasures': return !pending && state.phase === 'buy' && !state.bought && hand.some(card => hasType(card.id, 'treasure'));
     case 'end-turn': return !pending && state.phase === 'buy';
   }
 }
@@ -454,10 +482,11 @@ function choose(state: GameState, who: PlayerId, uid: number) {
   if (!pending) return;
   const player = state.players[who];
   switch (pending.kind) {
+    case 'expansion': intrigueChoice(state, expansionAPI, pending, String(uid)); break;
     case 'trash': {
       const card = moveCard(state, who, 'hand', uid, 'trash');
       const mine = pending.source === 'mine';
-      gainPrompt(state, who, CARDS[card.id].cost + (mine ? 3 : 2), mine, mine);
+      gainPrompt(state, who, cardCost(state, card.id) + (mine ? 3 : 2), mine, mine);
       break;
     }
     case 'cellar': moveCard(state, who, 'hand', uid, 'discard'); pending.discarded++; break;
@@ -486,7 +515,7 @@ function choose(state: GameState, who: PlayerId, uid: number) {
     case 'topdeck': moveCard(state, who, 'hand', uid, 'deck'); state.pending = null; break;
     case 'throneRoom': case 'vassal': {
       const card = moveCard(state, who, pending.kind === 'vassal' ? 'discard' : 'hand', uid, 'played');
-      const effect: Effect = { kind: 'action', player: who, card: card.id };
+      const effect: Effect = { kind: 'action', player: who, card: card.id, uid: card.uid };
       state.effects.unshift(effect);
       if (pending.kind === 'throneRoom') state.effects.unshift({ ...effect });
       state.pending = null;
@@ -519,15 +548,17 @@ export function reduceGame(previous: GameState, actor: PlayerId, command: Comman
     case 'play': play(state, command.uid); break;
     case 'buy-phase': state.phase = 'buy'; break;
     case 'treasures':
-      for (const card of [...player.hand]) if (CARDS[card.id].type === 'treasure') play(state, card.uid);
+      for (const card of [...player.hand]) if (hasType(card.id, 'treasure')) play(state, card.uid);
       break;
     case 'buy':
-      state.coins -= CARDS[command.card].cost;
+      state.coins -= cardCost(state, command.card);
       state.buys--;
       state.bought = true;
       gain(state, actor, command.card);
       break;
+    case 'option': if (pending?.kind === 'expansion') intrigueChoice(state, expansionAPI, pending, command.value); break;
     case 'gain':
+      if (pending?.kind === 'expansion') { intrigueChoice(state, expansionAPI, pending, command.card); break; }
       if (pending?.kind === 'gain') gain(state, actor, command.card, pending.toHand);
       state.pending = null;
       break;
@@ -536,11 +567,12 @@ export function reduceGame(previous: GameState, actor: PlayerId, command: Comman
       if (pending?.kind === 'library') moveCard(state, actor, 'aside', pending.uid, 'hand');
       if (pending?.kind === 'vassal') {
         const card = moveCard(state, actor, 'discard', pending.uid, 'played');
-        state.effects.unshift({ kind: 'action', player: actor, card: card.id });
+        state.effects.unshift({ kind: 'action', player: actor, card: card.id, uid: card.uid });
       }
       state.pending = null;
       break;
     case 'done':
+      if (pending?.kind === 'expansion') { intrigueChoice(state, expansionAPI, pending, null); break; }
       if (pending?.kind === 'cellar') draw(state, actor, pending.discarded);
       if (pending?.kind === 'sentry') advanceSentry(state);
       else state.pending = null;
@@ -548,10 +580,22 @@ export function reduceGame(previous: GameState, actor: PlayerId, command: Comman
     case 'reveal':
       if (pending?.kind === 'reaction') log(state, `${player.name}：堀を公開し、${CARDS[pending.attack].name}を防御。`);
       state.pending = null;
+      if (pending?.kind === 'reaction' && canReactDiplomat(state, actor)) {
+        state.effects.unshift({ kind: 'attack', player: actor, card: pending.attack, blocked: true, resume: pending.resume });
+      }
+      else if (pending?.kind === 'reaction' && pending.resume) intrigueEffect(state, expansionAPI, { ...pending.resume, blocked: true });
+      break;
+    case 'diplomat':
+      if (pending?.kind === 'reaction') {
+        state.pending = null;
+        state.effects.unshift({ kind: 'attack', player: actor, card: pending.attack, blocked: pending.blocked, resume: pending.resume });
+        intrigueEffect(state, expansionAPI, { player: actor, source: 'diplomat', step: 'reaction' });
+      }
       break;
     case 'decline':
       state.pending = null;
-      if (pending?.kind === 'reaction') resolveAttack(state, actor, pending.attack);
+      if (pending?.kind === 'reaction' && pending.resume) intrigueEffect(state, expansionAPI, { ...pending.resume, blocked: pending.blocked });
+      else if (pending?.kind === 'reaction' && !pending.blocked) resolveAttack(state, actor, pending.attack);
       break;
     case 'end-turn': endTurn(state); break;
     case 'resign':
@@ -569,10 +613,11 @@ export function instruction(state: GameState): string {
   if (pending) {
     const prefix = `${state.players[pending.player].name}：`;
     switch (pending.kind) {
+      case 'expansion': return `${prefix}${pending.message}`;
       case 'cellar': return `${prefix}捨てる手札を選択。選択完了で${pending.discarded}枚引きます。`;
       case 'trash': return `${prefix}${pending.source === 'mine' ? '財宝' : '手札'}1枚を選んで廃棄。`;
       case 'gain': return `${prefix}${pending.maxCost}コスト以下の${pending.treasureOnly ? '財宝' : 'カード'}をサプライから獲得。`;
-      case 'reaction': return `${prefix}堀を公開して${CARDS[pending.attack].name}を防ぎますか？`;
+      case 'reaction': return `${prefix}${CARDS[pending.attack].name}へのリアクションを選択。`;
       case 'chapel': return `${prefix}廃棄する手札を選択（あと最大${pending.remaining}枚）。途中で終了できます。`;
       case 'harbinger': return `${prefix}捨て札から山札の上に戻す1枚を選択。戻さなくても構いません。`;
       case 'vassal': return `${prefix}家臣で捨てたアクションを使用しますか？`;
@@ -588,7 +633,7 @@ export function instruction(state: GameState): string {
     }
   }
   if (state.active === 1) return 'CPUのターンです。';
-  if (state.phase === 'action') return state.actions > 0 && state.players[0].hand.some(card => CARDS[card.id].type === 'action')
+  if (state.phase === 'action') return state.actions > 0 && state.players[0].hand.some(card => hasType(card.id, 'action'))
     ? 'アクションカードを使用するか、購入へ進んでください。' : '「購入へ」を押して、財宝を使用しましょう。';
   return state.bought ? '購入を続けるか、ターンを終了してください。' : '財宝を使用して、サプライのカードを購入しましょう。';
 }
@@ -615,7 +660,8 @@ function desiredCard(state: GameState, who: PlayerId, available: CardId[]): Card
     if (id === 'gardens') return cards.length >= 25 ? 65 : 8;
     if (id === 'witch') return (state.supply.curse > 0 ? 76 : 50) - count(id) * 20;
     const priorities: Partial<Record<CardId, number>> = { smithy: 62, militia: 60, village: 53, merchant: 50, mine: 55, moat: 35, cellar: 25, workshop: 20, remodel: 20, chapel: 40, harbinger: 42, vassal: 40, bureaucrat: 35, moneylender: 52, poacher: 56, throneRoom: 58, bandit: 68, festival: 65, library: 58, sentry: 74, artisan: 65, councilRoom: 61 };
-    return (priorities[id] ?? 0) - count(id) * 22;
+    if (id === 'duke') return count('duchy') >= 4 ? 85 : 5;
+    return (priorities[id] ?? (hasType(id, 'action') || hasType(id, 'treasure') ? 35 + CARDS[id].cost * 5 : 0)) - count(id) * 22;
   };
   return [...available].sort((a, b) => value(b) - value(a))[0];
 }
@@ -625,14 +671,15 @@ export function botCommand(state: GameState, who: PlayerId = 1): Command | null 
   const hand = state.players[who].hand;
   const pending = state.pending;
   if (pending) {
-    if (pending.kind === 'reaction') return { type: 'reveal' };
+    if (pending.kind === 'reaction') return !pending.blocked && hand.some(card => card.id === 'moat') ? { type: 'reveal' } : canReactDiplomat(state, who) ? { type: 'diplomat' } : { type: 'decline' };
+    if (pending.kind === 'expansion') return intrigueBot(state, pending);
     if (pending.kind === 'gain') {
       const card = desiredCard(state, who, supplyCards(state).filter(id => canGain(state, id)));
       return card ? { type: 'gain', card } : null;
     }
     const choices = choiceCards(state).filter(card => canChoose(state, card));
     const choose = (card: Card | undefined): Command => card ? { type: 'choose', uid: card.uid } : { type: 'done' };
-    if (pending.kind === 'cellar') return choose(hand.find(entry => CARDS[entry.id].type === 'victory' || CARDS[entry.id].type === 'curse'));
+    if (pending.kind === 'cellar') return choose(hand.find(entry => hasType(entry.id, 'victory') || hasType(entry.id, 'curse')));
     if (pending.kind === 'chapel') return choose(choices.find(card => shouldTrash(state, who, card)));
     if (pending.kind === 'harbinger') return choose([...choices].sort((a, b) => keepValue(b) - keepValue(a)).find(card => keepValue(card) > 3));
     if (pending.kind === 'vassal') return { type: 'accept' };
@@ -654,7 +701,7 @@ export function botCommand(state: GameState, who: PlayerId = 1): Command | null 
     const card = [...hand].filter(entry => canPlay(state, entry)).sort((a, b) => actionPriority(a.id) - actionPriority(b.id))[0];
     return card ? { type: 'play', uid: card.uid } : { type: 'buy-phase' };
   }
-  if (!state.bought && hand.some(card => CARDS[card.id].type === 'treasure')) return { type: 'treasures' };
+  if (!state.bought && hand.some(card => hasType(card.id, 'treasure'))) return { type: 'treasures' };
   const available = supplyCards(state).filter(id => canBuy(state, id) && id !== 'curse' && id !== 'copper'
     && (id !== 'estate' || state.supply.province <= 2));
   const card = desiredCard(state, who, available);
@@ -670,8 +717,21 @@ function shouldTrash(state: GameState, who: PlayerId, card: Card): boolean {
 }
 
 function actionPriority(id: CardId): number {
-  const priority: CardId[] = ['throneRoom', 'village', 'festival', 'laboratory', 'market', 'sentry', 'merchant', 'harbinger', 'poacher', 'cellar',
+  const priority: CardId[] = ['throneRoom', 'shantyTown', 'miningVillage', 'nobles', 'lurker', 'pawn', 'mill', 'wishingWell', 'secretPassage', 'upgrade', 'minion', 'village', 'festival', 'laboratory', 'market', 'sentry', 'merchant', 'harbinger', 'poacher', 'cellar',
     'witch', 'councilRoom', 'smithy', 'library', 'bandit', 'militia', 'vassal', 'moat', 'artisan', 'moneylender', 'chapel', 'mine', 'remodel', 'workshop', 'bureaucrat'];
   const index = priority.indexOf(id);
   return index < 0 ? priority.length : index;
 }
+
+
+export function cardCost(state: GameState, id: CardId): number {
+  return Math.max(0, CARDS[id].cost - state.costReduction);
+}
+
+export function canReactDiplomat(state: GameState, player: PlayerId): boolean {
+  return state.players[player].hand.length >= 5 && state.players[player].hand.some(card => card.id === 'diplomat');
+}
+
+const expansionAPI: ExpansionAPI = {
+  draw, takeTop, gain, move: moveCard, cost: cardCost, supply: supplyCards, log,
+};
