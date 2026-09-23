@@ -90,11 +90,11 @@ function ChoicePanel({ state, send, onInspect }: {
   const panelRef = useRef<HTMLElement>(null);
   const visibleKind = pending?.player === 0 ? pending.kind : null;
   useEffect(() => { panelRef.current?.scrollIntoView({ block: 'nearest' }); }, [visibleKind]);
-  if (!pending || pending.player !== 0 || !['harbinger', 'vassal', 'library', 'sentry', 'bandit', 'expansion'].includes(pending.kind)) return null;
+  if (!pending || pending.player !== 0 || !['harbinger', 'vassal', 'library', 'sentry', 'bandit', 'expansion', 'durationOrder'].includes(pending.kind)) return null;
   const cards = choiceCards(state);
   return <section ref={panelRef} className="dominion-choice-panel" aria-label="効果で選択するカード">
     <p>{instruction(state)}</p>
-    <div className="dominion-choice-cards">{pending.kind === 'expansion' && pending.options.map(option => <button key={option.value} onClick={() => send({ type: 'option', value: option.value })}>{option.label}</button>)}{cards.map(card => {
+    <div className="dominion-choice-cards">{(pending.kind === 'expansion' || pending.kind === 'durationOrder') && pending.options.map(option => <button key={option.value} onClick={() => send({ type: 'option', value: option.value })}>{option.label}</button>)}{cards.map(card => {
       const definition = CARDS[card.id];
       const appearance = cardAppearance(definition);
       const selectable = canChoose(state, card);
@@ -196,7 +196,7 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
   return <main className="dominion" style={{ fontFamily: FONT_FAMILY }}>
     <header className="dominion-header">
       <div className="dominion-brand"><span className="dominion-crest" aria-hidden="true">D</span><div><h1>DOMINION</h1><span>ドミニオン</span></div></div>
-      <div className="dominion-match"><span className="dominion-live-dot" /> あなた vs CPU <span className="dominion-muted">／ {store.expansions.map(id => id === 'base' ? '基本' : '陰謀').join('＋')} · {store.mode === 'basic' ? 'おすすめ' : 'ランダム'}</span></div>
+      <div className="dominion-match"><span className="dominion-live-dot" /> あなた vs CPU <span className="dominion-muted">／ {store.expansions.map(id => id === 'base' ? '基本' : id === 'intrigue' ? '陰謀' : '海辺').join('＋')} · {store.mode === 'basic' ? 'おすすめ' : 'ランダム'}</span></div>
       <nav aria-label="ゲームメニュー">
         <button onClick={() => store.setMuted(!muted)} aria-pressed={muted} aria-label="消音" title={muted ? '効果音をオン' : '効果音をオフ'}><FontAwesomeIcon icon={muted ? faVolumeXmark : faVolumeHigh} aria-hidden="true" /></button>
         <button onClick={() => setHelp(!help)} aria-expanded={help} aria-label="遊び方" title="遊び方"><FontAwesomeIcon icon={faCircleQuestion} aria-hidden="true" /><span className="dominion-menu-label">遊び方</span></button>
@@ -237,7 +237,7 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
             {state.pending && canInput ? <>
               {canDone(state) && <button onClick={() => send({ type: 'done' })}>{doneLabel(state)}</button>}
               {(state.pending.kind === 'library' || state.pending.kind === 'vassal') && <button className="primary" onClick={() => send({ type: 'accept' })}>{state.pending.kind === 'library' ? '手札に加える' : 'このカードを使用'}</button>}
-              {state.pending.kind === 'reaction' && <>{!state.pending.blocked && state.players[0].hand.some(card => card.id === 'moat') && <button className="primary" onClick={() => send({ type: 'reveal' })}>堀を公開して防ぐ</button>}{canReactDiplomat(state, 0) && <button onClick={() => send({ type: 'diplomat' })}>外交官を公開する</button>}<button onClick={() => send({ type: 'decline' })}>公開しない</button></>}
+              {state.pending.kind === 'reaction' && <>{!state.pending.blocked && state.players[0].hand.some(card => card.id === 'moat') && <button className="primary" onClick={() => send({ type: 'reveal' })}>堀を公開して防ぐ</button>}{!state.pending.diplomatUsed && canReactDiplomat(state, 0) && <button onClick={() => send({ type: 'diplomat' })}>外交官を公開する</button>}<button onClick={() => send({ type: 'decline' })}>公開しない</button></>}
             </> : !ended && <>
               <button disabled={!ownTurn || state.phase !== 'action'} onClick={() => send({ type: 'buy-phase' })}>購入へ →</button>
               <button className="primary" disabled={!ownTurn || state.phase !== 'buy' || state.bought || !state.players[0].hand.some(card => hasType(card.id, 'treasure'))} onClick={() => send({ type: 'treasures' })}>財宝をすべて使用</button>
@@ -271,7 +271,7 @@ export default function DominionGame() {
       <p className="dominion-muted">あなた vs CPU · 使用するセットとカードの選び方を選択</p>
       <fieldset className="dominion-mode-options">
         <legend>使用するセット</legend>
-        {([['base', '基本 · 26種類'], ['intrigue', '陰謀（拡張） · 26種類']] as const).map(([id, label]) => <label key={id} className={expansions.includes(id) ? 'selected' : ''}>
+        {([['base', '基本 · 26種類'], ['intrigue', '陰謀（拡張） · 26種類'], ['seaside', '海辺（拡張） · 27種類']] as const).map(([id, label]) => <label key={id} className={expansions.includes(id) ? 'selected' : ''}>
           <input type="checkbox" checked={expansions.includes(id)} onChange={event => {
             const next = event.target.checked ? [...expansions, id] : expansions.filter(value => value !== id);
             setExpansions(next);

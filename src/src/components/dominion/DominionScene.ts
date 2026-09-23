@@ -178,11 +178,12 @@ export class DominionScene extends Phaser.Scene {
     this.panel(0, 0, width, 40, 0x102d27);
     this.panel(10, 44, 236, 308, 0x0b251f, 0.45).setStrokeStyle(1, 0x496054);
     this.text(20, 2, 'CPU', 18, '#f1deaa', true);
-    this.text(92, 5, `手札 ${opponent.hand.length}枚  ／  山札 ${opponent.deck.length}枚  ／  捨て札 ${opponent.discard.length}枚`, 14);
+    this.text(92, 5, `手札 ${opponent.hand.length}枚  ／  山札 ${opponent.deck.length}枚  ／  捨て札 ${opponent.discard.length}枚  ／  島 ${opponent.islandMat.length}枚・村 ${opponent.nativeVillageMat.length}枚`, 14);
     this.text(width - 20, 5, `ターン ${opponent.turns}`, 14, '#a9c1b4').setOrigin(1, 0);
     this.text(19, 45, '基本カード', 14, '#b9c8b7', true);
     this.text(266, 45, '王国カード', 14, '#b9c8b7', true);
-    this.text(width - 18, 45, this.store.mode === 'basic' ? '最初のゲーム · 基本セット' : 'ランダム10種類 · 基本セット', 13, '#a2b8a7').setOrigin(1, 0);
+    const selectedSets = this.store.expansions.map(id => id === 'base' ? '基本' : id === 'intrigue' ? '陰謀' : '海辺').join('＋');
+    this.text(width - 18, 45, `${this.store.mode === 'basic' ? 'おすすめ' : 'ランダム10種類'} · ${selectedSets}`, 13, '#a2b8a7').setOrigin(1, 0);
     for (let i = 0; i < Math.min(opponent.hand.length, 5); i++) {
       this.panel(width - 220 + i * 16, 3, 24, 33, 0x376b60).setStrokeStyle(1, 0xb9b59d);
     }
@@ -193,7 +194,9 @@ export class DominionScene extends Phaser.Scene {
     this.text(190, 306, String(player.deck.length), 14, '#f1deaa', true);
 
     const supplyAction = (id: CardId) => () => {
-      this.store.dispatch(0, { type: this.store.getSnapshot().pending?.kind === 'gain' ? 'gain' : 'buy', card: id });
+      const pending = this.store.getSnapshot().pending;
+      const gaining = pending?.kind === 'gain' || (pending?.kind === 'expansion' && pending.zone === 'supply');
+      this.store.dispatch(0, { type: gaining ? 'gain' : 'buy', card: id });
     };
     BASE.forEach((id, index) => {
       this.card(22 + (index % 2) * 112, 80 + Math.floor(index / 2) * 66, 100, 60, id, {
@@ -211,6 +214,14 @@ export class DominionScene extends Phaser.Scene {
 
     const played = state.players[state.active].played;
     this.text(20, 357, `${state.players[state.active].name}の場`, 14, '#b9c8b7', true);
+    const activePlayer = state.players[state.active];
+    const mats = [
+      activePlayer.islandMat.length && `島：${activePlayer.islandMat.map(card => CARDS[card.id].name).join('・')}`,
+      activePlayer.nativeVillageMat.length && `原住民の村：${activePlayer.nativeVillageMat.map(card => CARDS[card.id].name).join('・')}`,
+      activePlayer.blockadeMat.length && `封鎖：${activePlayer.blockadeMat.map(entry => CARDS[entry.card.id].name).join('・')}`,
+      activePlayer.havenMat.length && `避難所：${activePlayer.havenMat.map(entry => CARDS[entry.card.id].name).join('・')}`,
+    ].filter(Boolean).join(' ／ ');
+    if (mats) this.text(20, 375, mats, 11, '#f1deaa');
     const counts = new Map<CardId, number>();
     played.forEach(card => counts.set(card.id, (counts.get(card.id) ?? 0) + 1));
     const groups = [...counts];

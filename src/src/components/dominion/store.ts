@@ -3,13 +3,15 @@ import { createGame, reduceGame } from './engine';
 import type { Command, GameState, PlayerId } from './engine';
 
 import { INTRIGUE_KINGDOM } from './expansions/intrigueCards';
+import { SEASIDE_KINGDOM } from './expansions/seasideCards';
 
-export type ExpansionId = 'base' | 'intrigue';
+export type ExpansionId = 'base' | 'intrigue' | 'seaside';
 export type GameMode = 'basic' | 'random';
 
 const BASIC_KINGDOMS: Record<string, readonly import('./cards').CardId[]> = {
   base: FIRST_GAME,
   intrigue: ['baron', 'courtier', 'duke', 'harem', 'ironworks', 'masquerade', 'mill', 'nobles', 'patrol', 'replace'],
+  seaside: ['bazaar', 'blockade', 'caravan', 'corsair', 'haven', 'island', 'lookout', 'pirate', 'warehouse', 'wharf'],
   'base,intrigue': ['courtier', 'diplomat', 'minion', 'nobles', 'pawn', 'cellar', 'festival', 'library', 'sentry', 'vassal'],
 };
 
@@ -20,7 +22,7 @@ export function basicKingdomFor(expansions: readonly ExpansionId[]) {
 
 export function createStore(mode: GameMode = 'random', expansions: readonly ExpansionId[] = ['base']) {
   const selected = [...new Set(expansions)];
-  const pool = [...(selected.includes('base') ? KINGDOM : []), ...(selected.includes('intrigue') ? INTRIGUE_KINGDOM : [])];
+  const pool = [...(selected.includes('base') ? KINGDOM : []), ...(selected.includes('intrigue') ? INTRIGUE_KINGDOM : []), ...(selected.includes('seaside') ? SEASIDE_KINGDOM : [])];
   if (mode === 'random' && pool.length < 10) throw new Error('セットを1つ以上選択してください。');
   const basicKingdom = basicKingdomFor(selected);
   const newGame = () => createGame(crypto.getRandomValues(new Uint32Array(1))[0], mode === 'basic' ? basicKingdom : undefined, pool);
