@@ -32,7 +32,7 @@ export const CRISP_RENDERING: Phaser.Types.Core.GameConfig = {
 
 let fontsReady: Promise<void> | undefined;
 
-export function afterFontsReady(start: () => () => void): () => void {
+export function afterFontsReady(start: () => () => void, glyphs = ''): () => void {
   let cancelled = false;
   let dispose: (() => void) | undefined;
 
@@ -45,7 +45,14 @@ export function afterFontsReady(start: () => () => void): () => void {
     fontsReady = undefined;
   });
 
-  void fontsReady.then(() => {
+  const extraFontsReady = glyphs ? Promise.all([
+    document.fonts.load('400 19px "Noto Sans JP"', glyphs),
+    document.fonts.load('700 20px "Noto Sans JP"', glyphs),
+  ]).catch(() => {
+    console.warn('プレイヤー名のフォントを読み込めなかったため、システムの日本語フォントを使用します。');
+  }) : Promise.resolve();
+
+  void Promise.all([fontsReady, extraFontsReady]).then(() => {
     if (!cancelled) dispose = start();
   });
 

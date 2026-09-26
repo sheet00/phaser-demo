@@ -13,6 +13,7 @@ import { basicKingdomFor, createStore } from './store';
 import type { DominionStore, ExpansionId, GameMode } from './store';
 import { OnlineStore, createOnlineRoom, joinOnlineRoom, savedOnlineSession } from './onlineStore';
 import type { OnlineSession } from './onlineStore';
+import { normalizePlayerName, PLAYER_NAME_MAX_LENGTH } from './playerName';
 import { DominionScene } from './DominionScene';
 import './styles.css';
 
@@ -48,7 +49,7 @@ function Table({ store, onInspect }: { store: DominionStore; onInspect: (card: C
         game.destroy(true);
         if (gameRef.current === game) gameRef.current = null;
       };
-    });
+    }, store.online ? store.getSnapshot().players.map(player => player.name).join('') : '');
   }, [store, onInspect]);
 
   return <div className="dominion-table-scroll" onPointerLeave={() => onInspect(null)} onScroll={() => onInspect(null)}>
@@ -137,7 +138,7 @@ function Result({ state, seat, restart, online }: { state: GameState; seat: 0 | 
       <p className="dominion-eyebrow">GAME OVER</p>
       <h2 id="dominion-result-title" ref={titleRef} tabIndex={-1}>{state.winner === 'tie' ? '引き分け' : state.winner === seat ? 'あなたの勝利' : online ? '相手の勝利' : 'CPUの勝利'}</h2>
       <p>{state.endReason}</p>
-      <div className="dominion-scores">{state.players.map((player, index) => <div key={player.name} className={state.winner === index ? 'winner' : ''}>
+      <div className="dominion-scores">{state.players.map((player, index) => <div key={index} className={state.winner === index ? 'winner' : ''}>
         <h3>{player.name}</h3><strong>{score(player)} <small>VP</small></strong><p>{player.turns}ターン · {owned(player).length}枚</p>
       </div>)}</div>
       <p className="dominion-muted">同点の場合は、手番数が少ないプレイヤーの勝利です。</p>
@@ -201,7 +202,7 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
   return <main className="dominion" style={{ fontFamily: FONT_FAMILY }}>
     <header className="dominion-header">
       <div className="dominion-brand"><span className="dominion-crest" aria-hidden="true">D</span><div><h1>DOMINION</h1><span>ドミニオン</span></div></div>
-      <div className="dominion-match"><span className="dominion-live-dot" /> あなた vs {store.online ? '対戦相手' : 'CPU'} <span className="dominion-muted">／ {store.expansions.map(id => id === 'base' ? '基本' : id === 'intrigue' ? '陰謀' : '海辺').join('＋')} · {store.mode === 'basic' ? 'おすすめ' : 'ランダム'}</span></div>
+      <div className="dominion-match"><span className="dominion-live-dot" /> {store.online ? `${state.players[seat].name} vs ${state.players[seat === 0 ? 1 : 0].name}` : 'あなた vs CPU'} <span className="dominion-muted">／ {store.expansions.map(id => id === 'base' ? '基本' : id === 'intrigue' ? '陰謀' : '海辺').join('＋')} · {store.mode === 'basic' ? 'おすすめ' : 'ランダム'}</span></div>
       <nav aria-label="ゲームメニュー">
         <button onClick={() => store.setMuted(!muted)} aria-pressed={muted} aria-label="消音" title={muted ? '効果音をオン' : '効果音をオフ'}><FontAwesomeIcon icon={muted ? faVolumeXmark : faVolumeHigh} aria-hidden="true" /></button>
         <button onClick={() => setHelp(!help)} aria-expanded={help} aria-label="遊び方" title="遊び方"><FontAwesomeIcon icon={faCircleQuestion} aria-hidden="true" /><span className="dominion-menu-label">遊び方</span></button>
@@ -227,7 +228,7 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
     <div className="dominion-layout">
       <section className="dominion-main" aria-label="対戦卓">
         <div className="dominion-status">
-          <div><span className={`dominion-turn ${state.active === seat ? 'your-turn' : ''}`}>{ended ? '終了' : state.active === seat ? 'あなたのターン' : store.online ? '相手のターン' : 'CPUのターン'}</span><span className="dominion-turn-number">{state.players[state.active].turns}</span></div>
+          <div><span className={`dominion-turn ${state.active === seat ? 'your-turn' : ''}`}>{ended ? '終了' : store.online ? `${state.players[state.active].name}のターン` : state.active === seat ? 'あなたのターン' : 'CPUのターン'}</span><span className="dominion-turn-number">{state.players[state.active].turns}</span></div>
           <div className="dominion-resources">
             <span><FontAwesomeIcon icon={faBolt} aria-hidden="true" /><strong>{state.actions}</strong> アクション</span>
             <span><FontAwesomeIcon icon={faBasketShopping} aria-hidden="true" /><strong>{state.buys}</strong> 購入</span>
@@ -285,7 +286,7 @@ function OnlineMatch({ session, onLeave }: { session: OnlineSession; onLeave: ()
           if (!navigator.clipboard) { inviteRef.current?.select(); setCopyMessage('リンクを選択しました。コピーしてください。'); return; }
           void navigator.clipboard.writeText(invite).then(() => setCopyMessage('リンクをコピーしました。'), () => { inviteRef.current?.select(); setCopyMessage('リンクを選択しました。コピーしてください。'); });
         }}>リンクをコピー</button></div>{copyMessage && <p role="status">{copyMessage}</p>}</>}
-        <p>プレイヤー1：{status.ready[0] ? '準備完了' : '待機中'} ／ プレイヤー2：{!status.joined ? '参加待ち' : status.ready[1] ? '準備完了' : '待機中'}</p>
+        <p>プレイヤー1：{status.names[0]}（{status.ready[0] ? '準備完了' : '待機中'}） ／ プレイヤー2：{status.names[1] ? `${status.names[1]}（${status.ready[1] ? '準備完了' : '待機中'}）` : '参加待ち'}</p>
         <button className="primary" disabled={status.ready[status.seat]} onClick={() => store.ready()}>{status.ready[status.seat] ? '準備完了' : '準備完了にする'}</button>
       </>}
       <div className="dominion-result-actions"><button onClick={onLeave}>対戦準備に戻る</button><Link to="/">ゲーム一覧へ</Link></div>
@@ -302,11 +303,14 @@ export default function DominionGame() {
   const [session, setSession] = useState<OnlineSession | null>(() => roomId ? savedOnlineSession(roomId) : null);
   const [onlineError, setOnlineError] = useState('');
   const [onlineBusy, setOnlineBusy] = useState(false);
+  const [playerName, setPlayerName] = useState(() => localStorage.getItem('dominion-player-name') ?? '');
+  const validPlayerName = normalizePlayerName(playerName) !== null;
   const leaveOnline = () => { setSession(null); setOpponent('friend'); history.replaceState(null, '', '/dominion'); };
   const createRoom = async () => {
     setOnlineBusy(true); setOnlineError('');
     try {
-      const next = await createOnlineRoom(mode, expansions);
+      const next = await createOnlineRoom(mode, expansions, playerName);
+      localStorage.setItem('dominion-player-name', playerName.trim());
       history.replaceState(null, '', `/dominion?room=${next.roomId}`);
       setSession(next);
     } catch (error) { setOnlineError(error instanceof Error ? error.message : '部屋を作成できませんでした。'); }
@@ -315,7 +319,11 @@ export default function DominionGame() {
   const joinRoom = async () => {
     if (!roomId) return;
     setOnlineBusy(true); setOnlineError('');
-    try { setSession(await joinOnlineRoom(roomId)); }
+    try {
+      const next = await joinOnlineRoom(roomId, playerName);
+      localStorage.setItem('dominion-player-name', playerName.trim());
+      setSession(next);
+    }
     catch (error) { setOnlineError(error instanceof Error ? error.message : '部屋に参加できませんでした。'); }
     finally { setOnlineBusy(false); }
   };
@@ -326,8 +334,9 @@ export default function DominionGame() {
     <section className="dominion-setup-inner">
       <p className="dominion-eyebrow">ONLINE MATCH</p><h1>ドミニオンの対戦に参加</h1>
       <p>招待された部屋のプレイヤー2として参加します。</p>
+      <label className="dominion-player-name">プレイヤー名（1〜16文字）<input type="text" value={playerName} onChange={event => setPlayerName(event.target.value)} maxLength={PLAYER_NAME_MAX_LENGTH} autoComplete="nickname" placeholder="対戦で表示する名前" /></label>
       {onlineError && <p role="alert">{onlineError}</p>}
-      <div className="dominion-result-actions"><button className="primary" disabled={onlineBusy} onClick={() => { void joinRoom(); }}>{onlineBusy ? '参加しています…' : '対戦部屋に参加'}</button><button onClick={leaveOnline}>対戦準備に戻る</button></div>
+      <div className="dominion-result-actions"><button className="primary" disabled={onlineBusy || !validPlayerName} onClick={() => { void joinRoom(); }}>{onlineBusy ? '参加しています…' : '対戦部屋に参加'}</button><button onClick={leaveOnline}>対戦準備に戻る</button></div>
     </section>
   </main>;
 
@@ -340,6 +349,7 @@ export default function DominionGame() {
         <label className={opponent === 'cpu' ? 'selected' : ''}><input type="radio" name="opponent" checked={opponent === 'cpu'} onChange={() => setOpponent('cpu')} /><span>CPUと対戦</span></label>
         <label className={opponent === 'friend' ? 'selected' : ''}><input type="radio" name="opponent" checked={opponent === 'friend'} onChange={() => setOpponent('friend')} /><span>友達とネット対戦</span></label>
       </fieldset>
+      {opponent === 'friend' && <label className="dominion-player-name">プレイヤー名（1〜16文字）<input type="text" value={playerName} onChange={event => setPlayerName(event.target.value)} maxLength={PLAYER_NAME_MAX_LENGTH} autoComplete="nickname" placeholder="対戦で表示する名前" /></label>}
       <fieldset className="dominion-mode-options">
         <legend>使用するセット</legend>
         {([['base', '基本 · 26種類'], ['intrigue', '陰謀（拡張） · 26種類'], ['seaside', '海辺（拡張） · 27種類']] as const).map(([id, label]) => <label key={id} className={expansions.includes(id) ? 'selected' : ''}>
@@ -368,7 +378,7 @@ export default function DominionGame() {
           : <><h2>毎回違う組み合わせ</h2><p>対戦を始めるたびに、選択したセットから重複のない10種類をランダムで選びます。</p></>}
       </div>
       <div className="dominion-result-actions">
-        <button className="primary" disabled={!expansions.length || onlineBusy} onClick={() => { if (opponent === 'friend') void createRoom(); else setStore(createStore(mode, expansions)); }}>{onlineBusy ? '部屋を作成しています…' : opponent === 'friend' ? '対戦部屋を作る' : '対戦を始める'}</button>
+        <button className="primary" disabled={!expansions.length || onlineBusy || (opponent === 'friend' && !validPlayerName)} onClick={() => { if (opponent === 'friend') void createRoom(); else setStore(createStore(mode, expansions)); }}>{onlineBusy ? '部屋を作成しています…' : opponent === 'friend' ? '対戦部屋を作る' : '対戦を始める'}</button>
         <Link to="/">ゲーム一覧へ</Link>
       </div>
       {onlineError && <p role="alert">{onlineError}</p>}

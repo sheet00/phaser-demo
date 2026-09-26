@@ -14,6 +14,7 @@ import {
   projectInput,
 } from "../src/components/dominion/networkView.ts";
 import { basicKingdomFor } from "../src/components/dominion/store.ts";
+import { normalizePlayerName } from "../src/components/dominion/playerName.ts";
 import type {
   ExpansionId,
   GameMode,
@@ -22,6 +23,7 @@ import type {
 type Setup = { mode: GameMode; expansions: ExpansionId[] };
 type Room = {
   setup: Setup;
+  names: [string, string | null];
   seatHashes: [string, string | null];
   connectionIds: [string | null, string | null];
   ready: [boolean, boolean];
@@ -186,6 +188,7 @@ export class DominionRoom extends DurableObject<Env> {
         type: "lobby",
         seat,
         setup: room.setup,
+        names: room.names ?? ["プレイヤー1", room.seatHashes[1] ? "プレイヤー2" : null],
         ready: room.ready,
         joined: room.seatHashes[1] !== null,
         opponentConnected: this.connected(seat === 0 ? 1 : 0),
@@ -232,21 +235,23 @@ export class DominionRoom extends DurableObject<Env> {
       ...(room.setup.expansions.includes("seaside") ? SEASIDE_KINGDOM : []),
     ];
     const seed = crypto.getRandomValues(new Uint32Array(1))[0];
-    room.game = createGame(
+    const game = createGame(
       seed,
       room.setup.mode === "basic"
         ? basicKingdomFor(room.setup.expansions)
         : undefined,
       pool,
     );
-    room.game.players[0].name = "プレイヤー1";
-    room.game.players[1].name = "プレイヤー2";
-    room.game.log = room.game.log.map((entry) => ({
+    const names = room.names ?? ["プレイヤー1", "プレイヤー2"];
+    game.players[0].name = names[0];
+    game.players[1].name = names[1] ?? "プレイヤー2";
+    game.log = game.log.map((entry) => ({
       ...entry,
-      text: entry.text
-        .replaceAll("あなた", "プレイヤー1")
-        .replaceAll("CPU", "プレイヤー2"),
+      text: entry.text.replace(/あなた|CPU/g, (value) =>
+        value === "あなた" ? game.players[0].name : game.players[1].name,
+      ),
     }));
+    room.game = game;
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -254,11 +259,15 @@ export class DominionRoom extends DurableObject<Env> {
     if (path === "/api/dominion/rooms" && request.method === "POST") {
       return this.enqueue(async () => {
         if (await this.room()) return error("部屋は作成済みです。", 409);
-        const setup = parseSetup(await readJson(request));
+        const body = await readJson(request);
+        const setup = parseSetup(body);
         if (!setup) return error("対戦設定が不正です。");
+        const name = normalizePlayerName((body as Record<string, unknown>).name);
+        if (!name) return error("プレイヤー名を1〜16文字で入力してください。");
         const token = crypto.randomUUID();
         const room: Room = {
           setup,
+          names: [name, null],
           seatHashes: [await hashToken(token), null],
           connectionIds: [null, null],
           ready: [false, false],
@@ -280,8 +289,13 @@ export class DominionRoom extends DurableObject<Env> {
         if (!room) return error("部屋が見つかりません。", 404);
         if (room.seatHashes[1] || room.game)
           return error("この部屋は満員です。", 409);
+        const body = await readJson(request);
+        const name = normalizePlayerName(body && typeof body === "object" ? (body as Record<string, unknown>).name : null);
+        if (!name) return error("プレイヤー名を1〜16文字で入力してください。");
         const token = crypto.randomUUID();
         room.seatHashes[1] = await hashToken(token);
+        room.names ??= ["プレイヤー1", null];
+        room.names[1] = name;
         await this.ctx.storage.put("room", room);
         this.broadcast(room);
         return Response.json({ token, setup: room.setup });
