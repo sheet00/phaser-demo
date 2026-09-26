@@ -1,4 +1,17 @@
-# React + TypeScript + Vite
+# Phaser Demo
+
+## ドミニオンのネット対戦
+
+2つのターミナルでフロントエンドとCloudflare Workerを起動する。WorkerとDurable Objectはローカルで動き、フロントエンドのビルドは不要。
+
+```bash
+rtk npm run dev:worker
+rtk npm run dev
+```
+
+Viteは `/api/dominion` をローカルのWorkerへ転送する。`http://localhost:5173/dominion` で「友達とネット対戦」を選び、作成した招待リンクを別のブラウザーで開く。席トークンはブラウザーのローカルストレージに保存され、再読み込み後の復帰に使う。
+
+Cloudflareへの配信設定はリポジトリ直下の `wrangler.json` にある。対戦部屋は7日後に削除される。切断後5分が経過すると、残ったプレイヤーが切断勝ちを確定できる。
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

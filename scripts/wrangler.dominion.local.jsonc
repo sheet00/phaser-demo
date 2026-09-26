@@ -1,0 +1,15 @@
+{
+  "$schema": "../src/node_modules/wrangler/config-schema.json",
+  "name": "phaser-demo-dominion-local",
+  "main": "../src/dominion-worker/index.ts",
+  "compatibility_date": "2026-09-26",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "../src/public",
+    "binding": "ASSETS"
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "DOMINION_ROOMS", "class_name": "DominionRoom" }]
+  },
+  "migrations": [{ "tag": "dominion-v1", "new_sqlite_classes": ["DominionRoom"] }]
+}

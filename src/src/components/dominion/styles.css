@@ -157,3 +157,29 @@
   .dominion-mode-options label { min-height: 52px; padding: 10px 12px; }
   .dominion-setup { align-items: start; padding: 22px 14px; }
 }
+.dominion-online-notice {
+  padding: 10px 18px;
+  background: #624b27;
+  color: #fff5db;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.dominion-online-notice button {
+  margin-left: auto;
+}
+
+.dominion-invite {
+  display: flex;
+  gap: 8px;
+  margin: 18px 0;
+}
+
+.dominion-invite input {
+  min-width: 0;
+  flex: 1;
+  padding: 10px;
+  font: inherit;
+}

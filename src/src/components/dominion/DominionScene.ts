@@ -4,7 +4,7 @@ import { faCoins } from '@fortawesome/free-solid-svg-icons';
 import { FONT_FAMILY, TEXT_STYLE } from '../old-testament-rpg/typography';
 import { BASE, CARDS } from './cards';
 import type { CardId } from './cards';
-import { cardCost, canBuy, canChoose, canGain, canPlay, inputPlayer } from './engine';
+import { cardCost, canBuy, canChoose, canGain, canPlay } from './engine';
 import type { Card } from './engine';
 import type { DominionStore } from './store';
 import { actionSound, SOUND_FILES } from './audio';
@@ -45,6 +45,7 @@ export class DominionScene extends Phaser.Scene {
     this.table = this.add.container(0, 0);
     this.input.mouse?.disableContextMenu();
     const unsubscribe = this.store.subscribe(() => { this.dirty = true; });
+    const unsubscribeMeta = this.store.subscribeMeta(() => { this.dirty = true; });
     const updateSound = () => { this.sound.mute = this.store.getMuted(); };
     updateSound();
     const unsubscribeSound = this.store.subscribeSound(updateSound);
@@ -64,6 +65,7 @@ export class DominionScene extends Phaser.Scene {
     this.scale.on(Phaser.Scale.Events.RESIZE, resize);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       unsubscribe();
+      unsubscribeMeta();
       unsubscribeSound();
       unsubscribeActions();
       this.sound.stopAll();
@@ -169,15 +171,19 @@ export class DominionScene extends Phaser.Scene {
     this.inspect(null);
     this.table.removeAll(true);
     const state = this.store.getSnapshot();
+    const seat = this.store.playerId;
+    const other = seat === 0 ? 1 : 0;
     const width = this.scale.width;
     const height = this.scale.height;
-    const humanInput = state.phase !== 'ended' && inputPlayer(state) === 0;
-    const player = state.players[0];
-    const opponent = state.players[1];
+    const meta = this.store.getMeta();
+    const humanInput = state.phase !== 'ended' && this.store.getInputPlayer() === seat
+      && meta.connection === 'connected' && meta.opponentConnected && !meta.busy;
+    const player = state.players[seat];
+    const opponent = state.players[other];
     this.panel(0, 0, width, height, 0x173f35);
     this.panel(0, 0, width, 40, 0x102d27);
     this.panel(10, 44, 236, 308, 0x0b251f, 0.45).setStrokeStyle(1, 0x496054);
-    this.text(20, 2, 'CPU', 18, '#f1deaa', true);
+    this.text(20, 2, this.store.online ? opponent.name : 'CPU', 18, '#f1deaa', true);
     this.text(92, 5, `手札 ${opponent.hand.length}枚  ／  山札 ${opponent.deck.length}枚  ／  捨て札 ${opponent.discard.length}枚  ／  島 ${opponent.islandMat.length}枚・村 ${opponent.nativeVillageMat.length}枚`, 14);
     this.text(width - 20, 5, `ターン ${opponent.turns}`, 14, '#a9c1b4').setOrigin(1, 0);
     this.text(19, 45, '基本カード', 14, '#b9c8b7', true);
@@ -196,7 +202,7 @@ export class DominionScene extends Phaser.Scene {
     const supplyAction = (id: CardId) => () => {
       const pending = this.store.getSnapshot().pending;
       const gaining = pending?.kind === 'gain' || (pending?.kind === 'expansion' && pending.zone === 'supply');
-      this.store.dispatch(0, { type: gaining ? 'gain' : 'buy', card: id });
+      this.store.dispatch(seat, { type: gaining ? 'gain' : 'buy', card: id });
     };
     BASE.forEach((id, index) => {
       this.card(22 + (index % 2) * 112, 80 + Math.floor(index / 2) * 66, 100, 60, id, {
@@ -256,7 +262,7 @@ export class DominionScene extends Phaser.Scene {
     hand.forEach((card: Card, index: number) => {
       this.card(handLeft + index * 130, handY, 120, 132, card.id, {
         enabled: humanInput && (canPlay(state, card) || canChoose(state, card)),
-        action: () => this.store.dispatch(0, { type: this.store.getSnapshot().pending ? 'choose' : 'play', uid: card.uid }),
+        action: () => this.store.dispatch(seat, { type: this.store.getSnapshot().pending ? 'choose' : 'play', uid: card.uid }),
       });
     });
   }

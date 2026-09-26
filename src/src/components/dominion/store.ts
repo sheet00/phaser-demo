@@ -1,5 +1,5 @@
 import { FIRST_GAME, KINGDOM } from './cards';
-import { createGame, reduceGame } from './engine';
+import { createGame, inputPlayer, instruction, reduceGame } from './engine';
 import type { Command, GameState, PlayerId } from './engine';
 
 import { INTRIGUE_KINGDOM } from './expansions/intrigueCards';
@@ -7,6 +7,29 @@ import { SEASIDE_KINGDOM } from './expansions/seasideCards';
 
 export type ExpansionId = 'base' | 'intrigue' | 'seaside';
 export type GameMode = 'basic' | 'random';
+export type MatchMeta = { connection: 'connected' | 'connecting' | 'disconnected'; opponentConnected: boolean; canClaim: boolean; busy: boolean };
+
+export interface DominionStore {
+  mode: GameMode;
+  expansions: ExpansionId[];
+  basicKingdom: readonly import('./cards').CardId[];
+  online: boolean;
+  playerId: PlayerId;
+  getSnapshot: () => GameState;
+  getMuted: () => boolean;
+  setMuted: (value: boolean) => void;
+  subscribeSound: (listener: () => void) => () => void;
+  subscribeActions: (listener: (command: Command, previous: GameState) => void) => () => void;
+  subscribe: (listener: () => void) => () => void;
+  dispatch: (actor: PlayerId, command: Command) => void;
+  restart: () => void;
+  getInputPlayer: () => PlayerId;
+  getInstruction: () => string;
+  getMeta: () => MatchMeta;
+  subscribeMeta: (listener: () => void) => () => void;
+  claimDisconnectedWin: () => void;
+  dispose: () => void;
+}
 
 const BASIC_KINGDOMS: Record<string, readonly import('./cards').CardId[]> = {
   base: FIRST_GAME,
@@ -20,7 +43,7 @@ export function basicKingdomFor(expansions: readonly ExpansionId[]) {
   return BASIC_KINGDOMS[key] ?? BASIC_KINGDOMS.base;
 }
 
-export function createStore(mode: GameMode = 'random', expansions: readonly ExpansionId[] = ['base']) {
+export function createStore(mode: GameMode = 'random', expansions: readonly ExpansionId[] = ['base']): DominionStore {
   const selected = [...new Set(expansions)];
   const pool = [...(selected.includes('base') ? KINGDOM : []), ...(selected.includes('intrigue') ? INTRIGUE_KINGDOM : []), ...(selected.includes('seaside') ? SEASIDE_KINGDOM : [])];
   if (mode === 'random' && pool.length < 10) throw new Error('セットを1つ以上選択してください。');
@@ -30,11 +53,14 @@ export function createStore(mode: GameMode = 'random', expansions: readonly Expa
   const listeners = new Set<() => void>();
   const actionListeners = new Set<(command: Command, previous: GameState) => void>();
   const soundListeners = new Set<() => void>();
+  const localMeta: MatchMeta = { connection: 'connected', opponentConnected: true, canClaim: false, busy: false };
   let muted = false;
   return {
     mode,
     expansions: selected,
     basicKingdom,
+    online: false,
+    playerId: 0 as PlayerId,
     getSnapshot: () => state,
     getMuted: () => muted,
     setMuted: (value: boolean) => {
@@ -65,7 +91,11 @@ export function createStore(mode: GameMode = 'random', expansions: readonly Expa
       state = newGame();
       listeners.forEach(listener => listener());
     },
+    getInputPlayer: () => inputPlayer(state),
+    getInstruction: () => instruction(state),
+    getMeta: () => localMeta,
+    subscribeMeta: () => () => undefined,
+    claimDisconnectedWin: () => undefined,
+    dispose: () => undefined,
   };
 }
-
-export type DominionStore = ReturnType<typeof createStore>;

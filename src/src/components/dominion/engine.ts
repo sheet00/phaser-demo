@@ -728,7 +728,7 @@ export function reduceGame(previous: GameState, actor: PlayerId, command: Comman
   return state;
 }
 
-export function instruction(state: GameState): string {
+export function instruction(state: GameState, viewer: PlayerId = 0): string {
   if (state.phase === 'ended') return state.endReason;
   const pending = state.pending;
   if (pending) {
@@ -754,8 +754,8 @@ export function instruction(state: GameState): string {
       case 'militia': return `${prefix}あと${state.players[pending.player].hand.length - 3}枚、手札を捨ててください。`;
     }
   }
-  if (state.active === 1) return 'CPUのターンです。';
-  if (state.phase === 'action') return state.actions > 0 && state.players[0].hand.some(card => hasType(card.id, 'action'))
+  if (state.active !== viewer) return `${state.players[state.active].name}のターンです。`;
+  if (state.phase === 'action') return state.actions > 0 && state.players[viewer].hand.some(card => hasType(card.id, 'action'))
     ? 'アクションカードを使用するか、購入へ進んでください。' : '「購入へ」を押して、財宝を使用しましょう。';
   return state.bought ? '購入を続けるか、ターンを終了してください。' : '財宝を使用して、サプライのカードを購入しましょう。';
 }

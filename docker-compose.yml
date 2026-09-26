@@ -6,6 +6,9 @@ services:
       - ./src:/app
     ports:
       - "5173:5173"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command: sh -c "npm run dev -- --host"
     environment:
       - NODE_ENV=development
+      - DOMINION_API_TARGET=http://host.docker.internal:8787

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:worker": "bash ../scripts/start-dominion-worker.sh",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test:dominion": "node --test tests/dominion-engine.test.mjs",
@@ -20,6 +21,7 @@
     "react-router-dom": "^7.13.1"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260926.1",
     "@eslint/js": "^9.39.4",
     "@types/node": "^24.12.0",
     "@types/react": "^19.2.14",
@@ -32,6 +34,7 @@
     "globals": "^17.4.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.56.1",
-    "vite": "^8.0.0"
+    "vite": "^8.0.0",
+    "wrangler": "^4.141.0"
   }
 }
