@@ -527,7 +527,7 @@ function endTurn(state: GameState) {
   const treasuries = player.played.filter(card => card.id === 'treasury').map(card => card.uid);
   if (!state.victoryGainedThisBuy && treasuries.length) {
     const uid = treasuries.shift()!;
-    state.pending = { kind: 'expansion', player: state.active, source: 'treasury', step: 'treasuryEnd', uid, selected: treasuries,
+    state.pending = { kind: 'expansion', player: state.active, source: 'treasury', step: 'treasuryEnd', uid, selected: treasuries.map(String),
       zone: 'options', choices: ['topdeck', 'keep'], options: [{ value: 'topdeck', label: '国庫を山札の上に置く' }, { value: 'keep', label: '場に残す' }], optional: false,
       message: '国庫を山札の上に置きますか？' };
     return;

@@ -53,6 +53,7 @@ export function savedOnlineSession(roomId: string): OnlineSession | null {
 }
 
 export class OnlineStore implements DominionStore {
+  private session: OnlineSession;
   mode: GameMode = 'random';
   expansions: ExpansionId[] = ['base'];
   basicKingdom = basicKingdomFor(['base']);
@@ -74,7 +75,7 @@ export class OnlineStore implements DominionStore {
   private status: OnlineStatus = { stage: 'connecting', message: '対戦部屋へ接続しています…', ready: [false, false], names: ['プレイヤー1', null], joined: false, seat: 0 };
   private meta: MatchMeta = { connection: 'connecting', opponentConnected: false, canClaim: false, busy: false };
 
-  constructor(private session: OnlineSession) {}
+  constructor(session: OnlineSession) { this.session = session; }
 
   start = () => { this.closed = false; this.connect(); };
 
