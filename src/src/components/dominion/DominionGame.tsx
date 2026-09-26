@@ -248,6 +248,11 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
         {state.pending?.player === seat && <div className="dominion-notice" role="status">
           <strong>操作が必要です</strong>
           <span>{instruction(state, seat)}</span>
+          {showPendingActions && <div className="dominion-notice-actions">
+            {canDone(state) && <button className="primary" onClick={() => send({ type: 'done' })}>{doneLabel(state)}</button>}
+            {(state.pending.kind === 'library' || state.pending.kind === 'vassal') && <button className="primary" onClick={() => send({ type: 'accept' })}>{state.pending.kind === 'library' ? '手札に加える' : 'このカードを使用'}</button>}
+            {state.pending.kind === 'reaction' && <>{!state.pending.blocked && state.players[seat].hand.some(card => card.id === 'moat') && <button className="primary" onClick={() => send({ type: 'reveal' })}>堀を公開して防ぐ</button>}{!state.pending.diplomatUsed && canReactDiplomat(state, seat) && <button onClick={() => send({ type: 'diplomat' })}>外交官を公開する</button>}<button onClick={() => send({ type: 'decline' })}>公開しない</button></>}
+          </div>}
         </div>}
         {ended ? <Result state={state} seat={seat} restart={onRestart} online={store.online} /> : <Table store={store} onInspect={setInspected} handActions={ownTurn && <>
           <button disabled={state.phase !== 'action'} onClick={() => send({ type: 'buy-phase' })}>購入へ</button>
@@ -255,13 +260,6 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
           <button disabled={state.phase !== 'buy'} onClick={() => send({ type: 'end-turn' })}>ターン終了</button>
         </>} />}
         {!ended && <ChoicePanel state={state} seat={seat} canInput={canInput} send={send} onInspect={setInspected} />}
-        {state.pending && showPendingActions && <div className="dominion-pending-actions">
-          <div>
-            {canDone(state) && <button onClick={() => send({ type: 'done' })}>{doneLabel(state)}</button>}
-            {(state.pending.kind === 'library' || state.pending.kind === 'vassal') && <button className="primary" onClick={() => send({ type: 'accept' })}>{state.pending.kind === 'library' ? '手札に加える' : 'このカードを使用'}</button>}
-            {state.pending.kind === 'reaction' && <>{!state.pending.blocked && state.players[seat].hand.some(card => card.id === 'moat') && <button className="primary" onClick={() => send({ type: 'reveal' })}>堀を公開して防ぐ</button>}{!state.pending.diplomatUsed && canReactDiplomat(state, seat) && <button onClick={() => send({ type: 'diplomat' })}>外交官を公開する</button>}<button onClick={() => send({ type: 'decline' })}>公開しない</button></>}
-          </div>
-        </div>}
       </section>
 
       <aside className="dominion-sidebar">

@@ -34,7 +34,7 @@
 .dominion button.primary:hover:not(:disabled) { background: #eed49d; }
 .dominion-muted { color: var(--dom-muted); }
 .dominion-layout { display: grid; grid-template-columns: minmax(0, 1fr) 240px; width: 100%; }
-.dominion-main { min-width: 0; }
+.dominion-main { position: relative; min-width: 0; }
 .dominion-status { display: flex; align-items: center; gap: 7px; min-height: 38px; padding: 3px 7px; overflow-x: auto; white-space: nowrap; border-bottom: 1px solid var(--dom-line); background: #17362b; }
 .dominion-turn { flex: none; padding: 4px 6px; border: 1px solid #657267; border-radius: 3px; color: #c4d0c4; font-size: 12px; }
 .dominion-turn.your-turn { border-color: #acb589; color: #efe4b9; }
@@ -42,18 +42,43 @@
 .dominion-menu { display: flex; flex: none; gap: 3px; margin-left: auto; }
 .dominion-menu button, .dominion-menu a { display: inline-flex; align-items: center; justify-content: center; width: 30px; padding: 0; }
 .dominion-menu svg { width: 14px; height: 14px; }
-.dominion-notice { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; flex-wrap: wrap; gap: 5px 14px; min-height: 68px; padding: 12px 18px; border-bottom: 3px solid var(--dom-gold); background: #37452c; box-shadow: 0 5px 16px #0005; }
-.dominion-notice strong { flex: none; padding: 5px 8px; border-radius: 3px; background: #e4c77f; color: #25352c; font-size: 12px; }
-.dominion-notice span { color: #fff4d2; font-size: 20px; font-weight: 700; line-height: 1.45; }
+.dominion-notice {
+  position: absolute;
+  top: 46px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  max-width: min(860px, calc(100% - 32px));
+  padding: 8px 16px;
+  border: 2px solid var(--dom-gold);
+  border-radius: 6px;
+  background: rgba(45, 60, 36, 0.96);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+.dominion-notice strong { flex: none; padding: 4px 8px; border-radius: 3px; background: #e4c77f; color: #25352c; font-size: 12px; }
+.dominion-notice span { color: #fff4d2; font-size: 15px; font-weight: 700; line-height: 1.4; }
+.dominion-notice-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+.dominion-notice-actions button {
+  pointer-events: auto;
+  min-height: 32px;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
 .dominion-table-scroll { position: relative; overflow: auto; background: #173f35; }
 .dominion-canvas { position: relative; width: 100%; min-width: 1200px; height: max(1060px, calc(100dvh - 40px)); }
 .dominion-canvas canvas { display: block; image-rendering: auto; }
 .dominion-hand-actions { position: absolute; z-index: 1; right: 12px; bottom: 16px; display: grid; gap: 10px; width: 140px; }
 .dominion-hand-actions button { width: 100%; min-height: 44px; padding: 8px; font-size: 13px; }
 .dominion-loading { position: absolute; inset: 0; display: grid; place-items: center; background: #173f35; color: #e7d5a8; pointer-events: none; }
-.dominion-pending-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 5px 8px; border-top: 2px solid var(--dom-gold); background: #34422a; }
-.dominion-pending-actions > div { display: flex; flex-wrap: wrap; gap: 4px; }
-.dominion-pending-actions button { min-height: 30px; padding: 4px 8px; font-size: 12px; }
 .dominion-sidebar { min-width: 0; padding: 12px 10px; background: #10271f; border-left: 1px solid var(--dom-line); }
 .dominion-opponent { margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--dom-line); }
 .dominion-opponent h2 { margin: 0 0 9px; color: #e4d4a7; font-size: 14px; overflow-wrap: anywhere; }
