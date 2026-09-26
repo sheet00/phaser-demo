@@ -15,7 +15,7 @@ import type { DominionStore, ExpansionId, GameMode } from './store';
 import { OnlineStore, createOnlineRoom, joinOnlineRoom, savedOnlineSession } from './onlineStore';
 import type { OnlineSession } from './onlineStore';
 import { normalizePlayerName, PLAYER_NAME_MAX_LENGTH } from './playerName';
-import { DominionScene } from './DominionScene';
+import { DOMINION_CANVAS_MIN_HEIGHT, DOMINION_CANVAS_MIN_WIDTH, DominionScene } from './DominionScene';
 import './styles.css';
 
 function Table({ store, onInspect, handActions }: { store: DominionStore; onInspect: (card: CardInspection | null) => void; handActions?: ReactNode }) {
@@ -54,7 +54,8 @@ function Table({ store, onInspect, handActions }: { store: DominionStore; onInsp
   }, [store, onInspect]);
 
   return <div className="dominion-table-scroll" onPointerLeave={() => onInspect(null)} onScroll={() => onInspect(null)}>
-    <div className="dominion-canvas" ref={hostRef} role="group" aria-label="ドミニオンの卓">
+    <div className="dominion-canvas" ref={hostRef} role="group" aria-label="ドミニオンの卓"
+      style={{ minWidth: DOMINION_CANVAS_MIN_WIDTH, minHeight: DOMINION_CANVAS_MIN_HEIGHT }}>
       {handActions && <div className="dominion-hand-actions" role="group" aria-label="手札の操作">{handActions}</div>}
     </div>
     {!ready && <div className="dominion-loading" role="status">{failed
@@ -168,7 +169,6 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
   const [confirmLeave, setConfirmLeave] = useState(false);
   const leaveDialogRef = useRef<HTMLDialogElement>(null);
   const leaveButtonRef = useRef<HTMLButtonElement>(null);
-  const logRef = useRef<HTMLDivElement>(null);
   const canInput = state.phase !== 'ended' && store.getInputPlayer() === seat && meta.connection === 'connected' && meta.opponentConnected && !meta.busy;
   const ownTurn = canInput && !state.pending && state.active === seat;
   const send = (command: Command) => store.dispatch(seat, command);
@@ -189,11 +189,6 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
   useEffect(() => {
     if (confirmLeave && !leaveDialogRef.current?.open) leaveDialogRef.current?.showModal();
   }, [confirmLeave]);
-
-  useEffect(() => {
-    const log = logRef.current;
-    if (log) log.scrollTop = log.scrollHeight;
-  }, [state.log]);
 
   useEffect(() => {
     const dismiss = () => setInspected(null);
@@ -283,7 +278,7 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
             <span>村 <strong>{opponentPlayer.nativeVillageMat.length}</strong></span>
           </div>
         </section>
-        <section className="dominion-log-panel"><h2>対戦履歴 <span>GAME LOG</span></h2><div className="dominion-log" ref={logRef} tabIndex={0} aria-label="対戦履歴">{state.log.map(entry => <p className={entry.text.startsWith('──') ? 'log-turn' : ''} key={entry.id}>{entry.text}</p>)}</div></section>
+        <section className="dominion-log-panel"><h2>直近の出来事</h2><div className="dominion-log">{state.log.slice(-5).reverse().map(entry => <p className={entry.text.startsWith('──') ? 'log-turn' : ''} key={entry.id}>{entry.text}</p>)}</div></section>
 
         <details className="dominion-trash"><summary>廃棄置き場 · {state.trash.length}枚</summary><p>{state.trash.length ? state.trash.map(card => CARDS[card.id].name).join('、') : '廃棄されたカードはありません。'}</p></details>
       </aside>

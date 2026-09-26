@@ -26,7 +26,7 @@
   transition: background .15s, border-color .15s;
 }
 .dominion button:hover:not(:disabled), .dominion a:hover { background: #385344; border-color: var(--dom-gold); }
-.dominion button:focus-visible, .dominion a:focus-visible, .dominion summary:focus-visible, .dominion select:focus-visible, .dominion input:focus-visible, .dominion-log:focus-visible {
+.dominion button:focus-visible, .dominion a:focus-visible, .dominion summary:focus-visible, .dominion select:focus-visible, .dominion input:focus-visible {
   outline: 3px solid #ffe6a0; outline-offset: 3px;
 }
 .dominion button:disabled { cursor: default; opacity: .4; }
@@ -74,10 +74,8 @@
 .dominion-description { line-height: 1.9; margin: 12px 0; }
 .dominion-log-panel { margin-top: 0; }
 .dominion-log-panel h2 { margin: 0 0 10px; font-size: 14px; color: #d4d7c6; }
-.dominion-log-panel h2 span { float: right; font-size: 10px; letter-spacing: 1px; color: #7f9788; }
-.dominion-log { height: max(400px, calc(100dvh - 190px)); overflow: auto; padding-right: 7px; scrollbar-color: #617961 transparent; }
 .dominion-log p { margin: 0 0 6px; color: #adc3b1; font-size: 13px; line-height: 1.75; overflow-wrap: anywhere; }
-.dominion-log p.log-turn { color: #e1cc95; margin-top: 16px; }
+.dominion-log p.log-turn { color: #e1cc95; }
 .dominion-trash { margin-top: 18px; border-top: 1px solid var(--dom-line); padding-top: 14px; }
 .dominion summary { cursor: pointer; min-height: 32px; }
 .dominion-trash p { line-height: 1.8; font-size: 13px; }
@@ -111,7 +109,6 @@
   .dominion-opponent-counts { display: flex; flex-wrap: wrap; gap: 8px 20px; }
   .dominion-opponent-counts span { gap: 6px; }
   .dominion-log-panel { margin-top: 0; }
-  .dominion-log { height: 330px; }
 }
 @media (max-width: 650px) {
   .dominion-status { flex-wrap: wrap; gap: 4px; padding: 4px; overflow: visible; }
