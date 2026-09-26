@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBasketShopping, faBolt, faCircleQuestion, faCoins, faFlag, faTableCellsLarge, faVolumeHigh, faVolumeXmark } from '@fortawesome/free-solid-svg-icons';
+import { faCircleQuestion, faCoins, faFlag, faTableCellsLarge, faVolumeHigh, faVolumeXmark } from '@fortawesome/free-solid-svg-icons';
 import Phaser from 'phaser';
 import { afterFontsReady, CRISP_RENDERING, FONT_FAMILY } from '../old-testament-rpg/typography';
 import { ALL_CARDS, CARDS, hasType } from './cards';
@@ -17,7 +18,7 @@ import { normalizePlayerName, PLAYER_NAME_MAX_LENGTH } from './playerName';
 import { DominionScene } from './DominionScene';
 import './styles.css';
 
-function Table({ store, onInspect }: { store: DominionStore; onInspect: (card: CardInspection | null) => void }) {
+function Table({ store, onInspect, handActions }: { store: DominionStore; onInspect: (card: CardInspection | null) => void; handActions?: ReactNode }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
   const [ready, setReady] = useState(false);
@@ -53,7 +54,9 @@ function Table({ store, onInspect }: { store: DominionStore; onInspect: (card: C
   }, [store, onInspect]);
 
   return <div className="dominion-table-scroll" onPointerLeave={() => onInspect(null)} onScroll={() => onInspect(null)}>
-    <div className="dominion-canvas" ref={hostRef} role="img" aria-label="ドミニオンの卓" />
+    <div className="dominion-canvas" ref={hostRef} role="group" aria-label="ドミニオンの卓">
+      {handActions && <div className="dominion-hand-actions" role="group" aria-label="手札の操作">{handActions}</div>}
+    </div>
     {!ready && <div className="dominion-loading" role="status">{failed
       ? '卓を表示できませんでした。ページを再読み込みしてください。'
       : '卓を準備しています…'}</div>}
@@ -96,7 +99,6 @@ function ChoicePanel({ state, seat, canInput, send, onInspect }: {
   if (!pending || pending.player !== seat || !['harbinger', 'vassal', 'library', 'sentry', 'bandit', 'expansion', 'durationOrder'].includes(pending.kind)) return null;
   const cards = choiceCards(state);
   return <section ref={panelRef} className="dominion-choice-panel" aria-label="効果で選択するカード">
-    <p>{instruction(state)}</p>
     <div className="dominion-choice-cards">{(pending.kind === 'expansion' || pending.kind === 'durationOrder') && pending.options.map(option => <button key={option.value} disabled={!canInput} onClick={() => send({ type: 'option', value: option.value })}>{option.label}</button>)}{cards.map(card => {
       const definition = CARDS[card.id];
       const appearance = cardAppearance(definition);
@@ -163,19 +165,30 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
   const [inspected, setInspected] = useState<CardInspection | null>(null);
   const [help, setHelp] = useState(false);
   const [confirmResign, setConfirmResign] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const leaveDialogRef = useRef<HTMLDialogElement>(null);
+  const leaveButtonRef = useRef<HTMLButtonElement>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const canInput = state.phase !== 'ended' && store.getInputPlayer() === seat && meta.connection === 'connected' && meta.opponentConnected && !meta.busy;
   const ownTurn = canInput && !state.pending && state.active === seat;
   const send = (command: Command) => store.dispatch(seat, command);
+  const closeLeave = () => {
+    setConfirmLeave(false);
+    requestAnimationFrame(() => leaveButtonRef.current?.focus());
+  };
 
   useEffect(() => {
-    if (confirmResign || help) return;
+    if (confirmResign || confirmLeave || help) return;
     if (store.online) return;
     const command = botCommand(state);
     if (!command) return;
     const timer = window.setTimeout(() => store.dispatch(1, command), 550);
     return () => window.clearTimeout(timer);
-  }, [state, store, confirmResign, help]);
+  }, [state, store, confirmResign, confirmLeave, help]);
+
+  useEffect(() => {
+    if (confirmLeave && !leaveDialogRef.current?.open) leaveDialogRef.current?.showModal();
+  }, [confirmLeave]);
 
   useEffect(() => {
     const log = logRef.current;
@@ -198,22 +211,16 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
   }, []);
 
   const ended = state.phase === 'ended';
+  const opponentPlayer = state.players[seat === 0 ? 1 : 0];
+  const hasChoicePanel = state.pending !== null && ['harbinger', 'vassal', 'library', 'sentry', 'bandit', 'expansion', 'durationOrder'].includes(state.pending.kind);
+  const showPendingActions = state.pending && canInput && (!hasChoicePanel || canDone(state) || state.pending.kind === 'library' || state.pending.kind === 'vassal' || state.pending.kind === 'reaction');
 
-  return <main className="dominion" style={{ fontFamily: FONT_FAMILY }}>
-    <header className="dominion-header">
-      <div className="dominion-brand"><span className="dominion-crest" aria-hidden="true">D</span><div><h1>DOMINION</h1><span>ドミニオン</span></div></div>
-      <div className="dominion-match"><span className="dominion-live-dot" /> {store.online ? `${state.players[seat].name} vs ${state.players[seat === 0 ? 1 : 0].name}` : 'あなた vs CPU'} <span className="dominion-muted">／ {store.expansions.map(id => id === 'base' ? '基本' : id === 'intrigue' ? '陰謀' : '海辺').join('＋')} · {store.mode === 'basic' ? 'おすすめ' : 'ランダム'}</span></div>
-      <nav aria-label="ゲームメニュー">
-        <button onClick={() => store.setMuted(!muted)} aria-pressed={muted} aria-label="消音" title={muted ? '効果音をオン' : '効果音をオフ'}><FontAwesomeIcon icon={muted ? faVolumeXmark : faVolumeHigh} aria-hidden="true" /></button>
-        <button onClick={() => setHelp(!help)} aria-expanded={help} aria-label="遊び方" title="遊び方"><FontAwesomeIcon icon={faCircleQuestion} aria-hidden="true" /><span className="dominion-menu-label">遊び方</span></button>
-        <button onClick={() => setConfirmResign(true)} disabled={ended} aria-label="投了" title="投了"><FontAwesomeIcon icon={faFlag} aria-hidden="true" /><span className="dominion-menu-label">投了</span></button>
-        <Link to="/" aria-label="ゲーム一覧" title="ゲーム一覧"><FontAwesomeIcon icon={faTableCellsLarge} aria-hidden="true" /><span className="dominion-menu-label">ゲーム一覧</span></Link>
-      </nav>
-    </header>
+  return <main className="dominion dominion-playing" style={{ fontFamily: FONT_FAMILY }}>
+    <h1 className="dominion-sr-only">ドミニオン</h1>
 
     {help && <section className="dominion-help">
       <h2>王国を育て、勝利点を集めよう</h2>
-      <ol><li>手札のアクションカードをクリックして使用します。</li><li>「購入へ」→「財宝をすべて使用」でコインを用意します。</li><li>金色のサプライをクリックして購入。「ターン終了」で{store.online ? '相手' : 'CPU'}へ交代します。</li></ol>
+      <ol><li>手札のアクションカードをクリックして使用します。</li><li>「購入へ」→「財宝を使用」でコインを用意します。</li><li>金色のサプライをクリックして購入。「ターン終了」で{store.online ? '相手' : 'CPU'}へ交代します。</li></ol>
       <p>購入したカードは捨て札に入り、山札の補充後に引けるようになります。属州の山、またはサプライの3山が空になると、そのターンで終了。勝利点の多い方が勝ちです。</p>
       <p>{store.mode === 'basic' ? '選んだカード群に対応したおすすめの10種類で遊びます。' : '選んだカード群から王国カード10種類をランダムに選びます。'}</p>
       <p>カードにマウスを重ねるか右クリックすると詳細を表示します。マウスを離すと説明が閉じます。</p>
@@ -224,43 +231,64 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
       <p>この対戦を投了しますか？</p><button onClick={() => { send({ type: 'resign' }); setConfirmResign(false); }}>投了する</button><button className="primary" autoFocus onClick={() => setConfirmResign(false)}>続ける</button>
     </section>}
 
+    {confirmLeave && <dialog ref={leaveDialogRef} className="dominion-leave-dialog" aria-labelledby="dominion-leave-title" onCancel={closeLeave}>
+      <h2 id="dominion-leave-title">ゲーム一覧へ戻りますか？</h2>
+      <p>現在の対戦から離れます。</p>
+      <div className="dominion-leave-actions"><Link to="/">はい</Link><button autoFocus onClick={closeLeave}>いいえ</button></div>
+    </dialog>}
+
     {store.online && !ended && (!meta.opponentConnected || meta.connection !== 'connected') && <div className="dominion-online-notice" role="status">{meta.connection !== 'connected' ? '通信の再接続を待っています。' : '相手の再接続を待っています。'} {meta.canClaim && <button onClick={() => store.claimDisconnectedWin()}>切断勝ちを確定</button>}</div>}
     <div className="dominion-layout">
       <section className="dominion-main" aria-label="対戦卓">
         <div className="dominion-status">
-          <div><span className={`dominion-turn ${state.active === seat ? 'your-turn' : ''}`}>{ended ? '終了' : store.online ? `${state.players[state.active].name}のターン` : state.active === seat ? 'あなたのターン' : 'CPUのターン'}</span><span className="dominion-turn-number">{state.players[state.active].turns}</span></div>
-          <div className="dominion-resources">
-            <span><FontAwesomeIcon icon={faBolt} aria-hidden="true" /><strong>{state.actions}</strong> アクション</span>
-            <span><FontAwesomeIcon icon={faBasketShopping} aria-hidden="true" /><strong>{state.buys}</strong> 購入</span>
-            <span><FontAwesomeIcon icon={faCoins} aria-hidden="true" /><strong>{state.coins}</strong> コイン</span>
-          </div>
-          <div className="dominion-phases"><span className={state.phase === 'action' ? 'active' : ''}>アクション</span><span aria-hidden="true">›</span><span className={state.phase === 'buy' ? 'active' : ''}>購入</span></div>
+          <span className={`dominion-turn ${state.active === seat ? 'your-turn' : ''}`}>{ended ? '終了' : `${store.online ? state.players[state.active].name : state.active === seat ? 'あなた' : 'CPU'} · ${state.players[state.active].turns}ターン目 · ${state.phase === 'action' ? 'アクション中' : '購入中'}`}</span>
+          {state.active === seat && <span className="dominion-sr-only">アクション回数 {state.actions}、購入回数 {state.buys}、コイン合計 {state.coins}</span>}
+          <nav className="dominion-menu" aria-label="ゲームメニュー">
+            <button onClick={() => store.setMuted(!muted)} aria-pressed={muted} aria-label="消音" title={muted ? '効果音をオン' : '効果音をオフ'}><FontAwesomeIcon icon={muted ? faVolumeXmark : faVolumeHigh} aria-hidden="true" /></button>
+            <button onClick={() => setHelp(!help)} aria-expanded={help} aria-label="遊び方" title="遊び方"><FontAwesomeIcon icon={faCircleQuestion} aria-hidden="true" /></button>
+            <button onClick={() => setConfirmResign(true)} disabled={ended} aria-label="投了" title="投了"><FontAwesomeIcon icon={faFlag} aria-hidden="true" /></button>
+            <button ref={leaveButtonRef} onClick={() => { setInspected(null); setHelp(false); setConfirmResign(false); setConfirmLeave(true); }} aria-label="ゲーム一覧へ戻る" title="ゲーム一覧へ戻る"><FontAwesomeIcon icon={faTableCellsLarge} aria-hidden="true" /></button>
+          </nav>
         </div>
-        {ended ? <Result state={state} seat={seat} restart={onRestart} online={store.online} /> : <Table store={store} onInspect={setInspected} />}
+        {state.pending?.player === seat && <div className="dominion-notice" role="status">
+          <strong>操作が必要です</strong>
+          <span>{instruction(state, seat)}</span>
+        </div>}
+        {ended ? <Result state={state} seat={seat} restart={onRestart} online={store.online} /> : <Table store={store} onInspect={setInspected} handActions={ownTurn && <>
+          <button disabled={state.phase !== 'action'} onClick={() => send({ type: 'buy-phase' })}>購入へ</button>
+          <button className="primary" disabled={state.phase !== 'buy' || state.bought || !state.players[seat].hand.some(card => hasType(card.id, 'treasure'))} onClick={() => send({ type: 'treasures' })}>財宝を使用</button>
+          <button disabled={state.phase !== 'buy'} onClick={() => send({ type: 'end-turn' })}>ターン終了</button>
+        </>} />}
         {!ended && <ChoicePanel state={state} seat={seat} canInput={canInput} send={send} onInspect={setInspected} />}
-        <div className={`dominion-controls ${state.pending && canInput ? 'needs-choice' : ''}`}>
-          <p role="status">{store.getInstruction()}</p>
-          <div className="dominion-buttons">
-            {state.pending && canInput ? <>
-              {canDone(state) && <button onClick={() => send({ type: 'done' })}>{doneLabel(state)}</button>}
-              {(state.pending.kind === 'library' || state.pending.kind === 'vassal') && <button className="primary" onClick={() => send({ type: 'accept' })}>{state.pending.kind === 'library' ? '手札に加える' : 'このカードを使用'}</button>}
-              {state.pending.kind === 'reaction' && <>{!state.pending.blocked && state.players[seat].hand.some(card => card.id === 'moat') && <button className="primary" onClick={() => send({ type: 'reveal' })}>堀を公開して防ぐ</button>}{!state.pending.diplomatUsed && canReactDiplomat(state, seat) && <button onClick={() => send({ type: 'diplomat' })}>外交官を公開する</button>}<button onClick={() => send({ type: 'decline' })}>公開しない</button></>}
-            </> : !ended && <>
-              <button disabled={!ownTurn || state.phase !== 'action'} onClick={() => send({ type: 'buy-phase' })}>購入へ →</button>
-              <button className="primary" disabled={!ownTurn || state.phase !== 'buy' || state.bought || !state.players[seat].hand.some(card => hasType(card.id, 'treasure'))} onClick={() => send({ type: 'treasures' })}>財宝をすべて使用</button>
-              <button disabled={!ownTurn || state.phase !== 'buy'} onClick={() => send({ type: 'end-turn' })}>ターン終了 →</button>
-            </>}
+        {state.pending && showPendingActions && <div className="dominion-pending-actions">
+          <div>
+            {canDone(state) && <button onClick={() => send({ type: 'done' })}>{doneLabel(state)}</button>}
+            {(state.pending.kind === 'library' || state.pending.kind === 'vassal') && <button className="primary" onClick={() => send({ type: 'accept' })}>{state.pending.kind === 'library' ? '手札に加える' : 'このカードを使用'}</button>}
+            {state.pending.kind === 'reaction' && <>{!state.pending.blocked && state.players[seat].hand.some(card => card.id === 'moat') && <button className="primary" onClick={() => send({ type: 'reveal' })}>堀を公開して防ぐ</button>}{!state.pending.diplomatUsed && canReactDiplomat(state, seat) && <button onClick={() => send({ type: 'diplomat' })}>外交官を公開する</button>}<button onClick={() => send({ type: 'decline' })}>公開しない</button></>}
           </div>
-        </div>
+        </div>}
       </section>
 
       <aside className="dominion-sidebar">
+        <section className="dominion-opponent" aria-label="相手のカード枚数">
+          <h2>{store.online ? opponentPlayer.name : 'CPU'}</h2>
+          <div className="dominion-opponent-hand">
+            <span>手札 <strong>{opponentPlayer.hand.length}枚</strong></span>
+            <div className="dominion-opponent-card-backs" aria-hidden="true">{Array.from({ length: Math.min(opponentPlayer.hand.length, 5) }, (_, index) => <span key={index} />)}</div>
+          </div>
+          <div className="dominion-opponent-counts">
+            <span>山札 <strong>{opponentPlayer.deck.length}</strong></span>
+            <span>捨て札 <strong>{opponentPlayer.discard.length}</strong></span>
+            <span>島 <strong>{opponentPlayer.islandMat.length}</strong></span>
+            <span>村 <strong>{opponentPlayer.nativeVillageMat.length}</strong></span>
+          </div>
+        </section>
         <section className="dominion-log-panel"><h2>対戦履歴 <span>GAME LOG</span></h2><div className="dominion-log" ref={logRef} tabIndex={0} aria-label="対戦履歴">{state.log.map(entry => <p className={entry.text.startsWith('──') ? 'log-turn' : ''} key={entry.id}>{entry.text}</p>)}</div></section>
 
         <details className="dominion-trash"><summary>廃棄置き場 · {state.trash.length}枚</summary><p>{state.trash.length ? state.trash.map(card => CARDS[card.id].name).join('、') : '廃棄されたカードはありません。'}</p></details>
       </aside>
     </div>
-    {inspected && !ended && !help && !confirmResign && <CardTooltip inspection={inspected} />}
+    {inspected && !ended && !help && !confirmResign && !confirmLeave && <CardTooltip inspection={inspected} />}
   </main>;
 }
 

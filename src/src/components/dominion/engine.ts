@@ -738,7 +738,7 @@ export function instruction(state: GameState, viewer: PlayerId = 0): string {
       case 'durationOrder': return `${prefix}次に解決する持続効果を選択。`;
       case 'cellar': return `${prefix}捨てる手札を選択。選択完了で${pending.discarded}枚引きます。`;
       case 'trash': return `${prefix}${pending.source === 'mine' ? '財宝' : '手札'}1枚を選んで廃棄。`;
-      case 'gain': return `${prefix}${pending.maxCost}コスト以下の${pending.treasureOnly ? '財宝' : 'カード'}をサプライから獲得。`;
+      case 'gain': return `${prefix}サプライから${pending.maxCost}コスト以下の${pending.treasureOnly ? '財宝' : 'カード'}を1枚選んで獲得してください。`;
       case 'reaction': return `${prefix}${CARDS[pending.attack].name}へのリアクションを選択。`;
       case 'chapel': return `${prefix}廃棄する手札を選択（あと最大${pending.remaining}枚）。途中で終了できます。`;
       case 'harbinger': return `${prefix}捨て札から山札の上に戻す1枚を選択。戻さなくても構いません。`;

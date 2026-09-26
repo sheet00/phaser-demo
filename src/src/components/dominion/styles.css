@@ -12,8 +12,9 @@
   color-scheme: dark;
 }
 .dominion *, .dominion *::before, .dominion *::after { box-sizing: border-box; }
+.dominion-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .dominion button, .dominion select, .dominion a, .dominion input { font: inherit; }
-.dominion button, .dominion-header a, .dominion-result-actions a {
+.dominion button, .dominion-menu a, .dominion-result-actions a {
   min-height: 40px;
   border: 1px solid #6c7662;
   border-radius: 4px;
@@ -31,38 +32,38 @@
 .dominion button:disabled { cursor: default; opacity: .4; }
 .dominion button.primary { background: #d7bc7d; color: #24352b; border-color: #f3d9a0; font-weight: 700; }
 .dominion button.primary:hover:not(:disabled) { background: #eed49d; }
-.dominion-header { display: flex; align-items: center; gap: 16px; padding: 5px 12px; border-bottom: 1px solid #6b664b; background: #11251e; line-height: 1.2; }
-.dominion-brand { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.dominion-crest { display: grid; place-items: center; width: 28px; height: 32px; border: 1px solid var(--dom-gold); border-radius: 3px 3px 12px 12px; color: var(--dom-gold); font: 22px Georgia, serif; }
-.dominion-brand h1 { margin: 0; font: 20px Georgia, serif; letter-spacing: 3px; color: #eddbb0; }
-.dominion-brand span:not(.dominion-crest) { font-size: 10px; color: var(--dom-muted); letter-spacing: 1px; }
-.dominion-match { flex: 1; text-align: center; white-space: nowrap; }
-.dominion-live-dot { display: inline-block; width: 7px; height: 7px; margin-right: 7px; background: #a9cb9b; border-radius: 50%; }
-.dominion-header nav { display: flex; gap: 6px; flex-shrink: 0; }
-.dominion-header nav button, .dominion-header nav a { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 32px; padding: 6px 10px; font-size: 13px; white-space: nowrap; }
-.dominion-header nav svg { width: 1em; height: 1em; flex-shrink: 0; }
 .dominion-muted { color: var(--dom-muted); }
 .dominion-layout { display: grid; grid-template-columns: minmax(0, 1fr) 240px; width: 100%; }
 .dominion-main { min-width: 0; }
-.dominion-status { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; min-height: 46px; padding: 4px 12px; border-bottom: 1px solid var(--dom-line); background: #17362b; }
-.dominion-turn { padding: 6px 9px; border: 1px solid #657267; border-radius: 3px; color: #c4d0c4; }
+.dominion-status { display: flex; align-items: center; gap: 7px; min-height: 38px; padding: 3px 7px; overflow-x: auto; white-space: nowrap; border-bottom: 1px solid var(--dom-line); background: #17362b; }
+.dominion-turn { flex: none; padding: 4px 6px; border: 1px solid #657267; border-radius: 3px; color: #c4d0c4; font-size: 12px; }
 .dominion-turn.your-turn { border-color: #acb589; color: #efe4b9; }
-.dominion-turn-number { padding-left: 12px; color: #cecca7; }
-.dominion-resources { display: flex; gap: 23px; color: #bac9b8; }
-.dominion-resources > span { display: inline-flex; align-items: center; gap: 5px; }
-.dominion-resources strong { color: #f6edcd; font-size: 24px; }
-.dominion-resources svg { width: 18px; height: 18px; color: #dec17d; }
-.dominion-phases { display: flex; gap: 10px; color: #829c8d; font-size: 13px; }
-.dominion-phases .active { color: #f0d699; }
+.dominion-status button, .dominion-status a { min-height: 30px; padding: 4px 8px; font-size: 12px; }
+.dominion-menu { display: flex; flex: none; gap: 3px; margin-left: auto; }
+.dominion-menu button, .dominion-menu a { display: inline-flex; align-items: center; justify-content: center; width: 30px; padding: 0; }
+.dominion-menu svg { width: 14px; height: 14px; }
+.dominion-notice { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; flex-wrap: wrap; gap: 5px 14px; min-height: 68px; padding: 12px 18px; border-bottom: 3px solid var(--dom-gold); background: #37452c; box-shadow: 0 5px 16px #0005; }
+.dominion-notice strong { flex: none; padding: 5px 8px; border-radius: 3px; background: #e4c77f; color: #25352c; font-size: 12px; }
+.dominion-notice span { color: #fff4d2; font-size: 20px; font-weight: 700; line-height: 1.45; }
 .dominion-table-scroll { position: relative; overflow: auto; background: #173f35; }
-.dominion-canvas { width: 100%; min-width: 960px; height: max(1000px, calc(100dvh - 150px)); }
+.dominion-canvas { position: relative; width: 100%; min-width: 1200px; height: max(1060px, calc(100dvh - 40px)); }
 .dominion-canvas canvas { display: block; image-rendering: auto; }
+.dominion-hand-actions { position: absolute; z-index: 1; right: 12px; bottom: 16px; display: grid; gap: 10px; width: 140px; }
+.dominion-hand-actions button { width: 100%; min-height: 44px; padding: 8px; font-size: 13px; }
 .dominion-loading { position: absolute; inset: 0; display: grid; place-items: center; background: #173f35; color: #e7d5a8; pointer-events: none; }
-.dominion-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; padding: 6px 12px; min-height: 54px; border-top: 1px solid #5c674d; background: #132d24; }
-.dominion-controls p { margin: 0; flex: 1 1 290px; line-height: 1.9; }
-.dominion-controls.needs-choice { border-top: 2px solid var(--dom-gold); background: #34422a; }
-.dominion-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.dominion-pending-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 5px 8px; border-top: 2px solid var(--dom-gold); background: #34422a; }
+.dominion-pending-actions > div { display: flex; flex-wrap: wrap; gap: 4px; }
+.dominion-pending-actions button { min-height: 30px; padding: 4px 8px; font-size: 12px; }
 .dominion-sidebar { min-width: 0; padding: 12px 10px; background: #10271f; border-left: 1px solid var(--dom-line); }
+.dominion-opponent { margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--dom-line); }
+.dominion-opponent h2 { margin: 0 0 9px; color: #e4d4a7; font-size: 14px; overflow-wrap: anywhere; }
+.dominion-opponent-hand { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 38px; margin-bottom: 9px; color: #b9c8b7; font-size: 12px; }
+.dominion-opponent-hand strong { color: #eeeede; font-size: 14px; }
+.dominion-opponent-card-backs { display: flex; flex-direction: row-reverse; justify-content: flex-end; padding-left: 9px; }
+.dominion-opponent-card-backs span { display: block; width: 24px; height: 34px; margin-left: -9px; border: 1px solid #b9b59d; border-radius: 2px; background: #376b60; box-shadow: inset 0 0 0 3px #244e45; }
+.dominion-opponent-counts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; color: #b9c8b7; font-size: 12px; }
+.dominion-opponent-counts span { display: flex; justify-content: space-between; gap: 4px; }
+.dominion-opponent-counts strong { color: #eeeede; font-size: 14px; }
 .dominion-card-tooltip { position: fixed; z-index: 100; width: min(300px, calc(100vw - 16px)); max-height: calc(100dvh - 16px); overflow: hidden; padding: 14px 16px; border: 3px solid; border-radius: 7px; color: #25352c; box-shadow: 0 8px 28px #0006; pointer-events: none; }
 .dominion-tooltip-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .dominion-cost { display: inline-flex; align-items: center; gap: 5px; min-height: 28px; color: #2c3525; font-weight: 700; font-size: 15px; }
@@ -84,6 +85,12 @@
 .dominion-help h2 { font-size: 20px; margin: 0; }
 .dominion-help ol { padding-left: 24px; }
 .dominion-confirm { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 16px; }
+.dominion-leave-dialog { width: min(360px, calc(100vw - 32px)); max-width: none; padding: 20px; border: 2px solid var(--dom-gold); border-radius: 8px; background: #183326; color: #eeeede; box-shadow: 0 18px 48px #0009; }
+.dominion-leave-dialog::backdrop { background: #000b; }
+.dominion-leave-dialog h2 { margin: 0 0 8px; font-size: 18px; }
+.dominion-leave-dialog p { margin: 0 0 18px; font-size: 14px; }
+.dominion-leave-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.dominion-leave-actions a { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 8px 15px; border: 1px solid #6c7662; border-radius: 4px; background: #233c31; color: #eeecda; text-decoration: none; }
 .dominion-result { display: flex; justify-content: center; align-items: center; min-height: 644px; padding: 24px 16px; background: radial-gradient(ellipse at top, #315841, #17372b 75%); }
 .dominion-result-inner { width: 100%; max-width: 610px; text-align: center; }
 .dominion-eyebrow { color: #e3c98e; letter-spacing: 5px; font-size: 13px; }
@@ -100,35 +107,22 @@
 .dominion-result td, .dominion-result th { padding: 7px; border-bottom: 1px solid var(--dom-line); }
 @media (max-width: 1150px) {
   .dominion-layout { grid-template-columns: minmax(0, 1fr); }
-  .dominion-sidebar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 20px; border-left: 0; border-top: 1px solid var(--dom-line); }
+  .dominion-sidebar { border-left: 0; border-top: 1px solid var(--dom-line); }
+  .dominion-opponent-counts { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+  .dominion-opponent-counts span { gap: 6px; }
   .dominion-log-panel { margin-top: 0; }
   .dominion-log { height: 330px; }
-  .dominion-match { display: none; }
-  .dominion-header { justify-content: space-between; }
 }
 @media (max-width: 650px) {
-  .dominion-header { padding: 4px 8px; gap: 8px; flex-wrap: wrap; }
-  .dominion-crest { display: none; }
-  .dominion-brand h1 { font-size: 17px; letter-spacing: 2px; }
-  .dominion-header nav { gap: 4px; }
-  .dominion-header nav button, .dominion-header nav a { padding: 5px 7px; font-size: 12px; }
-  .dominion-header nav button, .dominion-header nav a { min-width: 32px; }
-  .dominion-menu-label { display: none; }
-  .dominion-status { padding: 5px 8px; }
-  .dominion-resources { gap: 12px; font-size: 12px; }
-  .dominion-resources strong { font-size: 20px; }
-  .dominion-phases { display: none; }
-  .dominion-sidebar { grid-template-columns: minmax(0, 1fr); padding: 16px; }
-  .dominion-buttons { width: 100%; }
-  .dominion-buttons button { flex: 1 1 120px; }
-  .dominion-controls { padding: 6px 8px; }
+  .dominion-status { flex-wrap: wrap; gap: 4px; padding: 4px; overflow: visible; }
+  .dominion-canvas { height: max(1060px, calc(100dvh - 76px)); }
+  .dominion-sidebar { padding: 16px; }
   .dominion-scores { gap: 10px; }
   .dominion-scores > div { padding: 15px 8px; }
   .dominion-result h2 { font-size: 26px; }
 }
 
 .dominion-choice-panel { padding: 12px; background: #233e30; border-top: 2px solid var(--dom-gold); }
-.dominion-choice-panel > p { margin: 0 0 10px; line-height: 1.8; }
 .dominion-choice-cards { display: flex; gap: 10px; overflow: auto; max-height: 190px; padding: 4px; }
 .dominion button.dominion-choice-card { display: flex; flex: 0 0 150px; flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px; border-width: 3px; color: #25352c; }
 .dominion-choice-card > span { font-size: 13px; }
