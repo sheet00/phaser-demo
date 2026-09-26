@@ -55,7 +55,7 @@
 .dominion-phases { display: flex; gap: 10px; color: #829c8d; font-size: 13px; }
 .dominion-phases .active { color: #f0d699; }
 .dominion-table-scroll { position: relative; overflow: auto; background: #173f35; }
-.dominion-canvas { width: 100%; min-width: 960px; height: max(644px, calc(100dvh - 150px)); }
+.dominion-canvas { width: 100%; min-width: 960px; height: max(1000px, calc(100dvh - 150px)); }
 .dominion-canvas canvas { display: block; image-rendering: auto; }
 .dominion-loading { position: absolute; inset: 0; display: grid; place-items: center; background: #173f35; color: #e7d5a8; pointer-events: none; }
 .dominion-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; padding: 6px 12px; min-height: 54px; border-top: 1px solid #5c674d; background: #132d24; }
