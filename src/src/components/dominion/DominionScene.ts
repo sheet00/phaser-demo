@@ -29,12 +29,18 @@ const SEASIDE_ART: CardId[] = [
   "island",
   "lookout",
 ];
+const SEASIDE_ART_SET = new Set<CardId>(SEASIDE_ART);
 const BASE_ART = new Set<CardId>([...BASE, ...KINGDOM, ...SEASIDE_ART]);
 const ART_FILES: Partial<Record<CardId, string>> = {
   curse: "curse-v5",
   merchant: "merchant-v2",
   militia: "militia-v2",
 };
+
+function getCardAssetFolder(id: CardId): string {
+  if (SEASIDE_ART_SET.has(id)) return "seaside";
+  return "base";
+}
 const BASIC_DISPLAY: CardId[] = [
   "copper",
   "silver",
@@ -131,7 +137,8 @@ export class DominionScene extends Phaser.Scene {
     );
     for (const id of BASE_ART) {
       const file = ART_FILES[id] ?? id;
-      this.load.image(`dominion-${id}-art`, `${assets}dominion/${file}.png`);
+      const folder = getCardAssetFolder(id);
+      this.load.image(`dominion-${id}-art`, `${assets}dominion/${folder}/${file}.png`);
     }
     for (const [key, file] of Object.entries(SOUND_FILES)) {
       this.load.audio(`dominion-${key}`, `${assets}${file}`);
