@@ -1,10 +1,9 @@
 import { CARDS, hasType } from '../cards.ts';
 import type { CardId } from '../cards.ts';
 import type { Card, GameState, PlayerId, Command } from '../engine.ts';
+import { otherPlayers, previousPlayer } from '../engine.ts';
 import type { ExpansionAPI, ExpansionPending, ExpansionTask } from './types.ts';
 import { SEASIDE_KINGDOM } from './seasideCards.ts';
-
-const other = (who: PlayerId): PlayerId => who === 0 ? 1 : 0;
 
 function ask(state: GameState, task: ExpansionTask, zone: ExpansionPending['zone'], choices: string[], message: string, optional = false, options: ExpansionPending['options'] = []) {
   if (!choices.length && !optional) return;
@@ -140,7 +139,12 @@ export function seasideEffect(state: GameState, api: ExpansionAPI, task: Expansi
   if (step === 'treasuryEnd') return true;
   if (step !== 'play' && step !== 'afterReaction') return false;
 
-  const attack = (card: 'cutpurse' | 'corsair' | 'seaWitch') => state.effects.unshift({ kind: 'attack', player: other(who), card });
+  const attack = (card: 'cutpurse' | 'corsair' | 'seaWitch') => {
+    const targets = otherPlayers(state, who);
+    for (let i = targets.length - 1; i >= 0; i--) {
+      state.effects.unshift({ kind: 'attack', player: targets[i], card });
+    }
+  };
   switch (source) {
     case 'bazaar': api.draw(state, who, 1); state.actions += 2; state.coins++; break;
     case 'blockade': supplyChoice(state, api, { ...task, step: 'blockadeGain' }, id => api.cost(state, id) <= 4, '封鎖：4コスト以下のカードを獲得。'); break;
@@ -198,7 +202,8 @@ export function seasideEffect(state: GameState, api: ExpansionAPI, task: Expansi
     }
     case 'seaWitch': api.draw(state, who, 2); api.duration(state, who, source, uid!); attack(source); break;
     case 'smugglers': {
-      const candidateIds = [...new Set(state.players[other(who)].lastTurnGains)]
+      const prev = previousPlayer(state, who);
+      const candidateIds = [...new Set(state.players[prev].lastTurnGains)]
         .filter(id => api.cost(state, id) <= 6 && state.supply[id] > 0);
       supplyChoice(state, api, { ...task, step: 'smugglersGain' }, id => candidateIds.includes(id), '密輸人：右隣が前のターンに獲得したカードを選択。');
       break;
@@ -336,18 +341,22 @@ export function seasideChoice(state: GameState, api: ExpansionAPI, pending: Expa
 }
 
 export function seasideOnGain(state: GameState, api: ExpansionAPI, who: PlayerId, gained: Card) {
-  for (const owner of [0, 1] as const) {
+  for (let owner = 0; owner < state.players.length; owner++) {
     if (owner !== who) {
       const blockades = state.players[owner].blockadeMat.filter(entry => entry.card.id === gained.id);
       for (let index = 0; index < blockades.length; index++) api.gain(state, who, 'curse');
     }
   }
-  for (const owner of [0, 1] as const) {
-    if (owner !== who && state.players[owner].durations.some(entry => entry.source === 'monkey')) api.draw(state, owner, 1);
+  for (let owner = 0; owner < state.players.length; owner++) {
+    if (who === previousPlayer(state, owner as PlayerId) && state.players[owner].durations.some(entry => entry.source === 'monkey')) {
+      api.draw(state, owner as PlayerId, 1);
+    }
   }
   if (hasType(gained.id, 'treasure')) {
-    for (const reactor of [0, 1] as const) {
-      if (state.players[reactor].hand.some(card => card.id === 'pirate')) state.effects.unshift({ kind: 'expansion', player: reactor, source: 'pirate', step: 'pirateReaction' });
+    for (let reactor = 0; reactor < state.players.length; reactor++) {
+      if (state.players[reactor].hand.some(card => card.id === 'pirate')) {
+        state.effects.unshift({ kind: 'expansion', player: reactor as PlayerId, source: 'pirate', step: 'pirateReaction' });
+      }
     }
   }
   if (hasType(gained.id, 'duration')) {
@@ -359,7 +368,7 @@ export function seasideOnGain(state: GameState, api: ExpansionAPI, who: PlayerId
 
 export function seasideOnTreasurePlayed(state: GameState, api: ExpansionAPI, who: PlayerId, card: Card) {
   if (card.id !== 'silver' && card.id !== 'gold') return;
-  for (const attacker of [0, 1] as const) {
+  for (let attacker = 0; attacker < state.players.length; attacker++) {
     const activeCorsairs = state.players[attacker].durations.filter(entry => entry.source === 'corsair').length;
     if (attacker === who || state.players[attacker].corsairUsed >= activeCorsairs) continue;
     state.players[attacker].corsairUsed++;

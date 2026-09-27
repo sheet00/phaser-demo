@@ -1,10 +1,16 @@
 import { BASE, KINGDOM } from './cards';
 import type { CardDefinition, CardId } from './cards';
 import { SEASIDE_KINGDOM } from './expansions/seasideCards';
+import { INTRIGUE_KINGDOM } from './expansions/intrigueCards';
+import { ALCHEMY_KINGDOM } from './expansions/alchemyCards';
 
 export const SEASIDE_ART_IDS: CardId[] = [...SEASIDE_KINGDOM];
 export const SEASIDE_ART_SET = new Set<CardId>(SEASIDE_ART_IDS);
-export const BASE_ART_SET = new Set<CardId>([...BASE, ...KINGDOM, ...SEASIDE_ART_IDS]);
+export const INTRIGUE_ART_IDS: CardId[] = [...INTRIGUE_KINGDOM];
+export const INTRIGUE_ART_SET = new Set<CardId>(INTRIGUE_ART_IDS);
+export const ALCHEMY_ART_IDS: CardId[] = ['potion', ...ALCHEMY_KINGDOM];
+export const ALCHEMY_ART_SET = new Set<CardId>(ALCHEMY_ART_IDS);
+export const BASE_ART_SET = new Set<CardId>([...BASE, ...KINGDOM, ...SEASIDE_ART_IDS, ...INTRIGUE_ART_IDS, ...ALCHEMY_ART_IDS]);
 
 export const ART_FILES: Partial<Record<CardId, string>> = {
   curse: 'curse-v5',
@@ -13,6 +19,8 @@ export const ART_FILES: Partial<Record<CardId, string>> = {
 
 export function getCardAssetFolder(id: CardId): string {
   if (SEASIDE_ART_SET.has(id)) return 'seaside';
+  if (INTRIGUE_ART_SET.has(id)) return 'intrigue';
+  if (ALCHEMY_ART_SET.has(id)) return 'alchemy';
   return 'base';
 }
 

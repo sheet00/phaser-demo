@@ -52,10 +52,10 @@ function visiblePending(pending: Pending | null, seat: PlayerId): Pending | null
 export function projectGame(state: GameState, seat: PlayerId): GameState {
   if (state.phase === 'ended') return state;
   return {
-    players: [visiblePlayer(state.players[0], seat === 0), visiblePlayer(state.players[1], seat === 1)],
+    players: state.players.map((p, i) => visiblePlayer(p, seat === i)),
     active: state.active, phase: state.phase, actions: state.actions, buys: state.buys, coins: state.coins,
     bought: state.bought, merchants: 0, costReduction: state.costReduction, actionsPlayed: state.actionsPlayed,
-    masqueradePass: [null, null], silverPlayed: state.silverPlayed, lastTurnPlayer: state.lastTurnPlayer,
+    masqueradePass: state.players.map(() => null), silverPlayed: state.silverPlayed, lastTurnPlayer: state.lastTurnPlayer,
     extraTurnRequested: false, isExtraTurn: state.isExtraTurn, nextHandSize: 0, victoryGainedThisBuy: false,
     supply: state.supply, kingdom: state.kingdom, effects: [], trash: state.trash,
     potions: state.potions, potionsPlayed: state.potionsPlayed,

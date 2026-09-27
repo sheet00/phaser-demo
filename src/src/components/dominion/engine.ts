@@ -6,7 +6,7 @@ import { seasideEffect, seasideChoice, seasideBot, seasideOnGain, seasideOnTreas
 import { alchemyEffect, alchemyChoice, alchemyBot } from './expansions/alchemy.ts';
 import { ALCHEMY_KINGDOM } from './expansions/alchemyCards.ts';
 
-export type PlayerId = 0 | 1;
+export type PlayerId = number;
 export interface Card { uid: number; id: CardId }
 export interface DurationEntry { uid: number; source: CardId }
 export interface Player {
@@ -54,7 +54,7 @@ type Effect =
   | { kind: 'library' | 'topdeck'; player: PlayerId };
 
 export interface GameState {
-  players: [Player, Player];
+  players: Player[];
   active: PlayerId;
   phase: 'action' | 'buy' | 'ended';
   actions: number;
@@ -66,7 +66,7 @@ export interface GameState {
   merchants: number;
   costReduction: number;
   actionsPlayed: number;
-  masqueradePass: [Card | null, Card | null];
+  masqueradePass: (Card | null)[];
   silverPlayed: boolean;
   lastTurnPlayer: PlayerId;
   extraTurnRequested: boolean;
@@ -188,32 +188,59 @@ function startTurn(state: GameState) {
     : `── ${player.name}：ターン ${player.turns} ──`);
 }
 
-export function createGame(seed = Date.now(), kingdom?: readonly CardId[], pool: readonly CardId[] = KINGDOM): GameState {
+export function createGame(
+  seed = Date.now(),
+  kingdom?: readonly CardId[],
+  pool: readonly CardId[] = KINGDOM,
+  playerNames: readonly string[] = ['あなた', 'CPU'],
+): GameState {
   if (kingdom && (kingdom.length !== 10 || new Set(kingdom).size !== 10 || kingdom.some(id => !ALL_KINGDOM.includes(id)))) {
     throw new Error("王国カードは重複のない10種類を指定してください。");
   }
   if (pool.length < 10 || new Set(pool).size !== pool.length || pool.some(id => !ALL_KINGDOM.includes(id))) throw new Error('抽選対象の王国カードが不正です。');
-  const player = (name: string): Player => ({ name, deck: [], hand: [], discard: [], played: [], aside: [], islandMat: [], nativeVillageMat: [], blockadeMat: [], havenMat: [], durations: [], durationResolvedThisTurn: [], gainsThisTurn: [], lastTurnGains: [], sailorUsed: [], sailorGainedUsed: [], corsairUsed: 0, outpostPlayed: false, turns: 0 });
+  const playerCount = Math.max(2, Math.min(6, playerNames.length));
+  const names = playerNames.slice(0, playerCount);
+  const player = (name: string): Player => ({
+    name, deck: [], hand: [], discard: [], played: [], aside: [],
+    islandMat: [], nativeVillageMat: [], blockadeMat: [], havenMat: [],
+    durations: [], durationResolvedThisTurn: [], gainsThisTurn: [], lastTurnGains: [],
+    sailorUsed: [], sailorGainedUsed: [], corsairUsed: 0, outpostPlayed: false, turns: 0,
+  });
   const supply = Object.fromEntries(ALL_CARDS.map(id => [id, 0])) as Record<CardId, number>;
-  Object.assign(supply, { copper: 46, silver: 40, gold: 30, estate: 8, duchy: 8, province: 8, curse: 10 });
+  const provinceCount = playerCount <= 4 ? (playerCount === 2 ? 8 : 12) : playerCount * 3;
+  const victoryCount = playerCount === 2 ? 8 : 12;
+  const curseCount = (playerCount - 1) * 10;
+  Object.assign(supply, {
+    copper: 60,
+    silver: 40,
+    gold: 30,
+    estate: victoryCount,
+    duchy: victoryCount,
+    province: provinceCount,
+    curse: curseCount,
+  });
   const state: GameState = {
-    players: [player('あなた'), player('CPU')], active: 0, phase: 'action', actions: 1, buys: 1, coins: 0,
+    players: names.map(name => player(name)),
+    active: 0, phase: 'action', actions: 1, buys: 1, coins: 0,
     potions: 0, potionsPlayed: false,
-    bought: false, merchants: 0, costReduction: 0, actionsPlayed: 0, masqueradePass: [null, null], silverPlayed: false, lastTurnPlayer: 0, extraTurnRequested: false, isExtraTurn: false, nextHandSize: 5, victoryGainedThisBuy: false, supply, kingdom: [], effects: [], trash: [], pending: null, log: [], nextLog: 1,
+    bought: false, merchants: 0, costReduction: 0, actionsPlayed: 0,
+    masqueradePass: names.map(() => null),
+    silverPlayed: false, lastTurnPlayer: 0, extraTurnRequested: false, isExtraTurn: false,
+    nextHandSize: 5, victoryGainedThisBuy: false, supply, kingdom: [], effects: [], trash: [], pending: null, log: [], nextLog: 1,
     nextUid: 1, seed: (seed >>> 0) || 1, winner: null, endReason: '',
   };
   const candidates = [...pool];
   shuffle(state, candidates);
   state.kingdom = (kingdom ? [...kingdom] : candidates.slice(0, 10))
     .sort((a, b) => CARDS[a].cost - CARDS[b].cost || ALL_KINGDOM.indexOf(a) - ALL_KINGDOM.indexOf(b));
-  for (const id of state.kingdom) state.supply[id] = hasType(id, 'victory') ? 8 : 10;
+  for (const id of state.kingdom) state.supply[id] = hasType(id, 'victory') ? victoryCount : 10;
   const hasPotionCards = state.kingdom.some(id => (CARDS[id].potions ?? 0) > 0 || ALCHEMY_KINGDOM.includes(id as any));
   if (hasPotionCards) {
     state.supply.potion = 16;
   }
-  state.active = random(state) < 0.5 ? 0 : 1;
+  state.active = Math.floor(random(state) * playerCount) as PlayerId;
   state.lastTurnPlayer = state.active;
-  for (const who of [0, 1] as const) {
+  for (let who = 0; who < playerCount; who++) {
     for (let i = 0; i < 10; i++) state.players[who].deck.push({ uid: state.nextUid++, id: i < 7 ? 'copper' : 'estate' });
     shuffle(state, state.players[who].deck);
     draw(state, who, 5);
@@ -297,7 +324,29 @@ function gainPrompt(state: GameState, player: PlayerId, maxCost: number, treasur
   }
 }
 
-function opponent(who: PlayerId): PlayerId { return who === 0 ? 1 : 0; }
+export function otherPlayers(state: GameState, who: PlayerId): PlayerId[] {
+  const result: PlayerId[] = [];
+  const n = state.players.length;
+  for (let i = 1; i < n; i++) {
+    result.push(((who + i) % n) as PlayerId);
+  }
+  return result;
+}
+
+export function previousPlayer(state: GameState, who: PlayerId): PlayerId {
+  const n = state.players.length;
+  return ((who - 1 + n) % n) as PlayerId;
+}
+
+export function nextPlayer(state: GameState, who: PlayerId): PlayerId {
+  const n = state.players.length;
+  return ((who + 1) % n) as PlayerId;
+}
+
+function opponent(who: PlayerId, state?: GameState): PlayerId {
+  if (state) return nextPlayer(state, who);
+  return who === 0 ? 1 : 0;
+}
 
 function moveCard(state: GameState, who: PlayerId, from: 'hand' | 'discard' | 'aside' | 'played' | 'trash', uid: number, to: 'deck' | 'discard' | 'hand' | 'played' | 'trash' | 'island') {
   const player = state.players[who];
@@ -339,7 +388,12 @@ function actionEffect(state: GameState, who: PlayerId, id: CardId, uid?: number)
   log(state, `${player.name}：${CARDS[id].name}を使用。`);
   state.actionsPlayed++;
   if (expansionEffect(state, { player: who, source: id, step: 'play', uid })) return;
-  const attack = (card: Attack) => state.effects.unshift({ kind: 'attack', player: opponent(who), card });
+  const attack = (card: Attack) => {
+    const targets = otherPlayers(state, who);
+    for (let i = targets.length - 1; i >= 0; i--) {
+      state.effects.unshift({ kind: 'attack', player: targets[i], card });
+    }
+  };
   switch (id) {
     case 'village': state.actions += 2; draw(state, who, 1); break;
     case 'smithy': draw(state, who, 3); break;
@@ -388,7 +442,11 @@ function actionEffect(state: GameState, who: PlayerId, id: CardId, uid?: number)
     case 'bandit': gain(state, who, 'gold'); attack(id); break;
     case 'festival': state.actions += 2; state.buys++; state.coins += 2; break;
     case 'laboratory': draw(state, who, 2); state.actions++; break;
-    case 'councilRoom': draw(state, who, 4); state.buys++; draw(state, opponent(who), 1); break;
+    case 'councilRoom':
+      draw(state, who, 4);
+      state.buys++;
+      otherPlayers(state, who).forEach(target => draw(state, target, 1));
+      break;
     case 'witch': draw(state, who, 2); attack(id); break;
     case 'artisan':
       state.effects.unshift({ kind: 'topdeck', player: who });
@@ -554,20 +612,22 @@ function cleanupTurn(state: GameState) {
   state.nextHandSize = extraTurn ? 3 : 5;
   draw(state, state.active, state.nextHandSize);
   const empty = emptyPiles(state);
-  if (state.supply.province === 0 || empty >= 3) {
+  const requiredEmpty = state.players.length >= 5 ? 4 : 3;
+  if (state.supply.province === 0 || empty >= requiredEmpty) {
     state.phase = 'ended';
-    state.endReason = state.supply.province === 0 ? '属州の山が空になりました。' : 'サプライの3山が空になりました。';
-    const difference = score(state.players[0]) - score(state.players[1]);
-    const fewerTurns = state.players[1].turns - state.players[0].turns;
-    const comparison = difference || fewerTurns;
-    state.winner = comparison > 0 ? 0 : comparison < 0 ? 1 : 'tie';
+    state.endReason = state.supply.province === 0 ? '属州の山が空になりました。' : `サプライの${requiredEmpty}山が空になりました。`;
+    const scores = state.players.map((p, i) => ({ player: i as PlayerId, score: score(p), turns: p.turns }));
+    scores.sort((a, b) => b.score - a.score || a.turns - b.turns);
+    const top = scores[0];
+    const isTie = scores.length > 1 && scores[1].score === top.score && scores[1].turns === top.turns;
+    state.winner = isTie ? 'tie' : top.player;
     log(state, state.endReason);
     return;
   }
   state.lastTurnPlayer = state.active;
   if (extraTurn) state.isExtraTurn = true;
   else {
-    state.active = state.active === 0 ? 1 : 0;
+    state.active = ((state.active + 1) % state.players.length) as PlayerId;
     state.isExtraTurn = false;
   }
   startTurn(state);
@@ -772,10 +832,16 @@ export function reduceGame(previous: GameState, actor: PlayerId, command: Comman
       else if (pending?.kind === 'reaction' && !pending.blocked) resolveAttack(state, actor, pending.attack);
       break;
     case 'end-turn': endTurn(state); break;
-    case 'resign':
-      state.phase = 'ended'; state.pending = null; state.effects = []; state.winner = actor === 0 ? 1 : 0;
+    case 'resign': {
+      state.phase = 'ended'; state.pending = null; state.effects = [];
+      const remaining = state.players
+        .map((p, i) => ({ player: i as PlayerId, score: score(p), turns: p.turns }))
+        .filter(entry => entry.player !== actor);
+      remaining.sort((a, b) => b.score - a.score || a.turns - b.turns);
+      state.winner = remaining[0]?.player ?? null;
       state.endReason = `${player.name}が投了しました。`; log(state, state.endReason);
       break;
+    }
   }
   resolveEffects(state);
   return state;

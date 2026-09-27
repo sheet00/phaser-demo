@@ -1,10 +1,9 @@
 import { CARDS, hasType } from '../cards.ts';
 import type { CardId } from '../cards.ts';
 import type { Card, Command, GameState, PlayerId } from '../engine.ts';
+import { otherPlayers } from '../engine.ts';
 import type { ExpansionAPI, ExpansionPending, ExpansionTask } from './types.ts';
 import { ALCHEMY_KINGDOM } from './alchemyCards.ts';
-
-const other = (player: PlayerId): PlayerId => (player === 0 ? 1 : 0);
 const queue = (state: GameState, task: ExpansionTask) => state.effects.unshift({ kind: 'expansion', ...task });
 
 function ask(
@@ -150,11 +149,14 @@ export function alchemyEffect(state: GameState, api: ExpansionAPI, task: Expansi
       }
       case 'scryingPool': {
         state.actions += 1;
-        state.effects.unshift({
-          kind: 'attack',
-          player: other(who),
-          card: 'scryingPool' as any,
-        });
+        const targets = otherPlayers(state, who);
+        for (let i = targets.length - 1; i >= 0; i--) {
+          state.effects.unshift({
+            kind: 'attack',
+            player: targets[i],
+            card: 'scryingPool' as any,
+          });
+        }
         const selfTop = api.takeTop(state, who);
         if (selfTop) {
           player.aside.push(selfTop);
@@ -176,11 +178,14 @@ export function alchemyEffect(state: GameState, api: ExpansionAPI, task: Expansi
       case 'familiar': {
         api.draw(state, who, 1);
         state.actions += 1;
-        state.effects.unshift({
-          kind: 'attack',
-          player: other(who),
-          card: 'familiar' as any,
-        });
+        const targets = otherPlayers(state, who);
+        for (let i = targets.length - 1; i >= 0; i--) {
+          state.effects.unshift({
+            kind: 'attack',
+            player: targets[i],
+            card: 'familiar' as any,
+          });
+        }
         api.log(state, `${player.name}：使い魔で1枚引き、+1アクション。`);
         break;
       }

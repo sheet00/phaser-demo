@@ -1,6 +1,7 @@
 import { ALL_CARDS, CARDS, cardTypes, hasType } from '../cards.ts';
 import type { CardId } from '../cards.ts';
 import type { Card, Command, GameState, PlayerId } from '../engine.ts';
+import { otherPlayers } from '../engine.ts';
 import type { ExpansionAPI, ExpansionPending, ExpansionTask } from './types.ts';
 import { INTRIGUE_KINGDOM } from './intrigueCards.ts';
 
@@ -67,14 +68,16 @@ export function intrigueEffect(state: GameState, api: ExpansionAPI, task: Expans
   }
   if (step === 'masqueradeFinish') {
     const passed = state.masqueradePass;
-    for (const from of [0, 1] as const) {
+    const n = state.players.length;
+    for (let from = 0; from < n; from++) {
       const card = passed[from];
       if (card) {
+        const to = (from + 1) % n;
         const index = state.players[from].aside.findIndex(entry => entry.uid === card.uid);
-        if (index >= 0) state.players[other(from)].hand.push(...state.players[from].aside.splice(index, 1));
+        if (index >= 0) state.players[to].hand.push(...state.players[from].aside.splice(index, 1));
       }
     }
-    state.masqueradePass = [null, null];
+    state.masqueradePass = state.players.map(() => null);
     handChoice(state, { ...task, step: 'optionalTrash' }, '任意で手札1枚を廃棄。', true);
     return true;
   }
@@ -83,11 +86,19 @@ export function intrigueEffect(state: GameState, api: ExpansionAPI, task: Expans
     return true;
   }
   if (step === 'play' && (source === 'minion' || source === 'replace')) {
-    state.effects.unshift({ kind: 'attack', player: other(who), card: source, resume: { ...task, step: 'afterReaction' } });
+    const targets = otherPlayers(state, who);
+    for (let i = targets.length - 1; i >= 0; i--) {
+      state.effects.unshift({ kind: 'attack', player: targets[i], card: source, resume: { ...task, step: 'afterReaction' } });
+    }
     return true;
   }
   if (step === 'play' || step === 'afterReaction') {
-    const attack = (card: 'swindler' | 'minion' | 'replace' | 'torturer') => state.effects.unshift({ kind: 'attack', player: other(who), card });
+    const attack = (card: 'swindler' | 'minion' | 'replace' | 'torturer') => {
+      const targets = otherPlayers(state, who);
+      for (let i = targets.length - 1; i >= 0; i--) {
+        state.effects.unshift({ kind: 'attack', player: targets[i], card });
+      }
+    };
     switch (source) {
       case 'courtyard': api.draw(state, who, 3); state.effects.unshift({ kind: 'topdeck', player: who }); break;
       case 'lurker': state.actions++; options(state, { ...task, step: 'lurkerChoice' }, [['trash', 'サプライのアクションを廃棄'], ['gain', '廃棄置き場のアクションを獲得']], '待ち伏せの効果を選択。'); break;
@@ -96,8 +107,9 @@ export function intrigueEffect(state: GameState, api: ExpansionAPI, task: Expans
         api.draw(state, who, 2);
         queue(state, { ...task, step: 'masqueradeFinish' });
         if (state.players.every(entry => entry.hand.length > 0)) {
-          queue(state, { ...task, player: other(who), step: 'masqueradePass' });
-          queue(state, { ...task, step: 'masqueradePass' });
+          for (let p = state.players.length - 1; p >= 0; p--) {
+            queue(state, { ...task, player: p as PlayerId, step: 'masqueradePass' });
+          }
         }
         break;
       case 'shantyTown': state.actions += 2; revealHand(state, api, who); if (!player.hand.some(card => hasType(card.id, 'action'))) api.draw(state, who, 2); break;
