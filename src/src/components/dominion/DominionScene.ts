@@ -53,7 +53,7 @@ export const UI_SCALE_CONFIG: Record<
 > = {
   small: { multiplier: 0.85, minWidth: 720, minHeight: 620, label: "小" },
   medium: { multiplier: 1.0, minWidth: 800, minHeight: 700, label: "中" },
-  large: { multiplier: 1.25, minWidth: 960, minHeight: 780, label: "大" },
+  large: { multiplier: 1.25, minWidth: 960, minHeight: 840, label: "大" },
 };
 
 export const DOMINION_CANVAS_MIN_WIDTH = UI_SCALE_CONFIG.large.minWidth;
@@ -515,12 +515,14 @@ export class DominionScene extends Phaser.Scene {
 
     // サプライエリアUIの最下端（テキストが余裕を持って収まる縦幅）
     const supplyBottom = supplyTop + supplyCardHeight * 2 + supplyRowGap + supplyBottomPad;
-    const basicPanelHeight = supplyBottom - 6;
-    const basicAvailableHeight = basicPanelHeight - supplyTop - Math.round(8 * scale);
-    const basicRowStep = Math.max(
-      basicCardHeight + Math.max(4, Math.round(6 * scale)),
-      Math.floor((basicAvailableHeight - basicCardHeight) / 2),
-    );
+
+    const basicTop = supplyTop;
+    const basicRowGap = Math.max(4, Math.round(6 * scale));
+    const basicRowStep = basicCardHeight + basicRowGap;
+    const basicRowCount = 3;
+    const basicCardsBottom = basicTop + (basicRowCount - 1) * basicRowStep + basicCardHeight;
+    const basicPanelPaddingBottom = Math.max(6, Math.round(8 * scale));
+    const basicPanelHeight = basicCardsBottom + basicPanelPaddingBottom - 6;
 
     this.panel(
       basicPanelLeft,
@@ -579,7 +581,7 @@ export class DominionScene extends Phaser.Scene {
         isThirdRow && basicCards.length === 7 ? 1 : index % 3;
       this.card(
         basicCardLeft + column * basicCardStep,
-        supplyTop + Math.floor(index / 3) * basicRowStep,
+        basicTop + Math.floor(index / 3) * basicRowStep,
         basicCardWidth,
         basicCardHeight,
         id,
@@ -611,11 +613,30 @@ export class DominionScene extends Phaser.Scene {
       );
     });
 
+    const sectionGap = Math.max(8, Math.round(12 * scale));
+
+    // 右側カラム：手札の配置計算（サプライの下から開始）
+    const handTop = supplyBottom + sectionGap;
+    const handLeft = basicPanelRight + 10;
+    const handWidth = width - handLeft - 8;
+    const handCardWidth = basicCardWidth;
+    const handCardHeight = basicCardHeight;
+    const slotCardWidth = handCardWidth + Math.max(4, Math.round(6 * scale));
+    const handActionAreaWidth = Math.max(140, Math.round(145 * scale));
+    const handAreaWidth = handWidth - handActionAreaWidth;
+    const slots = Math.max(1, Math.floor((handAreaWidth - 20) / slotCardWidth));
+    const pages = Math.max(1, Math.ceil(player.hand.length / slots));
+    this.handPage = Math.min(this.handPage, pages - 1);
+    const handHeight = handCardHeight + Math.round(46 * scale);
+
+    // 左側カラム：場の配置計算（基本カードパネルの下から開始し、手札下端・画面下端に合わせて大幅に拡大）
     const played = state.players[state.active].played;
-    const sectionGap = Math.max(10, Math.round(14 * scale));
-    const bottomAreaTop = supplyBottom + sectionGap;
-    const playedTop = bottomAreaTop;
-    const playedHeight = Math.min(Math.round(220 * scale), Math.max(160, height - playedTop - 12));
+    const playedTop = 6 + basicPanelHeight + sectionGap;
+    const bottomTarget = Math.max(handTop + handHeight, height - 12);
+    const playedHeight = Math.max(Math.round(280 * scale), bottomTarget - playedTop);
+    const isYourTurn = state.active === seat && state.phase !== "ended";
+    const activePlayer = state.players[state.active];
+
     this.panel(
       basicPanelLeft,
       playedTop,
@@ -623,17 +644,16 @@ export class DominionScene extends Phaser.Scene {
       playedHeight,
       0x0b251f,
       0.45,
-    ).setStrokeStyle(1, 0x496054);
+    ).setStrokeStyle(isYourTurn ? 2 : 1, isYourTurn ? 0xf5d47c : 0x496054);
     this.text(
       basicLeft,
       playedTop + 6,
-      `${state.players[state.active].name}の場`,
+      isYourTurn ? "あなたの場" : `${activePlayer.name}の場`,
       Math.round(13 * scale),
-      "#b9c8b7",
+      isYourTurn ? "#ffd875" : "#b9c8b7",
       true,
     );
 
-    const activePlayer = state.players[state.active];
     const mats = [
       activePlayer.islandMat.length &&
         `島：${activePlayer.islandMat.map((card) => CARDS[card.id].name).join("・")}`,
@@ -653,66 +673,65 @@ export class DominionScene extends Phaser.Scene {
       matBottom = playedTop + Math.round(22 * scale) + matText.height + 4;
     }
 
+    // 手番プレイヤーのリソースを表示（相手の手番中もコイン・アクション等を表示し状況を可視化）
     let resourceBottom = matBottom;
-    if (state.active === seat) {
-      const resourceTop = matBottom;
-      const resourceWidth = basicPanelWidth - 12;
-      const resourceLeft = basicPanelLeft + 6;
-      const resourceHeight = Math.round(42 * scale);
-      const hasPotionInGame = state.supply.potion !== undefined;
-      const resources = hasPotionInGame
-        ? ([
-            ["アクション", state.actions],
-            ["購入", state.buys],
-            ["コイン", state.coins],
-            ["ポーション", state.potions],
-          ] as const)
-        : ([
-            ["アクション", state.actions],
-            ["購入", state.buys],
-            ["コイン", state.coins],
-          ] as const);
-      const slotCount = resources.length;
-      const slotWidth = Math.floor(resourceWidth / slotCount);
+    const resourceTop = matBottom;
+    const resourceWidth = basicPanelWidth - 12;
+    const resourceLeft = basicPanelLeft + 6;
+    const resourceHeight = Math.round(42 * scale);
+    const hasPotionInGame = state.supply.potion !== undefined;
+    const resources = hasPotionInGame
+      ? ([
+          ["アクション", state.actions],
+          ["購入", state.buys],
+          ["コイン", state.coins],
+          ["ポーション", state.potions],
+        ] as const)
+      : ([
+          ["アクション", state.actions],
+          ["購入", state.buys],
+          ["コイン", state.coins],
+        ] as const);
+    const slotCount = resources.length;
+    const slotWidth = Math.floor(resourceWidth / slotCount);
+    this.panel(
+      resourceLeft,
+      resourceTop,
+      resourceWidth,
+      resourceHeight,
+      0x102d27,
+      0.95,
+    ).setStrokeStyle(1, isYourTurn ? 0x8fa88d : 0x657267);
+    for (let i = 1; i < slotCount; i++) {
       this.panel(
-        resourceLeft,
-        resourceTop,
-        resourceWidth,
-        resourceHeight,
-        0x102d27,
-        0.95,
-      ).setStrokeStyle(1, 0x657267);
-      for (let i = 1; i < slotCount; i++) {
-        this.panel(
-          resourceLeft + slotWidth * i,
-          resourceTop + 3,
-          1,
-          resourceHeight - 6,
-          0x496054,
-        );
-      }
-      resources.forEach(([label, value], index) => {
-        const center =
-          resourceLeft + Math.floor(slotWidth / 2) + index * slotWidth;
-        this.text(
-          center,
-          resourceTop + 3,
-          label,
-          Math.round((hasPotionInGame ? 9 : 10) * scale),
-          "#c1d0c2",
-          true,
-        ).setOrigin(0.5, 0);
-        this.text(
-          center,
-          resourceTop + Math.round(16 * scale),
-          String(value),
-          Math.round((hasPotionInGame ? 18 : 20) * scale),
-          "#f1deaa",
-          true,
-        ).setOrigin(0.5, 0);
-      });
-      resourceBottom = resourceTop + resourceHeight + 4;
+        resourceLeft + slotWidth * i,
+        resourceTop + 3,
+        1,
+        resourceHeight - 6,
+        0x496054,
+      );
     }
+    resources.forEach(([label, value], index) => {
+      const center =
+        resourceLeft + Math.floor(slotWidth / 2) + index * slotWidth;
+      this.text(
+        center,
+        resourceTop + 3,
+        label,
+        Math.round((hasPotionInGame ? 9 : 10) * scale),
+        "#c1d0c2",
+        true,
+      ).setOrigin(0.5, 0);
+      this.text(
+        center,
+        resourceTop + Math.round(16 * scale),
+        String(value),
+        Math.round((hasPotionInGame ? 18 : 20) * scale),
+        isYourTurn ? "#f1deaa" : "#d8dfd5",
+        true,
+      ).setOrigin(0.5, 0);
+    });
+    resourceBottom = resourceTop + resourceHeight + 4;
 
     const counts = new Map<CardId, number>();
     played.forEach((card) =>
@@ -722,7 +741,7 @@ export class DominionScene extends Phaser.Scene {
     const playedCardsTop = resourceBottom + 4;
     const availableHeight = playedTop + playedHeight - playedCardsTop;
     const playedRowStep = basicCardHeight + Math.max(3, Math.round(4 * scale));
-    const rows = Math.max(1, Math.min(2, Math.floor(availableHeight / playedRowStep)));
+    const rows = Math.max(1, Math.min(3, Math.floor(availableHeight / playedRowStep)));
     const playedSlots = rows * 3;
     const playedPages = Math.max(1, Math.ceil(groups.length / playedSlots));
     this.playedPage = Math.min(this.playedPage, playedPages - 1);
@@ -757,8 +776,8 @@ export class DominionScene extends Phaser.Scene {
     if (!played.length) {
       this.text(
         basicPanelLeft + basicPanelWidth / 2,
-        playedCardsTop + Math.round(24 * scale),
-        "使用したカードが\nここに並びます",
+        playedCardsTop + Math.round(32 * scale),
+        isYourTurn ? "使用したカードが\nここに並びます" : `${activePlayer.name}の使用カードが\nここに並びます`,
         Math.round(12 * scale),
         "#90ad9e",
       ).setOrigin(0.5);
@@ -781,22 +800,6 @@ export class DominionScene extends Phaser.Scene {
           },
         );
       });
-
-    const handTop = playedTop;
-    const handLeft = basicPanelRight + 10;
-    const handWidth = width - handLeft - 8;
-    const handCardWidth = basicCardWidth;
-    const handCardHeight = basicCardHeight;
-    const slotCardWidth = handCardWidth + Math.max(4, Math.round(6 * scale));
-    const handActionAreaWidth = Math.max(140, Math.round(145 * scale));
-    const handAreaWidth = handWidth - handActionAreaWidth;
-    const slots = Math.max(1, Math.floor((handAreaWidth - 20) / slotCardWidth));
-    const pages = Math.max(1, Math.ceil(player.hand.length / slots));
-    this.handPage = Math.min(this.handPage, pages - 1);
-
-    // 手札パネル高さ：カード高さ＋ヘッダー・余白のみのコンパクトな高さに引き締め
-    const handHeight = handCardHeight + Math.round(46 * scale);
-    const isYourTurn = state.active === seat && state.phase !== "ended";
 
     this.panel(handLeft, handTop, handWidth, handHeight, 0x0d2d26, 0.75)
       .setStrokeStyle(isYourTurn ? 2 : 1, isYourTurn ? 0xf5d47c : 0x496054);

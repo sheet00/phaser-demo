@@ -1,21 +1,8 @@
 import { BASE, KINGDOM } from './cards';
 import type { CardDefinition, CardId } from './cards';
+import { SEASIDE_KINGDOM } from './expansions/seasideCards';
 
-export const SEASIDE_ART_IDS: CardId[] = [
-  'fishingVillage',
-  'lighthouse',
-  'pirate',
-  'wharf',
-  'astrolabe',
-  'bazaar',
-  'blockade',
-  'caravan',
-  'corsair',
-  'cutpurse',
-  'haven',
-  'island',
-  'lookout',
-];
+export const SEASIDE_ART_IDS: CardId[] = [...SEASIDE_KINGDOM];
 export const SEASIDE_ART_SET = new Set<CardId>(SEASIDE_ART_IDS);
 export const BASE_ART_SET = new Set<CardId>([...BASE, ...KINGDOM, ...SEASIDE_ART_IDS]);
 
