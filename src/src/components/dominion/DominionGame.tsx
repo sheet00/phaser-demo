@@ -108,7 +108,7 @@ function CardTooltip({ inspection }: { inspection: CardInspection }) {
 }
 
 function ChoicePanel({ state, seat, canInput, send, onInspect }: {
-  state: GameState; seat: 0 | 1; canInput: boolean; send: (command: Command) => void; onInspect: (card: CardInspection | null) => void;
+  state: GameState; seat: import('./engine').PlayerId; canInput: boolean; send: (command: Command) => void; onInspect: (card: CardInspection | null) => void;
 }) {
   const pending = state.pending;
   const panelRef = useRef<HTMLElement>(null);
@@ -150,13 +150,19 @@ function doneLabel(state: GameState): string {
   }
 }
 
-function Result({ state, seat, restart, online }: { state: GameState; seat: 0 | 1; restart: () => void; online: boolean }) {
+function Result({ state, seat, restart, online }: { state: GameState; seat: import('./engine').PlayerId; restart: () => void; online: boolean }) {
   const titleRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => { titleRef.current?.focus(); }, []);
+  const winnerTitle =
+    state.winner === 'tie'
+      ? '引き分け'
+      : state.winner === seat
+        ? 'あなたの勝利'
+        : `${state.players[state.winner].name}の勝利`;
   return <section className="dominion-result" aria-labelledby="dominion-result-title">
     <div className="dominion-result-inner">
       <p className="dominion-eyebrow">GAME OVER</p>
-      <h2 id="dominion-result-title" ref={titleRef} tabIndex={-1}>{state.winner === 'tie' ? '引き分け' : state.winner === seat ? 'あなたの勝利' : online ? '相手の勝利' : 'CPUの勝利'}</h2>
+      <h2 id="dominion-result-title" ref={titleRef} tabIndex={-1}>{winnerTitle}</h2>
       <p>{state.endReason}</p>
       <div className="dominion-scores">{state.players.map((player, index) => <div key={index} className={state.winner === index ? 'winner' : ''}>
         <h3>{player.name}</h3><strong>{score(player)} <small>勝利点</small></strong><p>{player.turns}ターン · {owned(player).length}枚</p>
@@ -164,10 +170,10 @@ function Result({ state, seat, restart, online }: { state: GameState; seat: 0 | 
       <p className="dominion-muted">同点の場合は、手番数が少ないプレイヤーの勝利です。</p>
       <div className="dominion-result-actions"><button className="primary" onClick={restart}>{online ? '新しい対戦' : 'もう一度プレイ'}</button><Link to="/">ゲーム一覧へ</Link></div>
       <details><summary>最終デッキの内訳</summary>
-        <table><thead><tr><th>カード</th><th>あなた</th><th>{online ? '相手' : 'CPU'}</th></tr></thead><tbody>
+        <table><thead><tr><th>カード</th>{state.players.map((p, idx) => <th key={idx}>{idx === seat ? 'あなた' : p.name}</th>)}</tr></thead><tbody>
           {ALL_CARDS.map(id => {
             const counts = state.players.map(player => owned(player).filter(card => card.id === id).length);
-            return counts.some(Boolean) ? <tr key={id}><th>{CARDS[id].name}</th><td>{counts[seat]}</td><td>{counts[seat === 0 ? 1 : 0]}</td></tr> : null;
+            return counts.some(Boolean) ? <tr key={id}><th>{CARDS[id].name}</th>{counts.map((c, idx) => <td key={idx}>{c}</td>)}</tr> : null;
           })}
         </tbody></table>
       </details>
@@ -220,11 +226,13 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
   useEffect(() => {
     if (confirmResign || confirmLeave || help) return;
     if (store.online) return;
+    const inputP = store.getInputPlayer();
+    if (inputP === seat) return;
     const command = botCommand(state);
     if (!command) return;
-    const timer = window.setTimeout(() => store.dispatch(1, command), 550);
+    const timer = window.setTimeout(() => store.dispatch(inputP, command), 550);
     return () => window.clearTimeout(timer);
-  }, [state, store, confirmResign, confirmLeave, help]);
+  }, [state, store, confirmResign, confirmLeave, help, seat]);
 
   useEffect(() => {
     if (confirmLeave && !leaveDialogRef.current?.open) leaveDialogRef.current?.showModal();
@@ -246,7 +254,6 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
   }, []);
 
   const ended = state.phase === 'ended';
-  const opponentPlayer = state.players[seat === 0 ? 1 : 0];
   const hasChoicePanel = state.pending !== null && ['harbinger', 'vassal', 'library', 'sentry', 'bandit', 'expansion', 'durationOrder'].includes(state.pending.kind);
   const showPendingActions = state.pending && canInput && (!hasChoicePanel || canDone(state) || state.pending.kind === 'library' || state.pending.kind === 'vassal' || state.pending.kind === 'reaction');
 
@@ -255,8 +262,8 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
 
     {help && <section className="dominion-help">
       <h2>王国を育て、勝利点を集めよう</h2>
-      <ol><li>手札のアクションカードをクリックして使用します。</li><li>「購入へ」→「財宝を使用」でコインを用意します。</li><li>金色のサプライをクリックして購入。「ターン終了」で{store.online ? '相手' : 'CPU'}へ交代します。</li></ol>
-      <p>購入したカードは捨て札に入り、山札の補充後に引けるようになります。属州の山、またはサプライの3山が空になると、そのターンで終了。勝利点の多い方が勝ちです。</p>
+      <ol><li>手札のアクションカードをクリックして使用します。</li><li>「購入へ」→「財宝を使用」でコインを用意します。</li><li>金色のサプライをクリックして購入。「ターン終了」で{store.online ? '次のプレイヤー' : '次のCPU'}へ交代します。</li></ol>
+      <p>購入したカードは捨て札に入り、山札の補充後に引けるようになります。属州の山、またはサプライの{state.players.length >= 5 ? '4山' : '3山'}が空になると、そのターンで終了。勝利点の多い方が勝ちです。</p>
       <p>{store.mode === 'basic' ? '選んだカード群に対応したおすすめの10種類で遊びます。' : '選んだカード群から王国カード10種類をランダムに選びます。'}</p>
       <p>カードにマウスを重ねるか右クリックすると詳細を表示します。マウスを離すと説明が閉じます。</p>
       <button onClick={() => setHelp(false)}>ゲームに戻る</button>
@@ -276,12 +283,15 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
     <div className="dominion-layout">
       <section className="dominion-main" aria-label="対戦卓">
         <div className={`dominion-status ${state.active === seat ? 'your-turn' : ''}`}>
-          <span className={`dominion-turn ${state.active === seat ? 'your-turn' : ''}`}>{ended ? '終了' : `${store.online ? state.players[state.active].name : state.active === seat ? 'あなた' : 'CPU'} · ${state.players[state.active].turns}ターン目 · ${state.phase === 'action' ? 'アクション中' : '購入中'}`}</span>
+          <span className={`dominion-turn ${state.active === seat ? 'your-turn' : ''}`}>{ended ? '終了' : `${store.online ? state.players[state.active].name : state.active === seat ? 'あなた' : state.players[state.active].name} · ${state.players[state.active].turns}ターン目 · ${state.phase === 'action' ? 'アクション中' : '購入中'}`}</span>
           {state.active === seat && <span className="dominion-sr-only">アクション回数 {state.actions}、購入回数 {state.buys}、コイン合計 {state.coins}</span>}
           <div className="dominion-score-summary" aria-label="現在の得点状況">
-            <span>あなた: <strong>{score(state.players[seat])}</strong> 勝利点</span>
-            <span>／</span>
-            <span>{store.online ? opponentPlayer.name : 'CPU'}: <strong>{score(opponentPlayer)}</strong> 勝利点</span>
+            {state.players.map((p, idx) => (
+              <span key={idx} className={idx === state.active ? 'active-player' : ''}>
+                {idx === seat ? 'あなた' : p.name}: <strong>{score(p)}</strong>点
+                {idx < state.players.length - 1 && ' ／ '}
+              </span>
+            ))}
           </div>
           <nav className="dominion-menu" aria-label="ゲームメニュー">
             <div className="dominion-scale-group" role="group" aria-label="表示サイズ切り替え">
@@ -341,25 +351,30 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
           </div>
         </section>
 
-        <section className={`dominion-player-card ${state.active !== seat ? 'active-turn' : ''}`} aria-label="相手の状況">
-          <div className="dominion-player-header">
-            <h3>{store.online ? opponentPlayer.name : 'CPU'}</h3>
-            <div className="dominion-player-header-badges">
-              <span className="dominion-vp-badge">{score(opponentPlayer)} 勝利点</span>
-              {state.active !== seat && <span className="dominion-turn-indicator">手番中</span>}
-            </div>
-          </div>
-          <div className="dominion-player-hand">
-            <span>手札 <strong>{opponentPlayer.hand.length}枚</strong></span>
-            <div className="dominion-opponent-card-backs" aria-hidden="true">{Array.from({ length: Math.min(opponentPlayer.hand.length, 5) }, (_, index) => <span key={index} />)}</div>
-          </div>
-          <div className="dominion-player-counts">
-            <span>山札 <strong>{opponentPlayer.deck.length}</strong></span>
-            <span>捨て札 <strong>{opponentPlayer.discard.length}</strong></span>
-            {opponentPlayer.islandMat.length > 0 && <span>島 <strong>{opponentPlayer.islandMat.length}</strong></span>}
-            {opponentPlayer.nativeVillageMat.length > 0 && <span>村 <strong>{opponentPlayer.nativeVillageMat.length}</strong></span>}
-          </div>
-        </section>
+        {state.players.map((other, idx) => {
+          if (idx === seat) return null;
+          return (
+            <section key={idx} className={`dominion-player-card ${state.active === idx ? 'active-turn' : ''}`} aria-label={`${other.name}の状況`}>
+              <div className="dominion-player-header">
+                <h3>{other.name}</h3>
+                <div className="dominion-player-header-badges">
+                  <span className="dominion-vp-badge">{score(other)} 勝利点</span>
+                  {state.active === idx && <span className="dominion-turn-indicator">手番中</span>}
+                </div>
+              </div>
+              <div className="dominion-player-hand">
+                <span>手札 <strong>{other.hand.length}枚</strong></span>
+                <div className="dominion-opponent-card-backs" aria-hidden="true">{Array.from({ length: Math.min(other.hand.length, 5) }, (_, index) => <span key={index} />)}</div>
+              </div>
+              <div className="dominion-player-counts">
+                <span>山札 <strong>{other.deck.length}</strong></span>
+                <span>捨て札 <strong>{other.discard.length}</strong></span>
+                {other.islandMat.length > 0 && <span>島 <strong>{other.islandMat.length}</strong></span>}
+                {other.nativeVillageMat.length > 0 && <span>村 <strong>{other.nativeVillageMat.length}</strong></span>}
+              </div>
+            </section>
+          );
+        })}
 
         <section className="dominion-log-panel">
           <h2>直近の出来事</h2>
@@ -390,15 +405,33 @@ function OnlineMatch({ session, onLeave }: { session: OnlineSession; onLeave: ()
       <h1 id="online-lobby-title">対戦部屋</h1>
       {status.message && <p role="status">{status.message}</p>}
       {status.stage === 'lobby' && <>
-        <p>{status.seat === 0 ? '招待リンクを相手に送ってください。' : '部屋に参加しました。両者が準備完了すると対戦が始まります。'}</p>
+        <p>{status.seat === 0 ? `招待リンクを参加者に送ってください（全${status.playerCount}人）。` : '部屋に参加しました。全員が揃い準備完了すると対戦が始まります。'}</p>
         <p>使用セット：{store.expansions.map(id => id === 'base' ? '基本' : id === 'intrigue' ? '陰謀' : id === 'seaside' ? '海辺' : '錬金術').join('＋')} ／ {store.mode === 'basic' ? 'おすすめ' : 'ランダム'}</p>
         {store.mode === 'basic' && <p>王国カード：{store.basicKingdom.map(id => CARDS[id].name).join('・')}</p>}
         {status.seat === 0 && <><div className="dominion-invite"><input ref={inviteRef} readOnly value={invite} aria-label="招待リンク" onFocus={event => event.currentTarget.select()} /><button onClick={() => {
           if (!navigator.clipboard) { inviteRef.current?.select(); setCopyMessage('リンクを選択しました。コピーしてください。'); return; }
           void navigator.clipboard.writeText(invite).then(() => setCopyMessage('リンクをコピーしました。'), () => { inviteRef.current?.select(); setCopyMessage('リンクを選択しました。コピーしてください。'); });
         }}>リンクをコピー</button></div>{copyMessage && <p role="status">{copyMessage}</p>}</>}
-        <p>プレイヤー1：{status.names[0]}（{status.ready[0] ? '準備完了' : '待機中'}） ／ プレイヤー2：{status.names[1] ? `${status.names[1]}（${status.ready[1] ? '準備完了' : '待機中'}）` : '参加待ち'}</p>
-        <button className="primary" disabled={status.ready[status.seat]} onClick={() => store.ready()}>{status.ready[status.seat] ? '準備完了' : '準備完了にする'}</button>
+        <div className="dominion-lobby-players" role="list" aria-label="参加者一覧">
+          {Array.from({ length: status.playerCount }, (_, i) => {
+            const name = status.names[i];
+            const isReady = status.ready[i];
+            const isYou = status.seat === i;
+            const isConnected = status.connections?.[i] ?? false;
+            return (
+              <div key={i} className={`dominion-lobby-player ${isYou ? 'you' : ''}`} role="listitem">
+                <span className="dominion-lobby-slot">プレイヤー{i + 1}</span>
+                <span className="dominion-lobby-name">{name ? `${name}${isYou ? '（あなた）' : ''}` : '参加待ち…'}</span>
+                <span className={`dominion-lobby-badge ${!name ? 'waiting' : !isConnected ? 'disconnected' : isReady ? 'ready' : 'pending'}`}>
+                  {!name ? '空き' : !isConnected ? '切断中' : isReady ? '準備完了' : '待機中'}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <button className="primary" disabled={status.ready[status.seat]} onClick={() => store.ready()}>
+          {status.ready[status.seat] ? '準備完了（他のプレイヤーを待機中）' : '準備完了にする'}
+        </button>
       </>}
       <div className="dominion-result-actions"><button onClick={onLeave}>対戦準備に戻る</button><Link to="/">ゲーム一覧へ</Link></div>
     </section>
@@ -408,6 +441,7 @@ function OnlineMatch({ session, onLeave }: { session: OnlineSession; onLeave: ()
 export default function DominionGame() {
   const [mode, setMode] = useState<GameMode>('basic');
   const [expansions, setExpansions] = useState<ExpansionId[]>(['base']);
+  const [playerCount, setPlayerCount] = useState<number>(2);
   const [store, setStore] = useState<DominionStore | null>(null);
   const [opponent, setOpponent] = useState<'cpu' | 'friend'>('cpu');
   const roomId = new URLSearchParams(location.search).get('room');
@@ -420,7 +454,7 @@ export default function DominionGame() {
   const createRoom = async () => {
     setOnlineBusy(true); setOnlineError('');
     try {
-      const next = await createOnlineRoom(mode, expansions, playerName);
+      const next = await createOnlineRoom(mode, expansions, playerName, playerCount);
       localStorage.setItem('dominion-player-name', playerName.trim());
       history.replaceState(null, '', `/dominion?room=${next.roomId}`);
       setSession(next);
@@ -444,7 +478,7 @@ export default function DominionGame() {
   if (roomId) return <main className="dominion dominion-setup" style={{ fontFamily: FONT_FAMILY }}>
     <section className="dominion-setup-inner">
       <p className="dominion-eyebrow">ONLINE MATCH</p><h1>ドミニオンの対戦に参加</h1>
-      <p>招待された部屋のプレイヤー2として参加します。</p>
+      <p>招待された部屋の参加者として参加します。</p>
       <label className="dominion-player-name">プレイヤー名（1〜16文字）<input type="text" value={playerName} onChange={event => setPlayerName(event.target.value)} maxLength={PLAYER_NAME_MAX_LENGTH} autoComplete="nickname" placeholder="対戦で表示する名前" /></label>
       {onlineError && <p role="alert">{onlineError}</p>}
       <div className="dominion-result-actions"><button className="primary" disabled={onlineBusy || !validPlayerName} onClick={() => { void joinRoom(); }}>{onlineBusy ? '参加しています…' : '対戦部屋に参加'}</button><button onClick={leaveOnline}>対戦準備に戻る</button></div>
@@ -455,12 +489,27 @@ export default function DominionGame() {
     <section className="dominion-setup-inner" aria-labelledby="dominion-setup-title">
       <p className="dominion-eyebrow">DOMINION</p>
       <h1 id="dominion-setup-title">対戦の準備</h1>
-      <p className="dominion-muted">対戦相手と、使用するセット・カードの選び方を選択</p>
+      <p className="dominion-muted">対戦相手と、参加人数、使用するセット・カードの選び方を選択</p>
       <fieldset className="dominion-mode-options"><legend>対戦相手</legend>
         <label className={opponent === 'cpu' ? 'selected' : ''}><input type="radio" name="opponent" checked={opponent === 'cpu'} onChange={() => setOpponent('cpu')} /><span>CPUと対戦</span></label>
         <label className={opponent === 'friend' ? 'selected' : ''}><input type="radio" name="opponent" checked={opponent === 'friend'} onChange={() => setOpponent('friend')} /><span>友達とネット対戦</span></label>
       </fieldset>
       {opponent === 'friend' && <label className="dominion-player-name">プレイヤー名（1〜16文字）<input type="text" value={playerName} onChange={event => setPlayerName(event.target.value)} maxLength={PLAYER_NAME_MAX_LENGTH} autoComplete="nickname" placeholder="対戦で表示する名前" /></label>}
+      <fieldset className="dominion-mode-options">
+        <legend>参加人数</legend>
+        {([2, 3, 4, 5, 6] as const).map(count => (
+          <label key={count} className={playerCount === count ? 'selected' : ''}>
+            <input
+              type="radio"
+              name="player-count"
+              value={count}
+              checked={playerCount === count}
+              onChange={() => setPlayerCount(count)}
+            />
+            <span>{count}人</span>
+          </label>
+        ))}
+      </fieldset>
       <fieldset className="dominion-mode-options">
         <legend>使用するセット</legend>
         {([['base', '基本 · 26種類'], ['intrigue', '陰謀（拡張） · 26種類'], ['seaside', '海辺（拡張） · 27種類'], ['alchemy', '錬金術（拡張） · 12種類']] as const).map(([id, label]) => <label key={id} className={expansions.includes(id) ? 'selected' : ''}>
@@ -489,7 +538,7 @@ export default function DominionGame() {
           : <><h2>毎回違う組み合わせ</h2><p>対戦を始めるたびに、選択したセットから重複のない10種類をランダムで選びます。</p></>}
       </div>
       <div className="dominion-result-actions">
-        <button className="primary" disabled={!expansions.length || onlineBusy || (opponent === 'friend' && !validPlayerName)} onClick={() => { if (opponent === 'friend') void createRoom(); else setStore(createStore(mode, expansions)); }}>{onlineBusy ? '部屋を作成しています…' : opponent === 'friend' ? '対戦部屋を作る' : '対戦を始める'}</button>
+        <button className="primary" disabled={!expansions.length || onlineBusy || (opponent === 'friend' && !validPlayerName)} onClick={() => { if (opponent === 'friend') void createRoom(); else setStore(createStore(mode, expansions, playerCount)); }}>{onlineBusy ? '部屋を作成しています…' : opponent === 'friend' ? '対戦部屋を作る' : '対戦を始める'}</button>
         <Link to="/">ゲーム一覧へ</Link>
       </div>
       {onlineError && <p role="alert">{onlineError}</p>}

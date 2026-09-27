@@ -20,17 +20,17 @@ import type {
   GameMode,
 } from "../src/components/dominion/store.ts";
 
-type Setup = { mode: GameMode; expansions: ExpansionId[] };
+type Setup = { mode: GameMode; expansions: ExpansionId[]; playerCount: number };
 type Room = {
   setup: Setup;
-  names: [string, string | null];
-  seatHashes: [string, string | null];
-  connectionIds: [string | null, string | null];
-  ready: [boolean, boolean];
+  names: (string | null)[];
+  seatHashes: (string | null)[];
+  connectionIds: (string | null)[];
+  ready: boolean[];
   game: GameState | null;
   version: number;
-  seenOps: [string[], string[]];
-  disconnectedAt: [number | null, number | null];
+  seenOps: string[][];
+  disconnectedAt: (number | null)[];
   expiresAt: number;
   publicLog: { id: number; text: string }[];
 };
@@ -50,18 +50,24 @@ function parseSetup(value: unknown): Setup | null {
   if (
     !Array.isArray(data.expansions) ||
     data.expansions.length < 1 ||
-    data.expansions.length > 3
+    data.expansions.length > 4
   )
     return null;
   if (
     data.expansions.some(
-      (id) => id !== "base" && id !== "intrigue" && id !== "seaside",
+      (id) => id !== "base" && id !== "intrigue" && id !== "seaside" && id !== "alchemy",
     )
   )
     return null;
   if (new Set(data.expansions).size !== data.expansions.length) return null;
   if (data.mode === "basic" && data.expansions.length !== 1) return null;
-  return { mode: data.mode, expansions: data.expansions as ExpansionId[] };
+  let playerCount = 2;
+  if ("playerCount" in data) {
+    const count = Number(data.playerCount);
+    if (!Number.isInteger(count) || count < 2 || count > 6) return null;
+    playerCount = count;
+  }
+  return { mode: data.mode, expansions: data.expansions as ExpansionId[], playerCount };
 }
 
 function parseCommand(value: unknown): Command | null {
@@ -179,23 +185,34 @@ export class DominionRoom extends DurableObject<Env> {
 
   private seat(socket: WebSocket): PlayerId | null {
     const value = (socket.deserializeAttachment() as Attachment | null)?.seat;
-    return value === 0 || value === 1 ? value : null;
+    return typeof value === "number" && value >= 0 && value < 6 ? value : null;
   }
 
   private snapshot(room: Room, seat: PlayerId) {
+    const otherSeats = room.seatHashes.map((_, i) => i).filter((i) => i !== seat);
+    const allOthersConnected = otherSeats.every((i) => this.connected(i));
     if (!room.game)
       return {
         type: "lobby",
         seat,
         setup: room.setup,
-        names: room.names ?? ["プレイヤー1", room.seatHashes[1] ? "プレイヤー2" : null],
+        names: room.names.map((name, i) => name ?? (room.seatHashes[i] ? `プレイヤー${i + 1}` : null)),
         ready: room.ready,
-        joined: room.seatHashes[1] !== null,
-        opponentConnected: this.connected(seat === 0 ? 1 : 0),
+        joined: room.seatHashes.every(Boolean),
+        opponentConnected: allOthersConnected,
+        connections: room.seatHashes.map((_, i) => this.connected(i)),
       };
-    const opponent = seat === 0 ? 1 : 0;
     const state = projectGame(room.game, seat);
     if (room.game.phase !== "ended") state.log = room.publicLog;
+    const canClaim =
+      room.game.phase !== "ended" &&
+      otherSeats.length > 0 &&
+      otherSeats.every(
+        (i) =>
+          room.disconnectedAt[i] !== null &&
+          Date.now() - room.disconnectedAt[i]! >= GRACE_MS &&
+          !this.connected(i),
+      );
     return {
       type: "snapshot",
       seat,
@@ -203,11 +220,8 @@ export class DominionRoom extends DurableObject<Env> {
       version: room.version,
       inputPlayer: projectInput(room.game),
       state,
-      opponentConnected: this.connected(opponent),
-      canClaim:
-        room.game.phase !== "ended" &&
-        room.disconnectedAt[opponent] !== null &&
-        Date.now() - room.disconnectedAt[opponent] >= GRACE_MS,
+      opponentConnected: allOthersConnected,
+      canClaim,
     };
   }
 
@@ -220,37 +234,30 @@ export class DominionRoom extends DurableObject<Env> {
   }
 
   private startIfReady(room: Room) {
+    const count = room.setup.playerCount;
     if (
       room.game ||
-      !room.seatHashes[1] ||
-      !room.ready[0] ||
-      !room.ready[1] ||
-      !this.connected(0) ||
-      !this.connected(1)
+      room.seatHashes.some((hash) => hash === null) ||
+      room.ready.some((r) => !r) ||
+      Array.from({ length: count }, (_, i) => i).some((i) => !this.connected(i))
     )
       return;
     const pool: CardId[] = [
       ...(room.setup.expansions.includes("base") ? KINGDOM : []),
       ...(room.setup.expansions.includes("intrigue") ? INTRIGUE_KINGDOM : []),
       ...(room.setup.expansions.includes("seaside") ? SEASIDE_KINGDOM : []),
+      ...(room.setup.expansions.includes("alchemy") ? ALCHEMY_KINGDOM : []),
     ];
     const seed = crypto.getRandomValues(new Uint32Array(1))[0];
+    const playerNames = room.names.map((name, i) => name ?? `プレイヤー${i + 1}`);
     const game = createGame(
       seed,
       room.setup.mode === "basic"
         ? basicKingdomFor(room.setup.expansions)
         : undefined,
       pool,
+      playerNames,
     );
-    const names = room.names ?? ["プレイヤー1", "プレイヤー2"];
-    game.players[0].name = names[0];
-    game.players[1].name = names[1] ?? "プレイヤー2";
-    game.log = game.log.map((entry) => ({
-      ...entry,
-      text: entry.text.replace(/あなた|CPU/g, (value) =>
-        value === "あなた" ? game.players[0].name : game.players[1].name,
-      ),
-    }));
     room.game = game;
   }
 
@@ -265,16 +272,25 @@ export class DominionRoom extends DurableObject<Env> {
         const name = normalizePlayerName((body as Record<string, unknown>).name);
         if (!name) return error("プレイヤー名を1〜16文字で入力してください。");
         const token = crypto.randomUUID();
+        const count = setup.playerCount;
+        const names: (string | null)[] = Array.from({ length: count }, () => null);
+        names[0] = name;
+        const seatHashes: (string | null)[] = Array.from({ length: count }, () => null);
+        seatHashes[0] = await hashToken(token);
+        const connectionIds: (string | null)[] = Array.from({ length: count }, () => null);
+        const ready: boolean[] = Array.from({ length: count }, () => false);
+        const seenOps: string[][] = Array.from({ length: count }, () => []);
+        const disconnectedAt: (number | null)[] = Array.from({ length: count }, () => null);
         const room: Room = {
           setup,
-          names: [name, null],
-          seatHashes: [await hashToken(token), null],
-          connectionIds: [null, null],
-          ready: [false, false],
+          names,
+          seatHashes,
+          connectionIds,
+          ready,
           game: null,
           version: 0,
-          seenOps: [[], []],
-          disconnectedAt: [null, null],
+          seenOps,
+          disconnectedAt,
           expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
           publicLog: [],
         };
@@ -287,18 +303,18 @@ export class DominionRoom extends DurableObject<Env> {
       return this.enqueue(async () => {
         const room = await this.room();
         if (!room) return error("部屋が見つかりません。", 404);
-        if (room.seatHashes[1] || room.game)
-          return error("この部屋は満員です。", 409);
+        if (room.game) return error("対戦はすでに開始しています。", 409);
+        const emptySeat = room.seatHashes.findIndex((h) => h === null);
+        if (emptySeat === -1) return error("この部屋は満員です。", 409);
         const body = await readJson(request);
         const name = normalizePlayerName(body && typeof body === "object" ? (body as Record<string, unknown>).name : null);
         if (!name) return error("プレイヤー名を1〜16文字で入力してください。");
         const token = crypto.randomUUID();
-        room.seatHashes[1] = await hashToken(token);
-        room.names ??= ["プレイヤー1", null];
-        room.names[1] = name;
+        room.seatHashes[emptySeat] = await hashToken(token);
+        room.names[emptySeat] = name;
         await this.ctx.storage.put("room", room);
         this.broadcast(room);
-        return Response.json({ token, setup: room.setup });
+        return Response.json({ token, setup: room.setup, seat: emptySeat });
       });
     }
     if (
@@ -361,12 +377,19 @@ export class DominionRoom extends DurableObject<Env> {
         socket.close(1008, "認証が必要です");
         return;
       }
-      if (await sameToken(data.token, room.seatHashes[0])) seat = 0;
-      else if (await sameToken(data.token, room.seatHashes[1])) seat = 1;
-      else {
+      let matchedSeat: PlayerId | null = null;
+      for (let i = 0; i < room.seatHashes.length; i++) {
+        const hash = room.seatHashes[i];
+        if (hash && (await sameToken(data.token, hash))) {
+          matchedSeat = i as PlayerId;
+          break;
+        }
+      }
+      if (matchedSeat === null) {
         socket.close(1008, "席を確認できません");
         return;
       }
+      seat = matchedSeat;
       for (const other of this.ctx.getWebSockets()) {
         if (other !== socket && this.seat(other) === seat)
           other.close(1000, "別の画面で再接続しました");
@@ -400,14 +423,16 @@ export class DominionRoom extends DurableObject<Env> {
       return;
     }
     if (data.type === "claim") {
-      const opponent = seat === 0 ? 1 : 0;
-      const leftAt = room.disconnectedAt[opponent];
-      if (
-        room.game.phase === "ended" ||
-        leftAt === null ||
-        Date.now() - leftAt < GRACE_MS ||
-        this.connected(opponent)
-      ) {
+      const otherSeats = room.seatHashes.map((_, i) => i).filter((i) => i !== seat);
+      const allLeftAndExpired =
+        otherSeats.length > 0 &&
+        otherSeats.every(
+          (i) =>
+            room.disconnectedAt[i] !== null &&
+            Date.now() - room.disconnectedAt[i]! >= GRACE_MS &&
+            !this.connected(i),
+        );
+      if (room.game.phase === "ended" || !allLeftAndExpired) {
         send(socket, {
           type: "error",
           message: "切断勝ちはまだ確定できません。",
@@ -419,7 +444,7 @@ export class DominionRoom extends DurableObject<Env> {
       room.game.pending = null;
       room.game.effects = [];
       room.game.winner = seat;
-      room.game.endReason = `${room.game.players[opponent].name}の切断により対戦終了。`;
+      room.game.endReason = "他プレイヤー全員の切断により対戦終了。";
       room.version++;
       await this.ctx.storage.put("room", room);
       this.broadcast(room);
@@ -446,7 +471,8 @@ export class DominionRoom extends DurableObject<Env> {
       send(socket, { type: "error", message: "操作が不正です。" });
       return;
     }
-    if (!this.connected(seat === 0 ? 1 : 0) && command.type !== "resign") {
+    const otherSeats = room.seatHashes.map((_, i) => i).filter((i) => i !== seat);
+    if (otherSeats.some((i) => !this.connected(i)) && command.type !== "resign") {
       send(socket, { type: "error", message: "相手の再接続を待っています。" });
       return;
     }

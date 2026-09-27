@@ -103,7 +103,7 @@
 .dominion-hand-actions { position: absolute; z-index: 1; right: 12px; top: var(--hand-actions-top, 480px); display: grid; gap: 8px; width: 130px; }
 .dominion-hand-actions button { width: 100%; min-height: 40px; padding: 6px; font-size: 13px; }
 .dominion-loading { position: absolute; inset: 0; display: grid; place-items: center; background: #173f35; color: #e7d5a8; pointer-events: none; }
-.dominion-sidebar { min-width: 0; padding: 10px 8px; background: #10271f; border-left: 1px solid var(--dom-line); }
+.dominion-sidebar { min-width: 0; padding: 10px 8px; background: #10271f; border-left: 1px solid var(--dom-line); max-height: calc(100dvh - 40px); overflow-y: auto; }
 .dominion-player-card { margin-bottom: 10px; padding: 8px 10px; border: 1px solid var(--dom-line); border-radius: 6px; background: #143026; opacity: 0.75; transition: border-color .2s, box-shadow .2s, background .2s, opacity .2s; }
 .dominion-player-card.active-turn { border: 2px solid #ffd875; box-shadow: 0 0 14px rgba(255, 216, 117, 0.4); background: linear-gradient(135deg, #332a13 0%, #463916 100%); opacity: 1; }
 .dominion-player-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 6px; }
@@ -252,4 +252,66 @@
 .dominion.ui-scale-large .dominion-sidebar { padding: 12px 10px; }
 .dominion.ui-scale-large .dominion-player-card { padding: 10px 12px; margin-bottom: 12px; }
 .dominion.ui-scale-large .dominion-log { max-height: 460px; }
+
+.dominion-lobby-players {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0 20px;
+}
+
+.dominion-lobby-player {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--dom-line);
+  border-radius: 6px;
+  background: #143026;
+}
+
+.dominion-lobby-player.you {
+  border-color: #ffd875;
+  background: #1d3c30;
+}
+
+.dominion-lobby-slot {
+  font-size: 12px;
+  color: var(--dom-muted);
+  min-width: 70px;
+}
+
+.dominion-lobby-name {
+  flex: 1;
+  font-weight: 700;
+  color: #eeeede;
+}
+
+.dominion-lobby-badge {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.dominion-lobby-badge.ready {
+  background: #2b7a4b;
+  color: #d1fae5;
+}
+
+.dominion-lobby-badge.pending {
+  background: #624b27;
+  color: #fef3c7;
+}
+
+.dominion-lobby-badge.waiting {
+  background: #263830;
+  color: #9ca3af;
+}
+
+.dominion-lobby-badge.disconnected {
+  background: #7f1d1d;
+  color: #fecaca;
+}
+
 

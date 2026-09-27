@@ -8,15 +8,35 @@ export type OnlineSession = { roomId: string; token: string };
 export type OnlineStatus = {
   stage: 'connecting' | 'lobby' | 'playing';
   message: string;
-  ready: [boolean, boolean];
-  names: [string, string | null];
+  ready: boolean[];
+  names: (string | null)[];
   joined: boolean;
   seat: PlayerId;
+  playerCount: number;
+  connections: boolean[];
 };
 
 type ServerMessage =
-  | { type: 'lobby'; seat: PlayerId; setup: { mode: GameMode; expansions: ExpansionId[] }; ready: [boolean, boolean]; names: [string, string | null]; joined: boolean; opponentConnected: boolean }
-  | { type: 'snapshot'; seat: PlayerId; setup: { mode: GameMode; expansions: ExpansionId[] }; version: number; inputPlayer: PlayerId; state: GameState; opponentConnected: boolean; canClaim: boolean }
+  | {
+      type: 'lobby';
+      seat: PlayerId;
+      setup: { mode: GameMode; expansions: ExpansionId[]; playerCount: number };
+      ready: boolean[];
+      names: (string | null)[];
+      joined: boolean;
+      opponentConnected: boolean;
+      connections?: boolean[];
+    }
+  | {
+      type: 'snapshot';
+      seat: PlayerId;
+      setup: { mode: GameMode; expansions: ExpansionId[]; playerCount: number };
+      version: number;
+      inputPlayer: PlayerId;
+      state: GameState;
+      opponentConnected: boolean;
+      canClaim: boolean;
+    }
   | { type: 'error'; message: string };
 
 const key = (roomId: string) => `dominion-seat:${roomId}`;
@@ -30,10 +50,15 @@ async function requestRoom(path: string, body: unknown): Promise<{ roomId?: stri
   return { roomId: data.roomId, token: data.token };
 }
 
-export async function createOnlineRoom(mode: GameMode, expansions: ExpansionId[], playerName: string): Promise<OnlineSession> {
+export async function createOnlineRoom(
+  mode: GameMode,
+  expansions: ExpansionId[],
+  playerName: string,
+  playerCount = 2,
+): Promise<OnlineSession> {
   const name = normalizePlayerName(playerName);
   if (!name) throw new Error('プレイヤー名を1〜16文字で入力してください。');
-  const result = await requestRoom('/api/dominion/rooms', { mode, expansions, name });
+  const result = await requestRoom('/api/dominion/rooms', { mode, expansions, name, playerCount });
   if (!result.roomId) throw new Error('部屋を作成できませんでした。');
   localStorage.setItem(key(result.roomId), result.token);
   return { roomId: result.roomId, token: result.token };
@@ -72,7 +97,16 @@ export class OnlineStore implements DominionStore {
   private actionListeners = new Set<(command: Command, previous: GameState) => void>();
   private statusListeners = new Set<() => void>();
   private metaListeners = new Set<() => void>();
-  private status: OnlineStatus = { stage: 'connecting', message: '対戦部屋へ接続しています…', ready: [false, false], names: ['プレイヤー1', null], joined: false, seat: 0 };
+  private status: OnlineStatus = {
+    stage: 'connecting',
+    message: '対戦部屋へ接続しています…',
+    ready: [false, false],
+    names: ['プレイヤー1', null],
+    joined: false,
+    seat: 0,
+    playerCount: 2,
+    connections: [true, false],
+  };
   private meta: MatchMeta = { connection: 'connecting', opponentConnected: false, canClaim: false, busy: false };
 
   constructor(session: OnlineSession) { this.session = session; }
@@ -112,7 +146,16 @@ export class OnlineStore implements DominionStore {
       this.basicKingdom = basicKingdomFor(this.expansions);
       this.retryDelay = 1000;
       if (message.type === 'lobby') {
-        this.setStatus({ stage: 'lobby', message: '', ready: message.ready, names: message.names, joined: message.joined, seat: message.seat });
+        this.setStatus({
+          stage: 'lobby',
+          message: '',
+          ready: message.ready,
+          names: message.names,
+          joined: message.joined,
+          seat: message.seat,
+          playerCount: message.setup.playerCount,
+          connections: message.connections ?? message.ready.map(() => false),
+        });
       } else {
         this.version = message.version;
         this.inputPlayer = message.inputPlayer;

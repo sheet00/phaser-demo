@@ -46,7 +46,11 @@ export function basicKingdomFor(expansions: readonly ExpansionId[]) {
   return BASIC_KINGDOMS[key] ?? BASIC_KINGDOMS.base;
 }
 
-export function createStore(mode: GameMode = 'random', expansions: readonly ExpansionId[] = ['base']): DominionStore {
+export function createStore(
+  mode: GameMode = 'random',
+  expansions: readonly ExpansionId[] = ['base'],
+  playerCount = 2,
+): DominionStore {
   const selected = [...new Set(expansions)];
   const pool = [
     ...(selected.includes('base') ? KINGDOM : []),
@@ -56,7 +60,17 @@ export function createStore(mode: GameMode = 'random', expansions: readonly Expa
   ];
   if (mode === 'random' && pool.length < 10) throw new Error('セットを1つ以上選択してください。');
   const basicKingdom = basicKingdomFor(selected);
-  const newGame = () => createGame(crypto.getRandomValues(new Uint32Array(1))[0], mode === 'basic' ? basicKingdom : undefined, pool);
+  const playerNames =
+    playerCount === 2
+      ? ['あなた', 'CPU']
+      : ['あなた', ...Array.from({ length: playerCount - 1 }, (_, i) => `CPU ${i + 1}`)];
+  const newGame = () =>
+    createGame(
+      crypto.getRandomValues(new Uint32Array(1))[0],
+      mode === 'basic' ? basicKingdom : undefined,
+      pool,
+      playerNames,
+    );
   let state = newGame();
   const listeners = new Set<() => void>();
   const actionListeners = new Set<(command: Command, previous: GameState) => void>();
