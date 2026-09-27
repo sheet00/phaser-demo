@@ -1,4 +1,40 @@
+import { BASE, KINGDOM } from './cards';
 import type { CardDefinition, CardId } from './cards';
+
+export const SEASIDE_ART_IDS: CardId[] = [
+  'fishingVillage',
+  'lighthouse',
+  'pirate',
+  'wharf',
+  'astrolabe',
+  'bazaar',
+  'blockade',
+  'caravan',
+  'corsair',
+  'cutpurse',
+  'haven',
+  'island',
+  'lookout',
+];
+export const SEASIDE_ART_SET = new Set<CardId>(SEASIDE_ART_IDS);
+export const BASE_ART_SET = new Set<CardId>([...BASE, ...KINGDOM, ...SEASIDE_ART_IDS]);
+
+export const ART_FILES: Partial<Record<CardId, string>> = {
+  curse: 'curse-v5',
+  province: 'province-v4',
+};
+
+export function getCardAssetFolder(id: CardId): string {
+  if (SEASIDE_ART_SET.has(id)) return 'seaside';
+  return 'base';
+}
+
+export function getCardArtPath(id: CardId): string | null {
+  if (!BASE_ART_SET.has(id)) return null;
+  const folder = getCardAssetFolder(id);
+  const file = ART_FILES[id] ?? (folder === 'base' ? `${id}-v2` : id);
+  return `assets/dominion/${folder}/${file}.png`;
+}
 
 const PALETTES = {
   action: { accent: 0xc6c3b4, background: 0xf0eee5, label: 'アクション' },

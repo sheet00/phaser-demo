@@ -2,45 +2,23 @@ import Phaser from "phaser";
 import { icon } from "@fortawesome/fontawesome-svg-core";
 import { faCoins } from "@fortawesome/free-solid-svg-icons";
 import { FONT_FAMILY, TEXT_STYLE } from "./typography";
-import { BASE, CARDS, KINGDOM } from "./cards";
+import { CARDS } from "./cards";
 import type { CardId } from "./cards";
 import { cardCost, canBuy, canChoose, canGain, canPlay } from "./engine";
 import type { Card } from "./engine";
 import type { DominionStore } from "./store";
 import { actionSound, SOUND_FILES } from "./audio";
-import { cardAppearance } from "./cardAppearance";
+import {
+  cardAppearance,
+  BASE_ART_SET,
+  getCardArtPath,
+} from "./cardAppearance";
 import type { CardInspection } from "./cardAppearance";
 
 export const SUPPLY_CARD_SCALE = 1.0;
 export const SUPPLY_CARD_FONT_SCALE = 1.0;
 
-const SEASIDE_ART: CardId[] = [
-  "fishingVillage",
-  "lighthouse",
-  "pirate",
-  "wharf",
-  "astrolabe",
-  "bazaar",
-  "blockade",
-  "caravan",
-  "corsair",
-  "cutpurse",
-  "haven",
-  "island",
-  "lookout",
-];
-const SEASIDE_ART_SET = new Set<CardId>(SEASIDE_ART);
-const BASE_ART = new Set<CardId>([...BASE, ...KINGDOM, ...SEASIDE_ART]);
-const ART_FILES: Partial<Record<CardId, string>> = {
-  curse: "curse-v5",
-  merchant: "merchant-v2",
-  militia: "militia-v2",
-};
-
-function getCardAssetFolder(id: CardId): string {
-  if (SEASIDE_ART_SET.has(id)) return "seaside";
-  return "base";
-}
+const BASE_ART = BASE_ART_SET;
 const BASIC_DISPLAY: CardId[] = [
   "copper",
   "silver",
@@ -136,9 +114,10 @@ export class DominionScene extends Phaser.Scene {
       { width: 64, height: 64 },
     );
     for (const id of BASE_ART) {
-      const file = ART_FILES[id] ?? id;
-      const folder = getCardAssetFolder(id);
-      this.load.image(`dominion-${id}-art`, `${assets}dominion/${folder}/${file}.png`);
+      const artPath = getCardArtPath(id);
+      if (artPath) {
+        this.load.image(`dominion-${id}-art`, `${import.meta.env.BASE_URL}${artPath}`);
+      }
     }
     for (const [key, file] of Object.entries(SOUND_FILES)) {
       this.load.audio(`dominion-${key}`, `${assets}${file}`);

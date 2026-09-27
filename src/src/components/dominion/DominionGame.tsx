@@ -6,7 +6,7 @@ import { faCircleQuestion, faCoins, faFlag, faTableCellsLarge, faVolumeHigh, faV
 import Phaser from 'phaser';
 import { afterFontsReady, CRISP_RENDERING, FONT_FAMILY } from './typography';
 import { ALL_CARDS, CARDS, hasType } from './cards';
-import { cardAppearance } from './cardAppearance';
+import { cardAppearance, getCardArtPath } from './cardAppearance';
 import type { CardInspection } from './cardAppearance';
 import { botCommand, canReactDiplomat, canChoose, canDone, choiceCards, instruction, owned, score } from './engine';
 import type { Command, GameState } from './engine';
@@ -78,6 +78,8 @@ function CardTooltip({ inspection }: { inspection: CardInspection }) {
   const ref = useRef<HTMLDivElement>(null);
   const card = CARDS[inspection.id];
   const appearance = cardAppearance(card);
+  const artPath = getCardArtPath(inspection.id);
+  const artUrl = artPath ? `${import.meta.env.BASE_URL}${artPath}` : null;
   useLayoutEffect(() => {
     const tooltip = ref.current;
     if (!tooltip) return;
@@ -95,6 +97,11 @@ function CardTooltip({ inspection }: { inspection: CardInspection }) {
   }}>
     <div className="dominion-tooltip-heading"><h2>{card.name}</h2><span className="dominion-cost" aria-label={`購入コスト ${card.cost}コイン${card.potions ? ' 1ポーション' : ''}`}><FontAwesomeIcon icon={faCoins} aria-hidden="true" />{card.cost}{card.potions ? ' ＋ ⚗️' : ''}</span></div>
     <p className="dominion-english">{card.english}</p>
+    {artUrl && (
+      <div className="dominion-tooltip-art">
+        <img src={artUrl} alt={card.name} />
+      </div>
+    )}
     <p className="dominion-card-kind">{card.kind}</p>
     <p className="dominion-description">{card.description}</p>
   </div>;
