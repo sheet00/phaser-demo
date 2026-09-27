@@ -9,6 +9,7 @@ import FallingGame from './components/FallingGame';
 import OldTestamentRpgGame from './components/old-testament-rpg/OldTestamentRpgGame';
 import AwsCardGame from './components/aws-card-game/AwsCardGame';
 import DominionGame from './components/dominion/DominionGame';
+import DominionCardsPage from './components/dominion/DominionCardsPage';
 import { CHAPTERS, getChapterPath } from './components/old-testament-rpg/chapters';
 import './App.css';
 
@@ -83,6 +84,9 @@ function TitleUpdater() {
       case '/dominion':
         document.title = 'PHASER DEMO - DOMINION';
         break;
+      case '/dominion/cards':
+        document.title = 'PHASER DEMO - DOMINION CARDS';
+        break;
       default:
         document.title = 'PHASER DEMO';
     }
@@ -106,6 +110,7 @@ function App() {
         <Route path="/old-testament-rpg/:chapterId" element={<GameLayout><OldTestamentRpgGame /></GameLayout>} />
         <Route path="/aws-card-game" element={<GameLayout><AwsCardGame /></GameLayout>} />
         <Route path="/dominion" element={<DominionGame />} />
+        <Route path="/dominion/cards" element={<DominionCardsPage />} />
       </Routes>
     </Router>
   );

@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } fr
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCircleQuestion, faCoins, faFlag, faTableCellsLarge, faVolumeHigh, faVolumeXmark } from '@fortawesome/free-solid-svg-icons';
+import { faCircleQuestion, faCoins, faFlag, faImages, faTableCellsLarge, faVolumeHigh, faVolumeXmark } from '@fortawesome/free-solid-svg-icons';
 import Phaser from 'phaser';
 import { afterFontsReady, CRISP_RENDERING, FONT_FAMILY } from './typography';
 import { ALL_CARDS, CARDS, hasType } from './cards';
@@ -310,6 +310,7 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
             </div>
             <button onClick={() => store.setMuted(!muted)} aria-pressed={muted} aria-label="消音" title={muted ? '効果音をオン' : '効果音をオフ'}><FontAwesomeIcon icon={muted ? faVolumeXmark : faVolumeHigh} aria-hidden="true" /></button>
             <button onClick={() => setHelp(!help)} aria-expanded={help} aria-label="遊び方" title="遊び方"><FontAwesomeIcon icon={faCircleQuestion} aria-hidden="true" /></button>
+            <Link to="/dominion/cards" target="_blank" rel="noopener noreferrer" className="dominion-menu-btn" aria-label="カードイラスト一覧（別タブで開く）" title="カードイラスト一覧"><FontAwesomeIcon icon={faImages} aria-hidden="true" /></Link>
             <button onClick={() => setConfirmResign(true)} disabled={ended} aria-label="投了" title="投了"><FontAwesomeIcon icon={faFlag} aria-hidden="true" /></button>
             <button ref={leaveButtonRef} onClick={() => { setInspected(null); setHelp(false); setConfirmResign(false); setConfirmLeave(true); }} aria-label="ゲーム一覧へ戻る" title="ゲーム一覧へ戻る"><FontAwesomeIcon icon={faTableCellsLarge} aria-hidden="true" /></button>
           </nav>
@@ -539,6 +540,7 @@ export default function DominionGame() {
       </div>
       <div className="dominion-result-actions">
         <button className="primary" disabled={!expansions.length || onlineBusy || (opponent === 'friend' && !validPlayerName)} onClick={() => { if (opponent === 'friend') void createRoom(); else setStore(createStore(mode, expansions, playerCount)); }}>{onlineBusy ? '部屋を作成しています…' : opponent === 'friend' ? '対戦部屋を作る' : '対戦を始める'}</button>
+        <Link to="/dominion/cards" className="dominion-cards-nav-btn">カードイラスト一覧</Link>
         <Link to="/">ゲーム一覧へ</Link>
       </div>
       {onlineError && <p role="alert">{onlineError}</p>}

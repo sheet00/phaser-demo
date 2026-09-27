@@ -314,4 +314,404 @@
   color: #fecaca;
 }
 
+/* カード一覧 / イラストギャラリー */
+.dominion-cards-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 10px 20px;
+  border: 1px solid #7c6d3d;
+  border-radius: 4px;
+  background: #254032;
+  color: #ffd875;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background .2s, border-color .2s;
+}
+.dominion-cards-nav-btn:hover {
+  background: #315844;
+  border-color: #ffd875;
+}
 
+.dominion-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--dom-line);
+  border-radius: 4px;
+  background: #143026;
+  color: #e4d4a7;
+  text-decoration: none;
+  font-size: 15px;
+  transition: background .2s, border-color .2s;
+}
+.dominion-menu-btn:hover {
+  background: #264d3d;
+  border-color: #ffd875;
+}
+
+.dominion-cards-page {
+  height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 24px 20px 60px;
+  background: radial-gradient(ellipse at top, #1e4537, #0e221b 80%);
+  color: #eeeede;
+  box-sizing: border-box;
+}
+
+.dominion-cards-header {
+  max-width: 1200px;
+  margin: 0 auto 24px;
+}
+
+.dominion-cards-header-nav {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.dominion-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 6px 16px;
+  border: 1px solid var(--dom-gold);
+  border-radius: 4px;
+  background: #1f4233;
+  color: #ffd875;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background .2s, border-color .2s;
+}
+.dominion-back-btn:hover {
+  background: #2b5c46;
+}
+.dominion-back-btn.secondary {
+  border-color: var(--dom-line);
+  color: #c4d3c3;
+  background: #132b21;
+}
+.dominion-back-btn.secondary:hover {
+  background: #1c3d2f;
+  color: #eeeede;
+}
+
+.dominion-cards-title-area h1 {
+  margin: 4px 0 6px;
+  font-size: 28px;
+  color: #f7edd4;
+  letter-spacing: 1px;
+}
+
+.dominion-cards-subtitle {
+  margin: 0;
+  color: #b7c7b5;
+  font-size: 14px;
+}
+
+.dominion-cards-toolbar {
+  max-width: 1200px;
+  margin: 0 auto 28px;
+}
+
+.dominion-cards-search-box {
+  position: relative;
+  width: 100%;
+}
+
+.dominion-cards-search-box input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 40px 12px 40px;
+  border: 1px solid #3c5d4e;
+  border-radius: 6px;
+  background: #091712;
+  color: #eeeede;
+  font-size: 15px;
+  font-family: inherit;
+}
+.dominion-cards-search-box input:focus {
+  outline: none;
+  border-color: #ffd875;
+  box-shadow: 0 0 8px rgba(255, 216, 117, 0.3);
+}
+
+.dominion-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #7b9487;
+  pointer-events: none;
+}
+
+.dominion-search-clear {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 4px;
+  border: none;
+  background: transparent;
+  color: #8da496;
+  cursor: pointer;
+  font-size: 14px;
+}
+.dominion-search-clear:hover {
+  color: #eeeede;
+}
+
+.dominion-pack-section {
+  max-width: 1200px;
+  margin: 0 auto 40px;
+}
+
+.dominion-pack-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding-bottom: 8px;
+  margin-bottom: 18px;
+  border-bottom: 2px solid var(--dom-gold);
+}
+
+.dominion-pack-header h2 {
+  margin: 0;
+  font-size: 24px;
+  color: #ffd875;
+  letter-spacing: 0.5px;
+}
+
+.dominion-pack-count {
+  font-size: 14px;
+  color: #a4b7ab;
+  font-weight: 700;
+}
+
+.dominion-cards-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.dominion-gallery-card {
+  display: flex;
+  flex-direction: column;
+  border: 2px solid;
+  border-radius: 8px;
+  overflow: hidden;
+  color: #25352c;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.dominion-gallery-card:hover, .dominion-gallery-card:focus-visible {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 12px rgba(255, 216, 117, 0.35);
+  outline: none;
+}
+
+.dominion-gallery-card-art {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  background: #0a1712;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dominion-gallery-card-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.dominion-gallery-card-no-art {
+  color: #64756b;
+  font-size: 12px;
+}
+
+.dominion-gallery-card-body {
+  padding: 10px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.dominion-gallery-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.dominion-gallery-card-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #1a2920;
+  line-height: 1.3;
+}
+
+.dominion-gallery-cost {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 800;
+  font-size: 14px;
+  color: #9c6c18;
+  white-space: nowrap;
+}
+.dominion-gallery-cost.large {
+  font-size: 18px;
+}
+.dominion-gallery-cost svg {
+  color: #b58b2c;
+}
+
+.dominion-gallery-card-english {
+  margin: 0 0 6px;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: #616e58;
+}
+.dominion-gallery-card-english.large {
+  font-size: 12px;
+  margin: 0 0 10px;
+}
+
+.dominion-gallery-card-kind {
+  padding: 4px 0;
+  border-top: 1px solid;
+  border-bottom: 1px solid;
+  font-size: 11px;
+  font-weight: 700;
+  color: #425244;
+  margin-bottom: 8px;
+}
+
+.dominion-gallery-card-desc {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #2b392f;
+  flex: 1;
+}
+
+/* カード詳細モーダル */
+.dominion-card-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.dominion-card-modal {
+  position: relative;
+  width: min(520px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 3px solid var(--dom-gold);
+  border-radius: 12px;
+  background: #17382d;
+  color: #eeeede;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8);
+}
+
+.dominion-modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #eeeede;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background .2s;
+}
+.dominion-modal-close:hover {
+  background: rgba(220, 38, 38, 0.8);
+}
+
+.dominion-modal-art {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  background: #0a1712;
+  overflow: hidden;
+  border-bottom: 2px solid var(--dom-line);
+}
+.dominion-modal-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.dominion-modal-info {
+  padding: 18px 22px 24px;
+}
+
+.dominion-modal-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.dominion-modal-heading h2 {
+  margin: 0;
+  font-size: 26px;
+  color: #f7edd4;
+}
+
+.dominion-modal-kind {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #ffd875;
+  font-weight: 700;
+}
+
+.dominion-modal-desc {
+  margin: 0 0 16px;
+  font-size: 15px;
+  line-height: 1.8;
+  color: #dde8db;
+}
+
+.dominion-modal-summary {
+  padding: 10px 14px;
+  border: 1px solid var(--dom-line);
+  border-radius: 6px;
+  background: #0e221a;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #b7c7b5;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dominion-modal-summary strong {
+  color: #ffd875;
+}
