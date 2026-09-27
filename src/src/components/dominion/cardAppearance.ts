@@ -1,36 +1,41 @@
 import { BASE, KINGDOM } from './cards';
 import type { CardDefinition, CardId } from './cards';
+import { INTRIGUE_KINGDOM } from './expansions/intrigueCards';
 import { SEASIDE_KINGDOM } from './expansions/seasideCards';
 import { ALCHEMY_KINGDOM } from './expansions/alchemyCards';
 
 export const SEASIDE_ART_IDS: CardId[] = [...SEASIDE_KINGDOM];
 export const SEASIDE_ART_SET = new Set<CardId>(SEASIDE_ART_IDS);
-export const INTRIGUE_ART_IDS: CardId[] = [
-  'courtyard',
-  'masquerade',
-  'lurker',
-  'pawn',
-  'shantyTown',
-  'steward',
-  'swindler',
-  'wishingWell',
-  'baron',
-  'bridge',
-  'conspirator',
-  'diplomat',
-  'ironworks',
-  'mill',
-  'miningVillage',
-];
+export const INTRIGUE_ART_IDS: CardId[] = [...INTRIGUE_KINGDOM];
 export const INTRIGUE_ART_SET = new Set<CardId>(INTRIGUE_ART_IDS);
 export const ALCHEMY_ART_IDS: CardId[] = ['potion', ...ALCHEMY_KINGDOM];
 export const ALCHEMY_ART_SET = new Set<CardId>(ALCHEMY_ART_IDS);
 export const BASE_ART_SET = new Set<CardId>([...BASE, ...KINGDOM, ...SEASIDE_ART_IDS, ...INTRIGUE_ART_IDS, ...ALCHEMY_ART_IDS]);
 
 export const ART_FILES: Partial<Record<CardId, string>> = {
-  curse: 'curse-v5',
+  curse: 'curse-v6',
   province: 'province-v4',
+  festival: 'festival-v3',
+  market: 'market-v3',
+  vassal: 'vassal-v3',
+  throneRoom: 'throneRoom-v3',
   possession: 'possession-v3',
+  masquerade: 'masquerade-v2',
+  steward: 'steward-v4',
+  courtier: 'courtier-v2',
+  replace: 'replace-v2',
+  torturer: 'torturer-v4',
+  nobles: 'nobles-v2',
+  harem: 'harem-v2',
+  patrol: 'patrol-v2',
+  minion: 'minion-v2',
+  monkey: 'monkey-v2',
+  philosophersStone: 'philosophersStone-v2',
+  pawn: 'pawn-v2',
+  moneylender: 'moneylender-v3',
+  scryingPool: 'scryingPool-v2',
+  duke: 'duke-v2',
+  golem: 'golem-v2',
 };
 
 export function getCardAssetFolder(id: CardId): string {
