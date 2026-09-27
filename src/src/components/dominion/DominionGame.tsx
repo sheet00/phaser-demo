@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleQuestion, faCoins, faFlag, faTableCellsLarge, faVolumeHigh, faVolumeXmark } from '@fortawesome/free-solid-svg-icons';
 import Phaser from 'phaser';
-import { afterFontsReady, CRISP_RENDERING, FONT_FAMILY } from '../old-testament-rpg/typography';
+import { afterFontsReady, CRISP_RENDERING, FONT_FAMILY } from './typography';
 import { ALL_CARDS, CARDS, hasType } from './cards';
 import { cardAppearance } from './cardAppearance';
 import type { CardInspection } from './cardAppearance';

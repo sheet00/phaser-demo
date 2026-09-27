@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { icon } from "@fortawesome/fontawesome-svg-core";
 import { faCoins } from "@fortawesome/free-solid-svg-icons";
-import { FONT_FAMILY, TEXT_STYLE } from "../old-testament-rpg/typography";
+import { FONT_FAMILY, TEXT_STYLE } from "./typography";
 import { BASE, CARDS, KINGDOM } from "./cards";
 import type { CardId } from "./cards";
 import { cardCost, canBuy, canChoose, canGain, canPlay } from "./engine";
@@ -14,10 +14,17 @@ import type { CardInspection } from "./cardAppearance";
 export const SUPPLY_CARD_SCALE = 1.0;
 export const SUPPLY_CARD_FONT_SCALE = 1.0;
 
-const BASE_ART = new Set<CardId>([...BASE, ...KINGDOM]);
+const SEASIDE_ART: CardId[] = [
+  "fishingVillage",
+  "lighthouse",
+  "pirate",
+  "wharf",
+];
+const BASE_ART = new Set<CardId>([...BASE, ...KINGDOM, ...SEASIDE_ART]);
 const ART_FILES: Partial<Record<CardId, string>> = {
   curse: "curse-v5",
   merchant: "merchant-v2",
+  militia: "militia-v2",
 };
 const BASIC_DISPLAY: CardId[] = [
   "copper",
@@ -347,7 +354,7 @@ export class DominionScene extends Phaser.Scene {
       Math.round((compact ? 12 : 15) * scale),
       true,
     ).setOrigin(0, 0.5);
-    let summarySize = Math.round((options.fullText ? 13 : compact ? 11 : 14) * scale);
+    let summarySize = Math.round((options.fullText ? 11 : compact ? 9 : 12) * scale);
     const rawText = options.fullText ? definition.description : definition.summary;
     const cardText =
       options.fullText && rawText.length > MAX_CARD_TEXT_LENGTH
@@ -370,7 +377,7 @@ export class DominionScene extends Phaser.Scene {
     summary.setWordWrapWidth(fitWidth - 12, true);
     const availableSummaryHeight =
       fitHeight - footerHeight - artTop - fitArtHeight - 4;
-    const minSummarySize = Math.max(11, Math.round(11 * scale));
+    const minSummarySize = Math.max(9, Math.round(9 * scale));
     while (summary.height > availableSummaryHeight && summarySize > minSummarySize) {
       summarySize -= 1;
       summary.setFontSize(summarySize);
