@@ -15,10 +15,11 @@ import type { DominionStore, ExpansionId, GameMode } from './store';
 import { OnlineStore, createOnlineRoom, joinOnlineRoom, savedOnlineSession } from './onlineStore';
 import type { OnlineSession } from './onlineStore';
 import { normalizePlayerName, PLAYER_NAME_MAX_LENGTH } from './playerName';
-import { DOMINION_CANVAS_MIN_HEIGHT, DOMINION_CANVAS_MIN_WIDTH, DominionScene } from './DominionScene';
+import { DOMINION_CANVAS_MIN_HEIGHT, DOMINION_CANVAS_MIN_WIDTH, DominionScene, UI_SCALE_CONFIG } from './DominionScene';
+import type { UiScale } from './DominionScene';
 import './styles.css';
 
-function Table({ store, onInspect, handActions }: { store: DominionStore; onInspect: (card: CardInspection | null) => void; handActions?: ReactNode }) {
+function Table({ store, onInspect, handActions, uiScale }: { store: DominionStore; onInspect: (card: CardInspection | null) => void; handActions?: ReactNode; uiScale: UiScale }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef<Phaser.Game | null>(null);
   const [ready, setReady] = useState(false);
@@ -34,7 +35,7 @@ function Table({ store, onInspect, handActions }: { store: DominionStore; onInsp
           type: Phaser.AUTO, parent: host, width: host.clientWidth, height: host.clientHeight,
           ...CRISP_RENDERING, resolution: Math.max(window.devicePixelRatio || 1, 2), backgroundColor: '#173f35',
           scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.NO_CENTER },
-          scene: new DominionScene(store, onInspect, () => setReady(true)),
+          scene: new DominionScene(store, onInspect, () => setReady(true), uiScale),
         });
       } catch {
         setFailed(true);
@@ -53,9 +54,18 @@ function Table({ store, onInspect, handActions }: { store: DominionStore; onInsp
     }, store.online ? store.getSnapshot().players.map(player => player.name).join('') : '');
   }, [store, onInspect]);
 
+  useEffect(() => {
+    const scene = gameRef.current?.scene.getScene<DominionScene>('DominionTable');
+    if (scene) {
+      scene.setUiScale(uiScale);
+    }
+  }, [uiScale]);
+
+  const scaleConfig = UI_SCALE_CONFIG[uiScale];
+
   return <div className="dominion-table-scroll" onPointerLeave={() => onInspect(null)} onScroll={() => onInspect(null)}>
     <div className="dominion-canvas" ref={hostRef} role="group" aria-label="ドミニオンの卓"
-      style={{ minWidth: DOMINION_CANVAS_MIN_WIDTH, minHeight: DOMINION_CANVAS_MIN_HEIGHT }}>
+      style={{ minWidth: scaleConfig.minWidth, minHeight: scaleConfig.minHeight }}>
       {handActions && <div className="dominion-hand-actions" role="group" aria-label="手札の操作">{handActions}</div>}
     </div>
     {!ready && <div className="dominion-loading" role="status">{failed
@@ -167,6 +177,23 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
   const [help, setHelp] = useState(false);
   const [confirmResign, setConfirmResign] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [uiScale, setUiScale] = useState<UiScale>(() => {
+    try {
+      const saved = localStorage.getItem('dominion_ui_scale');
+      if (saved === 'small' || saved === 'medium' || saved === 'large') return saved;
+    } catch {
+      // localStorageが利用できない場合のフォールバック
+    }
+    return 'large';
+  });
+  const handleScaleChange = (next: UiScale) => {
+    setUiScale(next);
+    try {
+      localStorage.setItem('dominion_ui_scale', next);
+    } catch {
+      // 握りつぶし
+    }
+  };
   const leaveDialogRef = useRef<HTMLDialogElement>(null);
   const leaveButtonRef = useRef<HTMLButtonElement>(null);
   const logContainerRef = useRef<HTMLDivElement>(null);
@@ -216,7 +243,7 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
   const hasChoicePanel = state.pending !== null && ['harbinger', 'vassal', 'library', 'sentry', 'bandit', 'expansion', 'durationOrder'].includes(state.pending.kind);
   const showPendingActions = state.pending && canInput && (!hasChoicePanel || canDone(state) || state.pending.kind === 'library' || state.pending.kind === 'vassal' || state.pending.kind === 'reaction');
 
-  return <main className="dominion dominion-playing" style={{ fontFamily: FONT_FAMILY }}>
+  return <main className={`dominion dominion-playing ui-scale-${uiScale}`} style={{ fontFamily: FONT_FAMILY }}>
     <h1 className="dominion-sr-only">ドミニオン</h1>
 
     {help && <section className="dominion-help">
@@ -250,6 +277,20 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
             <span>{store.online ? opponentPlayer.name : 'CPU'}: <strong>{score(opponentPlayer)}</strong> 勝利点</span>
           </div>
           <nav className="dominion-menu" aria-label="ゲームメニュー">
+            <div className="dominion-scale-group" role="group" aria-label="表示サイズ切り替え">
+              {(['small', 'medium', 'large'] as const).map(scaleKey => (
+                <button
+                  key={scaleKey}
+                  type="button"
+                  className={`dominion-scale-btn ${uiScale === scaleKey ? 'active' : ''}`}
+                  onClick={() => handleScaleChange(scaleKey)}
+                  aria-pressed={uiScale === scaleKey}
+                  title={`表示サイズ: ${UI_SCALE_CONFIG[scaleKey].label}`}
+                >
+                  {UI_SCALE_CONFIG[scaleKey].label}
+                </button>
+              ))}
+            </div>
             <button onClick={() => store.setMuted(!muted)} aria-pressed={muted} aria-label="消音" title={muted ? '効果音をオン' : '効果音をオフ'}><FontAwesomeIcon icon={muted ? faVolumeXmark : faVolumeHigh} aria-hidden="true" /></button>
             <button onClick={() => setHelp(!help)} aria-expanded={help} aria-label="遊び方" title="遊び方"><FontAwesomeIcon icon={faCircleQuestion} aria-hidden="true" /></button>
             <button onClick={() => setConfirmResign(true)} disabled={ended} aria-label="投了" title="投了"><FontAwesomeIcon icon={faFlag} aria-hidden="true" /></button>
@@ -265,7 +306,7 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
             {state.pending.kind === 'reaction' && <>{!state.pending.blocked && state.players[seat].hand.some(card => card.id === 'moat') && <button className="primary" onClick={() => send({ type: 'reveal' })}>堀を公開して防ぐ</button>}{!state.pending.diplomatUsed && canReactDiplomat(state, seat) && <button onClick={() => send({ type: 'diplomat' })}>外交官を公開する</button>}<button onClick={() => send({ type: 'decline' })}>公開しない</button></>}
           </div>}
         </div>}
-        {ended ? <Result state={state} seat={seat} restart={onRestart} online={store.online} /> : <Table store={store} onInspect={setInspected} handActions={ownTurn && <>
+        {ended ? <Result state={state} seat={seat} restart={onRestart} online={store.online} /> : <Table store={store} onInspect={setInspected} uiScale={uiScale} handActions={ownTurn && <>
           <button disabled={state.phase !== 'action'} onClick={() => send({ type: 'buy-phase' })}>購入へ</button>
           <button className="primary" disabled={state.phase !== 'buy' || state.bought || !state.players[seat].hand.some(card => hasType(card.id, 'treasure'))} onClick={() => send({ type: 'treasures' })}>財宝を使用</button>
           <button disabled={state.phase !== 'buy'} onClick={() => send({ type: 'end-turn' })}>ターン終了</button>

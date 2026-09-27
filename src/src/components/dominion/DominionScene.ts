@@ -15,6 +15,10 @@ export const SUPPLY_CARD_SCALE = 1.0;
 export const SUPPLY_CARD_FONT_SCALE = 1.0;
 
 const BASE_ART = new Set<CardId>([...BASE, ...KINGDOM]);
+const ART_FILES: Partial<Record<CardId, string>> = {
+  curse: "curse-v5",
+  merchant: "merchant-v2",
+};
 const BASIC_DISPLAY: CardId[] = [
   "copper",
   "silver",
@@ -31,16 +35,33 @@ const HAND_TYPE_ORDER = {
   curse: 3,
 } as const;
 const BASIC_CARD_WIDTH = 68;
-const BASIC_CARD_HEIGHT = 104;
+const BASIC_CARD_HEIGHT = 114;
 const SUPPLY_CARD_WIDTH = 126;
-const SUPPLY_CARD_HEIGHT = 192;
+const SUPPLY_CARD_HEIGHT = 228;
 const SUPPLY_GRID_WIDTH = SUPPLY_CARD_WIDTH * 5 + 8 * 4;
 const SUPPLY_BOTTOM = 30 + SUPPLY_CARD_HEIGHT * 2 + 8;
 const BASIC_PANEL_WIDTH = 226;
 const BASIC_PANEL_LEFT = 8;
 const BASIC_PANEL_RIGHT = BASIC_PANEL_LEFT + BASIC_PANEL_WIDTH;
-export const DOMINION_CANVAS_MIN_WIDTH = 800;
-export const DOMINION_CANVAS_MIN_HEIGHT = 720;
+export type UiScale = "small" | "medium" | "large";
+
+export const UI_SCALE_CONFIG: Record<
+  UiScale,
+  {
+    multiplier: number;
+    minWidth: number;
+    minHeight: number;
+    label: string;
+  }
+> = {
+  small: { multiplier: 0.85, minWidth: 720, minHeight: 620, label: "小" },
+  medium: { multiplier: 1.0, minWidth: 800, minHeight: 700, label: "中" },
+  large: { multiplier: 1.25, minWidth: 960, minHeight: 780, label: "大" },
+};
+
+export const DOMINION_CANVAS_MIN_WIDTH = UI_SCALE_CONFIG.large.minWidth;
+export const DOMINION_CANVAS_MIN_HEIGHT = UI_SCALE_CONFIG.large.minHeight;
+const MAX_CARD_TEXT_LENGTH = 50;
 
 function compareHandCards(a: Card, b: Card) {
   const left = CARDS[a.id];
@@ -61,16 +82,25 @@ export class DominionScene extends Phaser.Scene {
   private dirty = true;
   private handPage = 0;
   private playedPage = 0;
+  private uiScale: UiScale = "large";
 
   constructor(
     store: DominionStore,
     inspect: (card: CardInspection | null) => void,
     onReady: () => void,
+    initialUiScale: UiScale = "large",
   ) {
     super("DominionTable");
     this.store = store;
     this.inspect = inspect;
     this.onReady = onReady;
+    this.uiScale = initialUiScale;
+  }
+
+  setUiScale(scale: UiScale) {
+    if (this.uiScale === scale) return;
+    this.uiScale = scale;
+    this.dirty = true;
   }
 
   preload() {
@@ -87,7 +117,7 @@ export class DominionScene extends Phaser.Scene {
       { width: 64, height: 64 },
     );
     for (const id of BASE_ART) {
-      const file = id === "curse" ? "curse-v3" : id;
+      const file = ART_FILES[id] ?? id;
       this.load.image(`dominion-${id}-art`, `${assets}dominion/${file}.png`);
     }
     for (const [key, file] of Object.entries(SOUND_FILES)) {
@@ -233,12 +263,10 @@ export class DominionScene extends Phaser.Scene {
     const titleHeight = Math.round((compact ? 24 : 30) * scale);
     const footerHeight = Math.round((compact ? 20 : 26) * scale);
     const artTop = titleHeight + Math.max(1, Math.round(2 * scale));
-    const artHeight = options.fullText
-      ? Math.min(
-          Math.round((width - 8) * 0.44),
-          Math.max(1, Math.floor(height - footerHeight - artTop - 50 * scale)),
-        )
-      : Math.round((width - 8) * (compact ? 0.52 : 0.62));
+    const artMargin = compact ? 2 : 4;
+    const artWidth = width - artMargin * 2;
+    // イラスト元画像（384x256）と完全一致のアスペクト比 3:2（1.5:1）で算出
+    const artHeight = Math.round(artWidth * (2 / 3));
     const summaryTop = artTop + artHeight + Math.max(1, Math.round(2 * scale));
     const group = this.add.container(x, y);
     this.table.add(group);
@@ -252,13 +280,13 @@ export class DominionScene extends Phaser.Scene {
     group.add([shadow, face]);
     group.add(
       this.add
-        .rectangle(3, artTop, width - 6, artHeight, background)
+        .rectangle(artMargin, artTop, artWidth, artHeight, background)
         .setOrigin(0)
         .setStrokeStyle(1, accent),
     );
     if (artKey) {
       const art = this.add.image(width / 2, artTop, artKey).setOrigin(0.5, 0);
-      art.setDisplaySize(Math.min(width - 6, artHeight * 1.5), artHeight);
+      art.setDisplaySize(artWidth, artHeight);
       group.add(art);
     } else {
       const initial = this.add
@@ -274,7 +302,7 @@ export class DominionScene extends Phaser.Scene {
     }
     group.add(
       this.add
-        .rectangle(3, artTop, width - 6, artHeight, 0xffffff, 0)
+        .rectangle(artMargin, artTop, artWidth, artHeight, 0xffffff, 0)
         .setOrigin(0)
         .setStrokeStyle(1, accent),
     );
@@ -320,18 +348,25 @@ export class DominionScene extends Phaser.Scene {
       true,
     ).setOrigin(0, 0.5);
     let summarySize = Math.round((options.fullText ? 13 : compact ? 11 : 14) * scale);
+    const rawText = options.fullText ? definition.description : definition.summary;
+    const cardText =
+      options.fullText && rawText.length > MAX_CARD_TEXT_LENGTH
+        ? `${rawText.slice(0, MAX_CARD_TEXT_LENGTH)}…`
+        : rawText;
+    const compactTextY = Math.round(
+      (artTop + artHeight + (height - footerHeight)) / 2,
+    );
     const summary = label(
       width / 2,
-      summaryTop,
-      options.fullText ? definition.description : definition.summary,
+      compact ? compactTextY : summaryTop,
+      cardText,
       summarySize,
-    ).setOrigin(0.5, 0);
+    ).setOrigin(0.5, compact ? 0.5 : 0);
     summary.setFontSize(summarySize);
     const fitWidth = options.textFitSize?.width ?? width;
     const fitHeight = options.textFitSize?.height ?? height;
-    const fitArtHeight = Math.round(
-      (fitWidth - 8) * (options.fullText ? 0.44 : compact ? 0.52 : 0.62),
-    );
+    const fitArtMargin = compact ? 2 : 4;
+    const fitArtHeight = Math.round((fitWidth - fitArtMargin * 2) * (2 / 3));
     summary.setWordWrapWidth(fitWidth - 12, true);
     const availableSummaryHeight =
       fitHeight - footerHeight - artTop - fitArtHeight - 4;
@@ -418,9 +453,9 @@ export class DominionScene extends Phaser.Scene {
     };
     hit.on("pointerover", (pointer: Phaser.Input.Pointer) => {
       body.setStrokeStyle(3, 0xf5d47c);
-      if (!options.fullText) inspect(pointer);
+      inspect(pointer);
     });
-    if (!options.fullText) hit.on("pointermove", inspect);
+    hit.on("pointermove", inspect);
     hit.on("pointerout", () => {
       body.setStrokeStyle(
         options.enabled ? 3 : 1,
@@ -429,7 +464,7 @@ export class DominionScene extends Phaser.Scene {
       this.inspect(null);
     });
     hit.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      if (!options.fullText) inspect(pointer);
+      inspect(pointer);
       if (!pointer.rightButtonDown() && options.enabled) options.action?.();
     });
   }
@@ -452,10 +487,12 @@ export class DominionScene extends Phaser.Scene {
     const player = state.players[seat];
     this.panel(0, 0, width, height, 0x173f35);
 
-    // 横幅と高さを両方考慮し、縦方向に見切れたり被ったりしない適切なスケールを算出
+    // ユーザー選択スケール（小・中・大）に応じた基準倍率を適用し、縦横比に合わせて最適化
+    const config = UI_SCALE_CONFIG[this.uiScale];
     const scaleW = width / 950;
-    const scaleH = (height - 24) / 690;
-    const scale = Phaser.Math.Clamp(Math.min(scaleW, scaleH), 1.0, 1.55);
+    const scaleH = (height - 24) / 700;
+    const baseScale = Phaser.Math.Clamp(Math.min(scaleW, scaleH), 0.95, 1.45);
+    const scale = baseScale * config.multiplier;
 
     const basicPanelLeft = BASIC_PANEL_LEFT;
     const basicCardWidth = Math.round(BASIC_CARD_WIDTH * scale);
@@ -470,14 +507,14 @@ export class DominionScene extends Phaser.Scene {
     const supplyCardWidth = Math.round(SUPPLY_CARD_WIDTH * scale);
     const supplyCardHeight = Math.round(SUPPLY_CARD_HEIGHT * scale);
     const supplyGap = Math.max(6, Math.round(8 * scale));
-    const supplyRowGap = Math.max(12, Math.round(48 * scale));
-    const supplyBottomPad = Math.max(8, Math.round(20 * scale));
+    const supplyRowGap = Math.max(10, Math.round(20 * scale));
+    const supplyBottomPad = Math.max(8, Math.round(14 * scale));
     const supplyGridWidth = supplyCardWidth * 5 + supplyGap * 4;
     const supplyLeft =
       basicPanelRight +
       Math.max(12, Math.floor((width - basicPanelRight - supplyGridWidth) / 2));
 
-    // サプライエリアUIの最下端（高さ約1.2倍：カード比率は維持し行間・上下余白をゆったり拡張）
+    // サプライエリアUIの最下端（テキストが余裕を持って収まる縦幅）
     const supplyBottom = supplyTop + supplyCardHeight * 2 + supplyRowGap + supplyBottomPad;
     const basicPanelHeight = supplyBottom - 6;
     const basicAvailableHeight = basicPanelHeight - supplyTop - Math.round(8 * scale);

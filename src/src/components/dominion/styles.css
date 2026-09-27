@@ -42,7 +42,28 @@
 .dominion-score-summary { display: flex; align-items: center; gap: 8px; margin-left: 8px; font-size: 13px; color: #d4e0d4; }
 .dominion-score-summary strong { color: #f5d47c; }
 .dominion-status button, .dominion-status a { min-height: 30px; padding: 4px 8px; font-size: 12px; }
-.dominion-menu { display: flex; flex: none; gap: 3px; margin-left: auto; }
+.dominion-menu { display: flex; align-items: center; flex: none; gap: 3px; margin-left: auto; }
+.dominion-scale-group { display: inline-flex; align-items: center; border: 1px solid #586b61; border-radius: 4px; overflow: hidden; margin-right: 4px; }
+.dominion-scale-btn {
+  min-height: 28px !important;
+  width: auto !important;
+  padding: 2px 8px !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: #17362b !important;
+  color: #c1d0c2 !important;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.dominion-scale-btn:not(:last-child) { border-right: 1px solid #3d5148 !important; }
+.dominion-scale-btn:hover { background: #264a3c !important; color: #fff !important; }
+.dominion-scale-btn.active {
+  background: var(--dom-gold) !important;
+  color: #17362b !important;
+  font-weight: 700 !important;
+}
 .dominion-menu button, .dominion-menu a { display: inline-flex; align-items: center; justify-content: center; width: 30px; padding: 0; }
 .dominion-menu svg { width: 14px; height: 14px; }
 .dominion-notice {
@@ -211,3 +232,22 @@
   padding: 10px;
   font: inherit;
 }
+
+/* UIレイアウトスケール調整 */
+.dominion.ui-scale-small { font-size: 13px; }
+.dominion.ui-scale-small .dominion-layout { grid-template-columns: minmax(0, 1fr) 200px; }
+.dominion.ui-scale-small .dominion-sidebar { padding: 8px 6px; }
+.dominion.ui-scale-small .dominion-player-card { padding: 6px 8px; margin-bottom: 8px; }
+.dominion.ui-scale-small .dominion-log { max-height: 320px; }
+
+.dominion.ui-scale-medium { font-size: 14px; }
+.dominion.ui-scale-medium .dominion-layout { grid-template-columns: minmax(0, 1fr) 220px; }
+.dominion.ui-scale-medium .dominion-sidebar { padding: 10px 8px; }
+.dominion.ui-scale-medium .dominion-log { max-height: 400px; }
+
+.dominion.ui-scale-large { font-size: 15px; }
+.dominion.ui-scale-large .dominion-layout { grid-template-columns: minmax(0, 1fr) 250px; }
+.dominion.ui-scale-large .dominion-sidebar { padding: 12px 10px; }
+.dominion.ui-scale-large .dominion-player-card { padding: 10px 12px; margin-bottom: 12px; }
+.dominion.ui-scale-large .dominion-log { max-height: 460px; }
+
