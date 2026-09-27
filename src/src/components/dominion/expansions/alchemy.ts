@@ -1,4 +1,4 @@
-import { ALL_CARDS, CARDS, hasType } from '../cards.ts';
+import { CARDS, hasType } from '../cards.ts';
 import type { CardId } from '../cards.ts';
 import type { Card, Command, GameState, PlayerId } from '../engine.ts';
 import type { ExpansionAPI, ExpansionPending, ExpansionTask } from './types.ts';
@@ -381,7 +381,7 @@ export function alchemyChoice(
   return false;
 }
 
-export function alchemyBot(state: GameState, pending: ExpansionPending): Command | null {
+export function alchemyBot(_state: GameState, pending: ExpansionPending): Command | null {
   const { source, step, zone, choices, options } = pending;
   if (!ALCHEMY_KINGDOM.includes(source as typeof ALCHEMY_KINGDOM[number])) return null;
 

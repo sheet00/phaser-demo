@@ -146,9 +146,10 @@ export function intrigueEffect(state: GameState, api: ExpansionAPI, task: Expans
   return false;
 }
 
-export function intrigueChoice(state: GameState, api: ExpansionAPI, pending: ExpansionPending, value: string | null) {
+export function intrigueChoice(state: GameState, api: ExpansionAPI, pending: ExpansionPending, value: string | null): boolean {
   const { player: who, source, step } = pending;
   const player = state.players[who];
+  if (!INTRIGUE_KINGDOM.includes(source as typeof INTRIGUE_KINGDOM[number])) return false;
   state.pending = null;
   switch (step) {
     case 'baron': if (value) { api.move(state, who, 'hand', Number(value), 'discard'); state.coins += 4; } else api.gain(state, who, 'estate'); break;
@@ -276,6 +277,7 @@ export function intrigueChoice(state: GameState, api: ExpansionAPI, pending: Exp
       break;
     case 'nobles': if (value === 'cards') api.draw(state, who, 3); else state.actions += 2; break;
   }
+  return true;
 }
 
 export function intrigueBot(state: GameState, pending: ExpansionPending): Command {

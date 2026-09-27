@@ -58,6 +58,7 @@ export function projectGame(state: GameState, seat: PlayerId): GameState {
     masqueradePass: [null, null], silverPlayed: state.silverPlayed, lastTurnPlayer: state.lastTurnPlayer,
     extraTurnRequested: false, isExtraTurn: state.isExtraTurn, nextHandSize: 0, victoryGainedThisBuy: false,
     supply: state.supply, kingdom: state.kingdom, effects: [], trash: state.trash,
+    potions: state.potions, potionsPlayed: state.potionsPlayed,
     pending: visiblePending(state.pending, seat), log: [], nextLog: 0, nextUid: 0, seed: 0,
     winner: null, endReason: '',
   };

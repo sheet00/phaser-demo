@@ -19,6 +19,15 @@ const SEASIDE_ART: CardId[] = [
   "lighthouse",
   "pirate",
   "wharf",
+  "astrolabe",
+  "bazaar",
+  "blockade",
+  "caravan",
+  "corsair",
+  "cutpurse",
+  "haven",
+  "island",
+  "lookout",
 ];
 const BASE_ART = new Set<CardId>([...BASE, ...KINGDOM, ...SEASIDE_ART]);
 const ART_FILES: Partial<Record<CardId, string>> = {
@@ -45,11 +54,8 @@ const BASIC_CARD_WIDTH = 68;
 const BASIC_CARD_HEIGHT = 114;
 const SUPPLY_CARD_WIDTH = 126;
 const SUPPLY_CARD_HEIGHT = 228;
-const SUPPLY_GRID_WIDTH = SUPPLY_CARD_WIDTH * 5 + 8 * 4;
-const SUPPLY_BOTTOM = 30 + SUPPLY_CARD_HEIGHT * 2 + 8;
 const BASIC_PANEL_WIDTH = 226;
 const BASIC_PANEL_LEFT = 8;
-const BASIC_PANEL_RIGHT = BASIC_PANEL_LEFT + BASIC_PANEL_WIDTH;
 export type UiScale = "small" | "medium" | "large";
 
 export const UI_SCALE_CONFIG: Record<

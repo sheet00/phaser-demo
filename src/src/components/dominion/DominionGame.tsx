@@ -15,7 +15,7 @@ import type { DominionStore, ExpansionId, GameMode } from './store';
 import { OnlineStore, createOnlineRoom, joinOnlineRoom, savedOnlineSession } from './onlineStore';
 import type { OnlineSession } from './onlineStore';
 import { normalizePlayerName, PLAYER_NAME_MAX_LENGTH } from './playerName';
-import { DOMINION_CANVAS_MIN_HEIGHT, DOMINION_CANVAS_MIN_WIDTH, DominionScene, UI_SCALE_CONFIG } from './DominionScene';
+import { DominionScene, UI_SCALE_CONFIG } from './DominionScene';
 import type { UiScale } from './DominionScene';
 import './styles.css';
 
@@ -33,7 +33,7 @@ function Table({ store, onInspect, handActions, uiScale }: { store: DominionStor
       try {
         game = new Phaser.Game({
           type: Phaser.AUTO, parent: host, width: host.clientWidth, height: host.clientHeight,
-          ...CRISP_RENDERING, resolution: Math.max(window.devicePixelRatio || 1, 2), backgroundColor: '#173f35',
+          ...CRISP_RENDERING, backgroundColor: '#173f35',
           scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.NO_CENTER },
           scene: new DominionScene(store, onInspect, () => setReady(true), uiScale),
         });
