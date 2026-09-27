@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ALL_CARDS, ALL_KINGDOM, CARDS, FIRST_GAME, KINGDOM } from '../src/components/dominion/cards.ts';
+import { INTRIGUE_KINGDOM } from '../src/components/dominion/expansions/intrigueCards.ts';
+import { ALCHEMY_KINGDOM } from '../src/components/dominion/expansions/alchemyCards.ts';
 import { botCommand, canBuy, canGain, createGame, inputPlayer, owned, reduceGame, score, supplyCards, choiceCards, canChoose } from '../src/components/dominion/engine.ts';
 
 function fixture() {
@@ -652,7 +654,7 @@ test('玉座の間の攻撃は毎回堀を選び、人間の選択待ちでCPU�
 
 
 test('陰謀26種類のうちアクションカードの選択効果をCPUが解決できる', () => {
-  const ids = ALL_CARDS.filter(id => !KINGDOM.includes(id) && !['copper', 'silver', 'gold', 'estate', 'duchy', 'province', 'curse'].includes(id));
+  const ids = INTRIGUE_KINGDOM;
   assert.equal(ids.length, 26);
   for (const id of ids) {
     let state = fixture();
@@ -738,6 +740,198 @@ test('基本と陰謀の混合サプライでCPU対戦が停止せず終局す�
     const total = state.players.flatMap(owned).length + Object.values(state.supply).reduce((a, b) => a + b, 0);
     let steps = 0;
     while (state.phase !== 'ended' && steps++ < 8000) {
+      const actor = inputPlayer(state);
+      const command = botCommand(state, actor);
+      assert.ok(command, `seed ${seed}`);
+      const next = reduceGame(state, actor, command);
+      assert.notEqual(next, state, `seed ${seed}: ${JSON.stringify(command)}`);
+      state = next;
+      const cards = [...state.players.flatMap(owned), ...state.trash];
+      assert.equal(cards.length + Object.values(state.supply).reduce((a, b) => a + b, 0), total);
+      assert.equal(new Set(cards.map(card => card.uid)).size, cards.length);
+    }
+    assert.equal(state.phase, 'ended', `seed ${seed}`);
+  }
+});
+
+test('ポーションを含むサプライの生成とポーションコストの購入・獲得制限', () => {
+  const alchemyKingdom = ['alchemist', 'apothecary', 'apprentice', 'familiar', 'golem', 'herbalist', 'philosophersStone', 'scryingPool', 'transmute', 'university'];
+  const state = createGame(10, alchemyKingdom);
+  assert.equal(state.supply.potion, 16);
+  assert.ok(supplyCards(state).includes('potion'));
+
+  // ポーションコストを持つカード（錬金術師: コスト3+1ポーション）
+  let s = fixture();
+  s.kingdom = alchemyKingdom;
+  s.supply.potion = 16;
+  s.supply.alchemist = 10;
+  s.players[0].hand = cards(s, 'gold', 'potion');
+  s = reduceGame(s, 0, { type: 'buy-phase' });
+  s = play(s, 'gold');
+  assert.equal(s.coins, 3);
+  assert.equal(s.potions, 0);
+  assert.equal(canBuy(s, 'alchemist'), false);
+
+  s = play(s, 'potion');
+  assert.equal(s.potions, 1);
+  assert.equal(s.potionsPlayed, true);
+  assert.equal(canBuy(s, 'alchemist'), true);
+
+  s = reduceGame(s, 0, { type: 'buy', card: 'alchemist' });
+  assert.equal(s.coins, 0);
+  assert.equal(s.potions, 0);
+  assert.equal(s.players[0].discard[0].id, 'alchemist');
+
+  // 通常のgain（改築や工房）ではポーションコストを持つカードは獲得不可
+  s.pending = { kind: 'gain', player: 0, maxCost: 5, treasureOnly: false, toHand: false };
+  assert.equal(canGain(s, 'alchemist'), false);
+  assert.equal(canGain(s, 'silver'), true);
+});
+
+test('ブドウ園の勝利点計算（アクション3枚につき1点）', () => {
+  const p = { deck: [], hand: [], discard: [], played: [], aside: [], islandMat: [], nativeVillageMat: [], blockadeMat: [], havenMat: [], durations: [], durationResolvedThisTurn: [], gainsThisTurn: [], lastTurnGains: [], sailorUsed: [], sailorGainedUsed: [], corsairUsed: 0, outpostPlayed: false, turns: 1 };
+  p.hand = [{ uid: 1, id: 'vineyard' }];
+  assert.equal(score(p), 0);
+
+  p.hand.push({ uid: 2, id: 'village' }, { uid: 3, id: 'village' });
+  assert.equal(score(p), 0);
+
+  p.hand.push({ uid: 4, id: 'village' });
+  assert.equal(score(p), 1);
+
+  p.hand.push(...Array(5).fill(null).map((_, i) => ({ uid: 10 + i, id: 'smithy' })));
+  assert.equal(score(p), 2);
+
+  p.hand.push({ uid: 20, id: 'market' });
+  assert.equal(score(p), 3);
+});
+
+test('錬金術師と薬草商のクリーンアップ時山札戻し処理', () => {
+  let state = fixture();
+  state.players[0].hand = cards(state, 'alchemist', 'potion', 'copper');
+  state.players[0].deck = cards(state, 'estate', 'estate');
+  state = play(state, 'alchemist');
+  assert.equal(state.actions, 1);
+  state = reduceGame(state, 0, { type: 'buy-phase' });
+  state = play(state, 'potion');
+  assert.equal(state.potionsPlayed, true);
+  state = reduceGame(state, 0, { type: 'end-turn' });
+  const p = state.players[0];
+  assert.ok(p.deck.some(c => c.id === 'alchemist') || p.hand.some(c => c.id === 'alchemist'));
+
+  let s2 = fixture();
+  s2.players[0].hand = cards(s2, 'herbalist', 'gold', 'copper');
+  s2.players[0].deck = cards(s2, 'estate', 'estate', 'estate', 'estate', 'estate');
+  s2 = play(s2, 'herbalist');
+  s2 = reduceGame(s2, 0, { type: 'buy-phase' });
+  s2 = play(s2, 'gold');
+  s2 = play(s2, 'copper');
+  s2 = reduceGame(s2, 0, { type: 'end-turn' });
+  assert.ok(s2.players[0].hand.some(c => c.id === 'gold'));
+});
+
+test('薬師のめくりと銅貨・ポーション獲得、残りの山札戻し', () => {
+  let state = fixture();
+  state.players[0].hand = cards(state, 'apothecary');
+  state.players[0].deck = cards(state, 'estate', 'potion', 'silver', 'copper', 'gold');
+  state = play(state, 'apothecary');
+  assert.equal(state.actions, 1);
+  const handIds = state.players[0].hand.map(c => c.id);
+  assert.ok(handIds.includes('copper'));
+  assert.ok(handIds.includes('potion'));
+});
+
+test('弟子のカード廃棄とドロー（ポーションコストで+2枚）', () => {
+  let state = fixture();
+  state.players[0].hand = cards(state, 'apprentice', 'university');
+  state.players[0].deck = cards(state, ...Array(10).fill('copper'));
+  state = play(state, 'apprentice');
+  assert.equal(state.pending.kind, 'expansion');
+  assert.equal(state.pending.step, 'apprenticeTrash');
+  const uniUid = state.players[0].hand.find(c => c.id === 'university').uid;
+  state = reduceGame(state, 0, { type: 'choose', uid: uniUid });
+  assert.equal(state.players[0].hand.length, 4);
+  assert.equal(state.trash[0].id, 'university');
+});
+
+test('変成のカード廃棄とタイプ別獲得', () => {
+  let state = fixture();
+  state.players[0].hand = cards(state, 'transmute', 'village', 'silver', 'estate');
+  state.supply.duchy = 8;
+  state.supply.transmute = 10;
+  state.supply.gold = 30;
+
+  state = play(state, 'transmute');
+  const villageUid = state.players[0].hand.find(c => c.id === 'village').uid;
+  state = reduceGame(state, 0, { type: 'choose', uid: villageUid });
+  assert.ok(state.players[0].discard.some(c => c.id === 'duchy'));
+});
+
+test('賢者の石の山札＋捨て札コインボーナス', () => {
+  let state = fixture();
+  state.players[0].hand = cards(state, 'philosophersStone');
+  state.players[0].deck = cards(state, ...Array(12).fill('copper'));
+  state.players[0].discard = cards(state, ...Array(8).fill('copper'));
+  state = reduceGame(state, 0, { type: 'buy-phase' });
+  state = play(state, 'philosophersStone');
+  assert.equal(state.coins, 4);
+});
+
+test('ゴーレムによるアクション2枚の無料連続使用', () => {
+  let state = fixture();
+  state.players[0].hand = cards(state, 'golem');
+  state.players[0].deck = cards(state, 'village', 'copper', 'estate', 'market', 'copper');
+  state = play(state, 'golem');
+  assert.equal(state.pending.step, 'golemOrder');
+  const firstChoice = state.pending.choices[0];
+  state = reduceGame(state, 0, { type: 'option', value: firstChoice });
+  assert.ok(state.actions >= 2);
+  assert.ok(state.coins >= 1);
+  assert.ok(state.buys >= 2);
+});
+
+test('大学によるコスト5以下のアクション獲得', () => {
+  let state = fixture();
+  state.players[0].hand = cards(state, 'university');
+  state.supply.market = 10;
+  state = play(state, 'university');
+  assert.equal(state.actions, 2);
+  assert.equal(state.pending.step, 'universityGain');
+  state = reduceGame(state, 0, { type: 'gain', card: 'market' });
+  assert.equal(state.players[0].discard[0].id, 'market');
+});
+
+test('使い魔の呪い配布と念術師の連続ドロー', () => {
+  let state = fixture();
+  state.players[0].hand = cards(state, 'familiar');
+  state.players[0].deck = cards(state, 'copper');
+  state.supply.curse = 10;
+  state = play(state, 'familiar');
+  assert.equal(state.actions, 1);
+  assert.equal(state.players[0].hand.length, 1);
+  assert.equal(state.players[1].discard[0].id, 'curse');
+
+  let s2 = fixture();
+  s2.players[0].hand = cards(s2, 'scryingPool');
+  s2.players[0].deck = cards(s2, 'copper', 'village', 'market');
+  s2.players[1].deck = cards(s2, 'estate');
+  s2 = play(s2, 'scryingPool');
+  assert.equal(s2.pending.step, 'scryingPoolSelf');
+  s2 = reduceGame(s2, 0, { type: 'option', value: 'keep' });
+  assert.equal(s2.pending.step, 'scryingPoolOpponent');
+  s2 = reduceGame(s2, 0, { type: 'option', value: 'keep' });
+  assert.ok(s2.players[0].hand.some(c => c.id === 'village'));
+  assert.ok(s2.players[0].hand.some(c => c.id === 'market'));
+  assert.ok(s2.players[0].hand.some(c => c.id === 'copper'));
+});
+
+test('錬金術カードを含むサプライでCPU対戦が停止せず終局しカード総数とUID一貫性を維持する', () => {
+  const alchemyKingdom = ['alchemist', 'apothecary', 'apprentice', 'familiar', 'golem', 'herbalist', 'philosophersStone', 'scryingPool', 'transmute', 'university'];
+  for (let seed = 1; seed <= 10; seed++) {
+    let state = createGame(seed, alchemyKingdom);
+    const total = state.players.flatMap(owned).length + Object.values(state.supply).reduce((a, b) => a + b, 0);
+    let steps = 0;
+    while (state.phase !== 'ended' && steps++ < 5000) {
       const actor = inputPlayer(state);
       const command = botCommand(state, actor);
       assert.ok(command, `seed ${seed}`);

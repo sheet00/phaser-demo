@@ -32,7 +32,7 @@ export interface ExpansionAPI {
   move: (state: GameState, player: PlayerId, from: 'hand' | 'discard' | 'aside' | 'played' | 'trash', uid: number, to: 'deck' | 'discard' | 'hand' | 'played' | 'trash' | 'island') => Card;
   duration: (state: GameState, player: PlayerId, source: CardId, uid: number) => void;
   gainBlockade: (state: GameState, player: PlayerId, card: CardId, blockadeUid: number) => void;
-  playFree: (state: GameState, player: PlayerId, uid: number, from: 'hand' | 'discard' | 'deck' | 'blockade') => void;
+  playFree: (state: GameState, player: PlayerId, uid: number, from: 'hand' | 'discard' | 'deck' | 'blockade' | 'aside') => void;
   finishTurn: (state: GameState) => void;
   cost: (state: GameState, card: CardId) => number;
   supply: (state: GameState) => CardId[];

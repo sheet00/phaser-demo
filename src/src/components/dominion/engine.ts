@@ -3,6 +3,8 @@ import type { CardId } from './cards.ts';
 import type { ExpansionAPI, ExpansionPending, ExpansionTask } from './expansions/types.ts';
 import { intrigueEffect, intrigueChoice, intrigueBot } from './expansions/intrigue.ts';
 import { seasideEffect, seasideChoice, seasideBot, seasideOnGain, seasideOnTreasurePlayed } from './expansions/seaside.ts';
+import { alchemyEffect, alchemyChoice, alchemyBot } from './expansions/alchemy.ts';
+import { ALCHEMY_KINGDOM } from './expansions/alchemyCards.ts';
 
 export type PlayerId = 0 | 1;
 export interface Card { uid: number; id: CardId }
@@ -43,7 +45,7 @@ export type Pending =
   | { kind: 'vassal' | 'library'; player: PlayerId; uid: number }
   | { kind: 'sentry'; player: PlayerId; stage: 'trash' | 'discard' | 'order'; order: number[] };
 
-export type Attack = 'militia' | 'witch' | 'bureaucrat' | 'bandit' | 'swindler' | 'minion' | 'replace' | 'torturer' | 'cutpurse' | 'corsair' | 'seaWitch';
+export type Attack = 'militia' | 'witch' | 'bureaucrat' | 'bandit' | 'swindler' | 'minion' | 'replace' | 'torturer' | 'cutpurse' | 'corsair' | 'seaWitch' | 'familiar' | 'scryingPool';
 type Effect =
   | ({ kind: 'expansion' } & ExpansionTask)
   | { kind: 'durationOrder'; player: PlayerId; entries: DurationEntry[] }
@@ -58,6 +60,8 @@ export interface GameState {
   actions: number;
   buys: number;
   coins: number;
+  potions: number;
+  potionsPlayed: boolean;
   bought: boolean;
   merchants: number;
   costReduction: number;
@@ -97,7 +101,12 @@ export function owned(player: Player): Card[] {
 
 export function score(player: Player): number {
   const cards = owned(player);
-  return cards.reduce((sum, card) => sum + (card.id === 'gardens' ? Math.floor(cards.length / 10) : card.id === 'duke' ? cards.filter(entry => entry.id === 'duchy').length : CARDS[card.id].points ?? 0), 0);
+  return cards.reduce((sum, card) => sum + (
+    card.id === 'gardens' ? Math.floor(cards.length / 10) :
+    card.id === 'duke' ? cards.filter(entry => entry.id === 'duchy').length :
+    card.id === 'vineyard' ? Math.floor(cards.filter(entry => hasType(entry.id, 'action')).length / 3) :
+    CARDS[card.id].points ?? 0
+  ), 0);
 }
 
 function log(state: GameState, message: string) {
@@ -141,7 +150,7 @@ function draw(state: GameState, who: PlayerId, count: number) {
 }
 
 export function supplyCards(state: GameState): CardId[] {
-  return [...BASE, ...state.kingdom];
+  return state.supply.potion !== undefined ? [...BASE, 'potion', ...state.kingdom] : [...BASE, ...state.kingdom];
 }
 
 function emptyPiles(state: GameState): number {
@@ -153,6 +162,8 @@ function startTurn(state: GameState) {
   state.actions = 1;
   state.buys = 1;
   state.coins = 0;
+  state.potions = 0;
+  state.potionsPlayed = false;
   state.bought = false;
   state.merchants = 0;
   state.costReduction = 0;
@@ -187,6 +198,7 @@ export function createGame(seed = Date.now(), kingdom?: readonly CardId[], pool:
   Object.assign(supply, { copper: 46, silver: 40, gold: 30, estate: 8, duchy: 8, province: 8, curse: 10 });
   const state: GameState = {
     players: [player('あなた'), player('CPU')], active: 0, phase: 'action', actions: 1, buys: 1, coins: 0,
+    potions: 0, potionsPlayed: false,
     bought: false, merchants: 0, costReduction: 0, actionsPlayed: 0, masqueradePass: [null, null], silverPlayed: false, lastTurnPlayer: 0, extraTurnRequested: false, isExtraTurn: false, nextHandSize: 5, victoryGainedThisBuy: false, supply, kingdom: [], effects: [], trash: [], pending: null, log: [], nextLog: 1,
     nextUid: 1, seed: (seed >>> 0) || 1, winner: null, endReason: '',
   };
@@ -195,6 +207,10 @@ export function createGame(seed = Date.now(), kingdom?: readonly CardId[], pool:
   state.kingdom = (kingdom ? [...kingdom] : candidates.slice(0, 10))
     .sort((a, b) => CARDS[a].cost - CARDS[b].cost || ALL_KINGDOM.indexOf(a) - ALL_KINGDOM.indexOf(b));
   for (const id of state.kingdom) state.supply[id] = hasType(id, 'victory') ? 8 : 10;
+  const hasPotionCards = state.kingdom.some(id => (CARDS[id].potions ?? 0) > 0 || ALCHEMY_KINGDOM.includes(id as any));
+  if (hasPotionCards) {
+    state.supply.potion = 16;
+  }
   state.active = random(state) < 0.5 ? 0 : 1;
   state.lastTurnPlayer = state.active;
   for (const who of [0, 1] as const) {
@@ -220,14 +236,16 @@ export function canPlay(state: GameState, card: Card): boolean {
 }
 
 export function canBuy(state: GameState, id: CardId): boolean {
-  return !state.pending && state.phase === 'buy' && state.buys > 0 && supplyCards(state).includes(id) && state.supply[id] > 0 && cardCost(state, id) <= state.coins;
+  const potionCost = CARDS[id].potions ?? 0;
+  return !state.pending && state.phase === 'buy' && state.buys > 0 && supplyCards(state).includes(id) && state.supply[id] > 0
+    && cardCost(state, id) <= state.coins && potionCost <= state.potions;
 }
 
 export function canGain(state: GameState, id: CardId): boolean {
   const pending = state.pending;
   if (pending?.kind === 'expansion') return pending.zone === 'supply' && pending.choices.includes(id);
   return pending?.kind === 'gain' && supplyCards(state).includes(id) && state.supply[id] > 0 && cardCost(state, id) <= pending.maxCost
-    && (!pending.treasureOnly || hasType(id, 'treasure'));
+    && (!pending.treasureOnly || hasType(id, 'treasure')) && (CARDS[id].potions ?? 0) === 0;
 }
 
 export function choiceCards(state: GameState): Card[] {
@@ -434,7 +452,7 @@ function resolveEffects(state: GameState) {
   }
 }
 
-function playCard(state: GameState, who: PlayerId, uid: number, from: 'hand' | 'discard' | 'deck' | 'blockade', consumesAction: boolean) {
+function playCard(state: GameState, who: PlayerId, uid: number, from: 'hand' | 'discard' | 'deck' | 'blockade' | 'aside', consumesAction: boolean) {
   let card: Card;
   if (from === 'blockade' || from === 'deck') {
     const player = state.players[who];
@@ -446,6 +464,17 @@ function playCard(state: GameState, who: PlayerId, uid: number, from: 'hand' | '
   if (hasType(card.id, 'treasure')) {
     log(state, `${state.players[who].name}：${CARDS[card.id].name}を使用。`);
     state.coins += CARDS[card.id].coins ?? 0;
+    if (CARDS[card.id].potionsProduced) {
+      state.potions += CARDS[card.id].potionsProduced!;
+      state.potionsPlayed = true;
+    }
+    if (card.id === 'philosophersStone') {
+      const p = state.players[who];
+      const count = p.deck.length + p.discard.length;
+      const produced = Math.floor(count / 5);
+      state.coins += produced;
+      log(state, `賢者の石の効果：山札と捨て札計${count}枚で+${produced}コイン。`);
+    }
     if (card.id === 'silver' && !state.silverPlayed) {
       state.coins += state.merchants;
       state.silverPlayed = true;
@@ -490,6 +519,29 @@ function gainBlockade(state: GameState, who: PlayerId, id: CardId, blockadeUid: 
 
 function cleanupTurn(state: GameState) {
   const player = state.players[state.active];
+  const herbalistCount = player.played.filter(card => card.id === 'herbalist').length;
+  if (herbalistCount > 0) {
+    const treasures = player.played.filter(card => hasType(card.id, 'treasure'));
+    const treasureValue = (id: CardId) => (id === 'potion' ? 4.5 : (CARDS[id].coins ?? 0));
+    treasures.sort((a, b) => treasureValue(b.id) - treasureValue(a.id));
+    const toReturn = treasures.slice(0, herbalistCount);
+    if (toReturn.length > 0) {
+      const returnUids = new Set(toReturn.map(c => c.uid));
+      player.played = player.played.filter(c => !returnUids.has(c.uid));
+      player.deck.push(...toReturn);
+      log(state, `${player.name}：薬草商の効果で${toReturn.map(c => CARDS[c.id].name).join('・')}を山札の上へ戻しました。`);
+    }
+  }
+
+  if (state.potionsPlayed) {
+    const alchemists = player.played.filter(card => card.id === 'alchemist');
+    if (alchemists.length > 0) {
+      player.played = player.played.filter(card => card.id !== 'alchemist');
+      player.deck.push(...alchemists);
+      log(state, `${player.name}：ポーションを使用したため、錬金術師${alchemists.length}枚を山札の上へ戻しました。`);
+    }
+  }
+
   const keep = new Set([...player.durations.map(entry => entry.uid), ...player.durationResolvedThisTurn]);
   player.discard.push(...player.played.filter(card => !keep.has(card.uid)), ...player.hand);
   player.played = player.played.filter(card => keep.has(card.uid));
@@ -660,6 +712,7 @@ export function reduceGame(previous: GameState, actor: PlayerId, command: Comman
       break;
     case 'buy':
       state.coins -= cardCost(state, command.card);
+      state.potions -= (CARDS[command.card].potions ?? 0);
       state.buys--;
       state.bought = true;
       gain(state, actor, command.card);
@@ -780,6 +833,22 @@ function desiredCard(state: GameState, who: PlayerId, available: CardId[]): Card
     if (id === 'copper') return -1;
     if (id === 'market' || id === 'laboratory') return 70;
     if (id === 'gardens') return cards.length >= 25 ? 65 : 8;
+    if (id === 'vineyard') return cards.filter(c => hasType(c.id, 'action')).length >= 9 ? 70 : 10;
+    if (id === 'alchemist') return count('potion') > 0 ? 75 : 30;
+    if (id === 'familiar') return (state.supply.curse > 0 ? 80 : 55);
+    if (id === 'golem') return 68;
+    if (id === 'university') return 65;
+    if (id === 'apprentice') return 60;
+    if (id === 'scryingPool') return 58;
+    if (id === 'philosophersStone') return cards.length >= 20 ? 55 : 25;
+    if (id === 'herbalist') return 45;
+    if (id === 'apothecary') return 50;
+    if (id === 'transmute') return 35;
+    if (id === 'possession') return 70;
+    if (id === 'potion') {
+      const needsPotion = state.kingdom.some(k => (CARDS[k].potions ?? 0) > 0);
+      return needsPotion && count('potion') < 1 ? 55 : -10;
+    }
     if (id === 'witch') return (state.supply.curse > 0 ? 76 : 50) - count(id) * 20;
     const priorities: Partial<Record<CardId, number>> = { smithy: 62, militia: 60, village: 53, merchant: 50, mine: 55, moat: 35, cellar: 25, workshop: 20, remodel: 20, chapel: 40, harbinger: 42, vassal: 40, bureaucrat: 35, moneylender: 52, poacher: 56, throneRoom: 58, bandit: 68, festival: 65, library: 58, sentry: 74, artisan: 65, councilRoom: 61 };
     if (id === 'duke') return count('duchy') >= 4 ? 85 : 5;
@@ -795,7 +864,7 @@ export function botCommand(state: GameState, who: PlayerId = 1): Command | null 
   if (pending) {
     if (pending.kind === 'reaction') return !pending.blocked && hand.some(card => card.id === 'moat') ? { type: 'reveal' } : !pending.diplomatUsed && canReactDiplomat(state, who) ? { type: 'diplomat' } : { type: 'decline' };
     if (pending.kind === 'durationOrder') return { type: 'option', value: pending.choices[0] ?? '0' };
-    if (pending.kind === 'expansion') return seasideBot(state, pending) ?? intrigueBot(state, pending);
+    if (pending.kind === 'expansion') return seasideBot(state, pending) ?? intrigueBot(state, pending) ?? alchemyBot(state, pending);
     if (pending.kind === 'gain') {
       const card = desiredCard(state, who, supplyCards(state).filter(id => canGain(state, id)));
       return card ? { type: 'gain', card } : null;
@@ -840,8 +909,11 @@ function shouldTrash(state: GameState, who: PlayerId, card: Card): boolean {
 }
 
 function actionPriority(id: CardId): number {
-  const priority: CardId[] = ['throneRoom', 'shantyTown', 'miningVillage', 'nobles', 'lurker', 'pawn', 'mill', 'wishingWell', 'secretPassage', 'upgrade', 'minion', 'village', 'festival', 'laboratory', 'market', 'sentry', 'merchant', 'harbinger', 'poacher', 'cellar',
-    'witch', 'councilRoom', 'smithy', 'library', 'bandit', 'militia', 'vassal', 'moat', 'artisan', 'moneylender', 'chapel', 'mine', 'remodel', 'workshop', 'bureaucrat'];
+  const priority: CardId[] = [
+    'possession', 'university', 'golem', 'alchemist', 'familiar', 'scryingPool', 'apothecary', 'apprentice',
+    'throneRoom', 'shantyTown', 'miningVillage', 'nobles', 'lurker', 'pawn', 'mill', 'wishingWell', 'secretPassage', 'upgrade', 'minion', 'village', 'festival', 'laboratory', 'market', 'sentry', 'merchant', 'harbinger', 'poacher', 'cellar',
+    'witch', 'councilRoom', 'smithy', 'library', 'bandit', 'militia', 'vassal', 'moat', 'artisan', 'moneylender', 'chapel', 'mine', 'remodel', 'workshop', 'bureaucrat', 'herbalist', 'transmute'
+  ];
   const index = priority.indexOf(id);
   return index < 0 ? priority.length : index;
 }
@@ -863,9 +935,13 @@ const expansionAPI: ExpansionAPI = {
 };
 
 function expansionEffect(state: GameState, task: ExpansionTask): boolean {
-  return seasideEffect(state, expansionAPI, task) || intrigueEffect(state, expansionAPI, task);
+  return seasideEffect(state, expansionAPI, task) || intrigueEffect(state, expansionAPI, task) || alchemyEffect(state, expansionAPI, task);
 }
 
 function expansionChoice(state: GameState, pending: ExpansionPending, value: string | null) {
-  if (!seasideChoice(state, expansionAPI, pending, value)) intrigueChoice(state, expansionAPI, pending, value);
+  if (!seasideChoice(state, expansionAPI, pending, value)) {
+    if (!intrigueChoice(state, expansionAPI, pending, value)) {
+      alchemyChoice(state, expansionAPI, pending, value);
+    }
+  }
 }

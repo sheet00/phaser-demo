@@ -32,7 +32,7 @@ function Table({ store, onInspect, handActions }: { store: DominionStore; onInsp
       try {
         game = new Phaser.Game({
           type: Phaser.AUTO, parent: host, width: host.clientWidth, height: host.clientHeight,
-          ...CRISP_RENDERING, backgroundColor: '#173f35',
+          ...CRISP_RENDERING, resolution: Math.max(window.devicePixelRatio || 1, 2), backgroundColor: '#173f35',
           scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.NO_CENTER },
           scene: new DominionScene(store, onInspect, () => setReady(true)),
         });
@@ -83,7 +83,7 @@ function CardTooltip({ inspection }: { inspection: CardInspection }) {
     borderColor: `#${appearance.accent.toString(16).padStart(6, '0')}`,
     backgroundColor: `#${appearance.background.toString(16).padStart(6, '0')}`,
   }}>
-    <div className="dominion-tooltip-heading"><h2>{card.name}</h2><span className="dominion-cost" aria-label={`購入コスト ${card.cost}コイン`}><FontAwesomeIcon icon={faCoins} aria-hidden="true" />{card.cost}</span></div>
+    <div className="dominion-tooltip-heading"><h2>{card.name}</h2><span className="dominion-cost" aria-label={`購入コスト ${card.cost}コイン${card.potions ? ' 1ポーション' : ''}`}><FontAwesomeIcon icon={faCoins} aria-hidden="true" />{card.cost}{card.potions ? ' ＋ ⚗️' : ''}</span></div>
     <p className="dominion-english">{card.english}</p>
     <p className="dominion-card-kind">{card.kind}</p>
     <p className="dominion-description">{card.description}</p>
@@ -112,7 +112,7 @@ function ChoicePanel({ state, seat, canInput, send, onInspect }: {
         onBlur={() => onInspect(null)}
         onClick={() => { if (selectable) { onInspect(null); send({ type: 'choose', uid: card.uid }); } }}>
         <strong>{definition.name}</strong><span>{definition.kind}</span>
-        <span className="dominion-cost"><FontAwesomeIcon icon={faCoins} aria-hidden="true" />{definition.cost}</span>
+        <span className="dominion-cost"><FontAwesomeIcon icon={faCoins} aria-hidden="true" />{definition.cost}{definition.potions ? '＋⚗️' : ''}</span>
       </button>;
     })}</div>
   </section>;
@@ -142,7 +142,7 @@ function Result({ state, seat, restart, online }: { state: GameState; seat: 0 | 
       <h2 id="dominion-result-title" ref={titleRef} tabIndex={-1}>{state.winner === 'tie' ? '引き分け' : state.winner === seat ? 'あなたの勝利' : online ? '相手の勝利' : 'CPUの勝利'}</h2>
       <p>{state.endReason}</p>
       <div className="dominion-scores">{state.players.map((player, index) => <div key={index} className={state.winner === index ? 'winner' : ''}>
-        <h3>{player.name}</h3><strong>{score(player)} <small>VP</small></strong><p>{player.turns}ターン · {owned(player).length}枚</p>
+        <h3>{player.name}</h3><strong>{score(player)} <small>勝利点</small></strong><p>{player.turns}ターン · {owned(player).length}枚</p>
       </div>)}</div>
       <p className="dominion-muted">同点の場合は、手番数が少ないプレイヤーの勝利です。</p>
       <div className="dominion-result-actions"><button className="primary" onClick={restart}>{online ? '新しい対戦' : 'もう一度プレイ'}</button><Link to="/">ゲーム一覧へ</Link></div>
@@ -169,6 +169,7 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
   const [confirmLeave, setConfirmLeave] = useState(false);
   const leaveDialogRef = useRef<HTMLDialogElement>(null);
   const leaveButtonRef = useRef<HTMLButtonElement>(null);
+  const logContainerRef = useRef<HTMLDivElement>(null);
   const canInput = state.phase !== 'ended' && store.getInputPlayer() === seat && meta.connection === 'connected' && meta.opponentConnected && !meta.busy;
   const ownTurn = canInput && !state.pending && state.active === seat;
   const send = (command: Command) => store.dispatch(seat, command);
@@ -176,6 +177,11 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
     setConfirmLeave(false);
     requestAnimationFrame(() => leaveButtonRef.current?.focus());
   };
+
+  useEffect(() => {
+    const el = logContainerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [state.log]);
 
   useEffect(() => {
     if (confirmResign || confirmLeave || help) return;
@@ -235,9 +241,14 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
     {store.online && !ended && (!meta.opponentConnected || meta.connection !== 'connected') && <div className="dominion-online-notice" role="status">{meta.connection !== 'connected' ? '通信の再接続を待っています。' : '相手の再接続を待っています。'} {meta.canClaim && <button onClick={() => store.claimDisconnectedWin()}>切断勝ちを確定</button>}</div>}
     <div className="dominion-layout">
       <section className="dominion-main" aria-label="対戦卓">
-        <div className="dominion-status">
+        <div className={`dominion-status ${state.active === seat ? 'your-turn' : ''}`}>
           <span className={`dominion-turn ${state.active === seat ? 'your-turn' : ''}`}>{ended ? '終了' : `${store.online ? state.players[state.active].name : state.active === seat ? 'あなた' : 'CPU'} · ${state.players[state.active].turns}ターン目 · ${state.phase === 'action' ? 'アクション中' : '購入中'}`}</span>
           {state.active === seat && <span className="dominion-sr-only">アクション回数 {state.actions}、購入回数 {state.buys}、コイン合計 {state.coins}</span>}
+          <div className="dominion-score-summary" aria-label="現在の得点状況">
+            <span>あなた: <strong>{score(state.players[seat])}</strong> 勝利点</span>
+            <span>／</span>
+            <span>{store.online ? opponentPlayer.name : 'CPU'}: <strong>{score(opponentPlayer)}</strong> 勝利点</span>
+          </div>
           <nav className="dominion-menu" aria-label="ゲームメニュー">
             <button onClick={() => store.setMuted(!muted)} aria-pressed={muted} aria-label="消音" title={muted ? '効果音をオン' : '効果音をオフ'}><FontAwesomeIcon icon={muted ? faVolumeXmark : faVolumeHigh} aria-hidden="true" /></button>
             <button onClick={() => setHelp(!help)} aria-expanded={help} aria-label="遊び方" title="遊び方"><FontAwesomeIcon icon={faCircleQuestion} aria-hidden="true" /></button>
@@ -263,20 +274,51 @@ function Match({ store, onRestart }: { store: DominionStore; onRestart: () => vo
       </section>
 
       <aside className="dominion-sidebar">
-        <section className="dominion-opponent" aria-label="相手のカード枚数">
-          <h2>{store.online ? opponentPlayer.name : 'CPU'}</h2>
-          <div className="dominion-opponent-hand">
+        <section className={`dominion-player-card ${state.active === seat ? 'active-turn' : ''}`} aria-label="あなたの状況">
+          <div className="dominion-player-header">
+            <h3>{store.online ? state.players[seat].name : 'あなた'}</h3>
+            <div className="dominion-player-header-badges">
+              <span className="dominion-vp-badge">{score(state.players[seat])} 勝利点</span>
+              {state.active === seat && <span className="dominion-turn-indicator">手番中</span>}
+            </div>
+          </div>
+          <div className="dominion-player-hand">
+            <span>手札 <strong>{state.players[seat].hand.length}枚</strong></span>
+          </div>
+          <div className="dominion-player-counts">
+            <span>山札 <strong>{state.players[seat].deck.length}</strong></span>
+            <span>捨て札 <strong>{state.players[seat].discard.length}</strong></span>
+            {state.players[seat].islandMat.length > 0 && <span>島 <strong>{state.players[seat].islandMat.length}</strong></span>}
+            {state.players[seat].nativeVillageMat.length > 0 && <span>村 <strong>{state.players[seat].nativeVillageMat.length}</strong></span>}
+          </div>
+        </section>
+
+        <section className={`dominion-player-card ${state.active !== seat ? 'active-turn' : ''}`} aria-label="相手の状況">
+          <div className="dominion-player-header">
+            <h3>{store.online ? opponentPlayer.name : 'CPU'}</h3>
+            <div className="dominion-player-header-badges">
+              <span className="dominion-vp-badge">{score(opponentPlayer)} 勝利点</span>
+              {state.active !== seat && <span className="dominion-turn-indicator">手番中</span>}
+            </div>
+          </div>
+          <div className="dominion-player-hand">
             <span>手札 <strong>{opponentPlayer.hand.length}枚</strong></span>
             <div className="dominion-opponent-card-backs" aria-hidden="true">{Array.from({ length: Math.min(opponentPlayer.hand.length, 5) }, (_, index) => <span key={index} />)}</div>
           </div>
-          <div className="dominion-opponent-counts">
+          <div className="dominion-player-counts">
             <span>山札 <strong>{opponentPlayer.deck.length}</strong></span>
             <span>捨て札 <strong>{opponentPlayer.discard.length}</strong></span>
-            <span>島 <strong>{opponentPlayer.islandMat.length}</strong></span>
-            <span>村 <strong>{opponentPlayer.nativeVillageMat.length}</strong></span>
+            {opponentPlayer.islandMat.length > 0 && <span>島 <strong>{opponentPlayer.islandMat.length}</strong></span>}
+            {opponentPlayer.nativeVillageMat.length > 0 && <span>村 <strong>{opponentPlayer.nativeVillageMat.length}</strong></span>}
           </div>
         </section>
-        <section className="dominion-log-panel"><h2>直近の出来事</h2><div className="dominion-log">{state.log.slice(-5).reverse().map(entry => <p className={entry.text.startsWith('──') ? 'log-turn' : ''} key={entry.id}>{entry.text}</p>)}</div></section>
+
+        <section className="dominion-log-panel">
+          <h2>直近の出来事</h2>
+          <div ref={logContainerRef} className="dominion-log">
+            {state.log.slice(-30).map(entry => <p className={entry.text.startsWith('──') ? 'log-turn' : ''} key={entry.id}>{entry.text}</p>)}
+          </div>
+        </section>
 
         <details className="dominion-trash"><summary>廃棄置き場 · {state.trash.length}枚</summary><p>{state.trash.length ? state.trash.map(card => CARDS[card.id].name).join('、') : '廃棄されたカードはありません。'}</p></details>
       </aside>
@@ -301,7 +343,7 @@ function OnlineMatch({ session, onLeave }: { session: OnlineSession; onLeave: ()
       {status.message && <p role="status">{status.message}</p>}
       {status.stage === 'lobby' && <>
         <p>{status.seat === 0 ? '招待リンクを相手に送ってください。' : '部屋に参加しました。両者が準備完了すると対戦が始まります。'}</p>
-        <p>使用セット：{store.expansions.map(id => id === 'base' ? '基本' : id === 'intrigue' ? '陰謀' : '海辺').join('＋')} ／ {store.mode === 'basic' ? 'おすすめ' : 'ランダム'}</p>
+        <p>使用セット：{store.expansions.map(id => id === 'base' ? '基本' : id === 'intrigue' ? '陰謀' : id === 'seaside' ? '海辺' : '錬金術').join('＋')} ／ {store.mode === 'basic' ? 'おすすめ' : 'ランダム'}</p>
         {store.mode === 'basic' && <p>王国カード：{store.basicKingdom.map(id => CARDS[id].name).join('・')}</p>}
         {status.seat === 0 && <><div className="dominion-invite"><input ref={inviteRef} readOnly value={invite} aria-label="招待リンク" onFocus={event => event.currentTarget.select()} /><button onClick={() => {
           if (!navigator.clipboard) { inviteRef.current?.select(); setCopyMessage('リンクを選択しました。コピーしてください。'); return; }
@@ -373,7 +415,7 @@ export default function DominionGame() {
       {opponent === 'friend' && <label className="dominion-player-name">プレイヤー名（1〜16文字）<input type="text" value={playerName} onChange={event => setPlayerName(event.target.value)} maxLength={PLAYER_NAME_MAX_LENGTH} autoComplete="nickname" placeholder="対戦で表示する名前" /></label>}
       <fieldset className="dominion-mode-options">
         <legend>使用するセット</legend>
-        {([['base', '基本 · 26種類'], ['intrigue', '陰謀（拡張） · 26種類'], ['seaside', '海辺（拡張） · 27種類']] as const).map(([id, label]) => <label key={id} className={expansions.includes(id) ? 'selected' : ''}>
+        {([['base', '基本 · 26種類'], ['intrigue', '陰謀（拡張） · 26種類'], ['seaside', '海辺（拡張） · 27種類'], ['alchemy', '錬金術（拡張） · 12種類']] as const).map(([id, label]) => <label key={id} className={expansions.includes(id) ? 'selected' : ''}>
           <input type="checkbox" checked={expansions.includes(id)} onChange={event => {
             const next = event.target.checked ? [...expansions, id] : expansions.filter(value => value !== id);
             setExpansions(next);

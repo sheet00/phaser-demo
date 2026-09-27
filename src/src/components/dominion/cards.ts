@@ -2,8 +2,10 @@ import { INTRIGUE_CARDS, INTRIGUE_KINGDOM } from './expansions/intrigueCards.ts'
 import type { IntrigueCardId } from './expansions/intrigueCards.ts';
 import { SEASIDE_CARDS, SEASIDE_KINGDOM } from './expansions/seasideCards.ts';
 import type { SeasideCardId } from './expansions/seasideCards.ts';
+import { ALCHEMY_CARDS, ALCHEMY_KINGDOM } from './expansions/alchemyCards.ts';
+import type { AlchemyCardId } from './expansions/alchemyCards.ts';
 
-export type CardId = IntrigueCardId | SeasideCardId | 'copper' | 'silver' | 'gold' | 'estate' | 'duchy' | 'province' | 'curse'
+export type CardId = IntrigueCardId | SeasideCardId | AlchemyCardId | 'copper' | 'silver' | 'gold' | 'estate' | 'duchy' | 'province' | 'curse'
   | 'cellar' | 'moat' | 'village' | 'merchant' | 'workshop' | 'smithy' | 'remodel' | 'militia' | 'market' | 'mine'
   | 'chapel' | 'harbinger' | 'vassal' | 'bureaucrat' | 'gardens' | 'moneylender' | 'poacher' | 'throneRoom'
   | 'bandit' | 'festival' | 'library' | 'laboratory' | 'sentry' | 'witch' | 'artisan' | 'councilRoom';
@@ -15,6 +17,8 @@ export interface CardDefinition {
   name: string;
   english: string;
   cost: number;
+  potions?: number;
+  potionsProduced?: number;
   type: CardType;
   types?: CardMarker[];
   kind: string;
@@ -27,6 +31,7 @@ export interface CardDefinition {
 export const CARDS: Record<CardId, CardDefinition> = {
   ...INTRIGUE_CARDS,
   ...SEASIDE_CARDS,
+  ...ALCHEMY_CARDS,
   copper: { name: '銅貨', english: 'COPPER', cost: 0, type: 'treasure', kind: '財宝', summary: '1 コイン', description: '使用すると1コイン。', coins: 1 },
   silver: { name: '銀貨', english: 'SILVER', cost: 3, type: 'treasure', kind: '財宝', summary: '2 コイン', description: '使用すると2コイン。商人を使ったターンの最初の銀貨には追加コイン。', coins: 2 },
   gold: { name: '金貨', english: 'GOLD', cost: 6, type: 'treasure', kind: '財宝', summary: '3 コイン', description: '使用すると3コイン。', coins: 3 },
@@ -66,7 +71,7 @@ export const CARDS: Record<CardId, CardDefinition> = {
 export const FIRST_GAME: CardId[] = ['cellar', 'moat', 'village', 'merchant', 'workshop', 'smithy', 'remodel', 'militia', 'market', 'mine'];
 export const KINGDOM: CardId[] = [...FIRST_GAME, 'chapel', 'harbinger', 'vassal', 'bureaucrat', 'gardens', 'moneylender', 'poacher', 'throneRoom', 'bandit', 'festival', 'library', 'laboratory', 'sentry', 'witch', 'artisan', 'councilRoom'];
 export const BASE: CardId[] = ['province', 'gold', 'duchy', 'silver', 'estate', 'copper', 'curse'];
-export const ALL_KINGDOM: CardId[] = [...KINGDOM, ...INTRIGUE_KINGDOM, ...SEASIDE_KINGDOM];
+export const ALL_KINGDOM: CardId[] = [...KINGDOM, ...INTRIGUE_KINGDOM, ...SEASIDE_KINGDOM, ...ALCHEMY_KINGDOM];
 export const ALL_CARDS: CardId[] = [...BASE, ...ALL_KINGDOM];
 
 export function cardTypes(id: CardId): CardMarker[] {

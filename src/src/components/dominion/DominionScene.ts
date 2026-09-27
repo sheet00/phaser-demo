@@ -11,8 +11,8 @@ import { actionSound, SOUND_FILES } from "./audio";
 import { cardAppearance } from "./cardAppearance";
 import type { CardInspection } from "./cardAppearance";
 
-export const SUPPLY_CARD_SCALE = 1.6;
-export const SUPPLY_CARD_FONT_SCALE = 1.5;
+export const SUPPLY_CARD_SCALE = 1.0;
+export const SUPPLY_CARD_FONT_SCALE = 1.0;
 
 const BASE_ART = new Set<CardId>([...BASE, ...KINGDOM]);
 const BASIC_DISPLAY: CardId[] = [
@@ -30,30 +30,17 @@ const HAND_TYPE_ORDER = {
   victory: 2,
   curse: 3,
 } as const;
-const SUPPLY_CARD_SIZE = { width: 160, height: 254 } as const;
-const SUPPLY_CARD_WIDTH = SUPPLY_CARD_SIZE.width * SUPPLY_CARD_SCALE;
-const SUPPLY_CARD_HEIGHT = SUPPLY_CARD_SIZE.height * SUPPLY_CARD_SCALE;
-const SUPPLY_GRID_WIDTH = SUPPLY_CARD_WIDTH * 5 + 10 * 4;
-const SUPPLY_BOTTOM = 38 + SUPPLY_CARD_HEIGHT * 2 + 10;
-const HAND_TOP = SUPPLY_BOTTOM + 16;
-const HAND_PANEL_HEIGHT = 256;
-const FULL_TEXT_BODY_HEIGHT =
-  SUPPLY_CARD_SIZE.height -
-  24 -
-  31 -
-  Math.round((SUPPLY_CARD_SIZE.width - 8) * 0.48) -
-  5;
-const BASIC_PANEL_WIDTH = Math.round(275 * 1.1);
-const BASIC_PANEL_LEFT = 10;
+const BASIC_CARD_WIDTH = 68;
+const BASIC_CARD_HEIGHT = 104;
+const SUPPLY_CARD_WIDTH = 126;
+const SUPPLY_CARD_HEIGHT = 192;
+const SUPPLY_GRID_WIDTH = SUPPLY_CARD_WIDTH * 5 + 8 * 4;
+const SUPPLY_BOTTOM = 30 + SUPPLY_CARD_HEIGHT * 2 + 8;
+const BASIC_PANEL_WIDTH = 226;
+const BASIC_PANEL_LEFT = 8;
 const BASIC_PANEL_RIGHT = BASIC_PANEL_LEFT + BASIC_PANEL_WIDTH;
-export const DOMINION_CANVAS_MIN_WIDTH = Math.max(
-  1200,
-  Math.ceil(BASIC_PANEL_RIGHT + 20 + SUPPLY_GRID_WIDTH + 20),
-);
-export const DOMINION_CANVAS_MIN_HEIGHT = Math.max(
-  1080,
-  HAND_TOP + HAND_PANEL_HEIGHT + 14,
-);
+export const DOMINION_CANVAS_MIN_WIDTH = 800;
+export const DOMINION_CANVAS_MIN_HEIGHT = 720;
 
 function compareHandCards(a: Card, b: Card) {
   const left = CARDS[a.id];
@@ -100,13 +87,11 @@ export class DominionScene extends Phaser.Scene {
       { width: 64, height: 64 },
     );
     for (const id of BASE_ART) {
-      this.load.image(`dominion-${id}-art`, `${assets}dominion/${id}.png`);
+      const file = id === "curse" ? "curse-v3" : id;
+      this.load.image(`dominion-${id}-art`, `${assets}dominion/${file}.png`);
     }
     for (const [key, file] of Object.entries(SOUND_FILES)) {
-      this.load.audio(
-        `dominion-${key}`,
-        `${assets}kenney_casino-audio/Audio/${file}`,
-      );
+      this.load.audio(`dominion-${key}`, `${assets}${file}`);
     }
   }
 
@@ -133,11 +118,16 @@ export class DominionScene extends Phaser.Scene {
       (command, previous) => {
         // ロック中のCPU操作を予約すると、最初のタップで過去の音がまとめて鳴ってしまう。
         if (this.sound.locked || this.sound.mute || document.hidden) return;
-        const effect = actionSound(command, previous);
+        const current = this.store.getSnapshot();
+        const seat = this.store.playerId;
+        let effect = actionSound(command, previous);
+        if (previous.active !== seat && current.active === seat && current.phase !== "ended") {
+          effect = "myTurn";
+        }
         if (!effect || !this.cache.audio.exists(`dominion-${effect}`)) return;
         try {
           this.sound.stopAll();
-          this.sound.play(`dominion-${effect}`, { volume: 0.4 });
+          this.sound.play(`dominion-${effect}`, { volume: 0.45 });
         } catch {
           // 音声の再生に失敗しても、カード操作と対戦は継続する。
         }
@@ -226,6 +216,7 @@ export class DominionScene extends Phaser.Scene {
       compact?: boolean;
       fullText?: boolean;
       fontScale?: number;
+      scale?: number;
       textFitSize?: Readonly<{ width: number; height: number }>;
       count?: number;
       enabled?: boolean;
@@ -234,29 +225,25 @@ export class DominionScene extends Phaser.Scene {
   ) {
     const definition = CARDS[id];
     const compact = options.compact ?? false;
+    const scale = options.scale ?? options.fontScale ?? 1;
     const fontScale = options.fontScale ?? 1;
     const artKey = BASE_ART.has(id) ? `dominion-${id}-art` : null;
     const appearance = cardAppearance(definition);
     const { accent, background } = appearance;
-    const titleHeight = compact ? 24 : 28;
-    const footerHeight = compact ? 20 : 24;
-    const artTop = titleHeight + 3;
+    const titleHeight = Math.round((compact ? 24 : 30) * scale);
+    const footerHeight = Math.round((compact ? 20 : 26) * scale);
+    const artTop = titleHeight + Math.max(1, Math.round(2 * scale));
     const artHeight = options.fullText
       ? Math.min(
-          Math.round((width - 8) / 1.5),
-          Math.max(
-            1,
-            Math.floor(
-              height - footerHeight - artTop - FULL_TEXT_BODY_HEIGHT - 5,
-            ),
-          ),
+          Math.round((width - 8) * 0.44),
+          Math.max(1, Math.floor(height - footerHeight - artTop - 50 * scale)),
         )
-      : Math.round((width - 8) * (compact ? 0.61 : 0.66));
-    const summaryTop = artTop + artHeight + 3;
+      : Math.round((width - 8) * (compact ? 0.52 : 0.62));
+    const summaryTop = artTop + artHeight + Math.max(1, Math.round(2 * scale));
     const group = this.add.container(x, y);
     this.table.add(group);
     const shadow = this.add
-      .rectangle(3, 4, width, height, 0x000000, 0.25)
+      .rectangle(2, 3, width, height, 0x000000, 0.25)
       .setOrigin(0);
     const face = this.add.rectangle(0, 0, width, height, 0xffffff).setOrigin(0);
     const band = this.add
@@ -265,20 +252,20 @@ export class DominionScene extends Phaser.Scene {
     group.add([shadow, face]);
     group.add(
       this.add
-        .rectangle(4, artTop, width - 8, artHeight, background)
+        .rectangle(3, artTop, width - 6, artHeight, background)
         .setOrigin(0)
         .setStrokeStyle(1, accent),
     );
     if (artKey) {
       const art = this.add.image(width / 2, artTop, artKey).setOrigin(0.5, 0);
-      art.setDisplaySize(Math.min(width - 8, artHeight * 1.5), artHeight);
+      art.setDisplaySize(Math.min(width - 6, artHeight * 1.5), artHeight);
       group.add(art);
     } else {
       const initial = this.add
         .text(width / 2, artTop + artHeight / 2, definition.name[0], {
           ...TEXT_STYLE,
           fontFamily: FONT_FAMILY,
-          fontSize: `${Math.min(34, Math.round(artHeight * 0.55)) * fontScale}px`,
+          fontSize: `${Math.round(Math.min(32, Math.round(artHeight * 0.55)) * fontScale)}px`,
           fontStyle: "bold",
           color: "#394238",
         })
@@ -287,7 +274,7 @@ export class DominionScene extends Phaser.Scene {
     }
     group.add(
       this.add
-        .rectangle(4, artTop, width - 8, artHeight, 0xffffff, 0)
+        .rectangle(3, artTop, width - 6, artHeight, 0xffffff, 0)
         .setOrigin(0)
         .setStrokeStyle(1, accent),
     );
@@ -320,19 +307,19 @@ export class DominionScene extends Phaser.Scene {
         fontStyle: bold ? "bold" : "normal",
         color,
         align: "center",
-        lineSpacing: 3,
+        lineSpacing: Math.max(1, Math.round(2 * scale)),
       });
       group.add(object);
       return object;
     };
     label(
-      7,
+      compact ? 5 : 7,
       titleHeight / 2,
       definition.name,
-      compact ? 12 : 15,
+      Math.round((compact ? 12 : 15) * scale),
       true,
     ).setOrigin(0, 0.5);
-    let summarySize = options.fullText ? 12 : compact ? 11 : 13;
+    let summarySize = Math.round((options.fullText ? 13 : compact ? 11 : 14) * scale);
     const summary = label(
       width / 2,
       summaryTop,
@@ -343,55 +330,65 @@ export class DominionScene extends Phaser.Scene {
     const fitWidth = options.textFitSize?.width ?? width;
     const fitHeight = options.textFitSize?.height ?? height;
     const fitArtHeight = Math.round(
-      (fitWidth - 8) * (options.fullText ? 0.48 : compact ? 0.61 : 0.66),
+      (fitWidth - 8) * (options.fullText ? 0.44 : compact ? 0.52 : 0.62),
     );
-    summary.setWordWrapWidth(fitWidth - 16, true);
+    summary.setWordWrapWidth(fitWidth - 12, true);
     const availableSummaryHeight =
-      fitHeight - footerHeight - artTop - fitArtHeight - 5;
-    while (summary.height > availableSummaryHeight && summarySize > 9) {
+      fitHeight - footerHeight - artTop - fitArtHeight - 4;
+    const minSummarySize = Math.max(11, Math.round(11 * scale));
+    while (summary.height > availableSummaryHeight && summarySize > minSummarySize) {
       summarySize -= 1;
       summary.setFontSize(summarySize);
     }
-    summary.setWordWrapWidth(width - 16, true);
-    summary.setFontSize(summarySize * fontScale);
+    summary.setWordWrapWidth(width - 12, true);
+    summary.setFontSize(summarySize);
     const actualSummaryHeight = height - footerHeight - summaryTop - 2;
-    while (summary.height > actualSummaryHeight && summarySize > 9) {
+    while (summary.height > actualSummaryHeight && summarySize > minSummarySize) {
       summarySize -= 1;
-      summary.setFontSize(summarySize * fontScale);
+      summary.setFontSize(summarySize);
     }
     const coinY = height - footerHeight / 2;
     const coinTexture = "dominion-coin";
+    const potionCost = definition.potions ?? 0;
+    const baseCoins = cardCost(this.store.getSnapshot(), id);
+    const coinSize = Math.round((compact ? 14 : 17) * scale);
     if (this.textures.exists(coinTexture)) {
       group.add(
         this.add
-          .image(13, coinY, coinTexture)
-          .setDisplaySize(compact ? 14 : 17, compact ? 14 : 17),
+          .image(Math.round((compact ? 11 : 14) * scale), coinY, coinTexture)
+          .setDisplaySize(coinSize, coinSize),
       );
     }
+    const costText =
+      potionCost > 0
+        ? baseCoins > 0
+          ? `${baseCoins}+⚗`
+          : "⚗"
+        : String(baseCoins);
     label(
-      29,
+      potionCost > 0 ? Math.round((compact ? 30 : 36) * scale) : Math.round((compact ? 26 : 30) * scale),
       coinY - 1,
-      String(cardCost(this.store.getSnapshot(), id)),
-      compact ? 11 : 13,
+      costText,
+      Math.round((compact ? (potionCost > 0 ? 10 : 12) : potionCost > 0 ? 12 : 14) * scale),
       true,
     ).setOrigin(0.5);
     label(
       width - 4,
       coinY - 1,
       compact && appearance.label === "アクション" ? "行動" : appearance.label,
-      compact ? 10 : 12,
+      Math.round((compact ? 10 : 12) * scale),
       false,
       "#394238",
     ).setOrigin(1, 0.5);
     if (options.count !== undefined) {
-      const badgeX = width - 14;
+      const badgeX = width - Math.round((compact ? 12 : 15) * scale);
       const badgeY = titleHeight / 2;
       const badge = this.add
         .rectangle(
           badgeX,
           badgeY,
-          23,
-          20,
+          Math.round((compact ? 20 : 24) * scale),
+          Math.round((compact ? 18 : 21) * scale),
           options.count === 0 ? 0x5d5d56 : 0x344e48,
         )
         .setStrokeStyle(1, 0xb9b59d);
@@ -400,7 +397,7 @@ export class DominionScene extends Phaser.Scene {
         badgeX,
         badgeY,
         String(options.count),
-        11,
+        Math.round((compact ? 11 : 12) * scale),
         true,
         "#ffffff",
       ).setOrigin(0.5);
@@ -454,38 +451,70 @@ export class DominionScene extends Phaser.Scene {
       !meta.busy;
     const player = state.players[seat];
     this.panel(0, 0, width, height, 0x173f35);
-    const supplyCardWidth = SUPPLY_CARD_WIDTH;
-    const supplyCardHeight = SUPPLY_CARD_HEIGHT;
-    const basicLeft = 16;
-    const basicPanelRight = BASIC_PANEL_RIGHT;
-    const basicCardLeft = BASIC_PANEL_LEFT + 14;
-    const basicCardStep = 96;
-    const supplyWidth = SUPPLY_GRID_WIDTH;
+
+    // 横幅と高さを両方考慮し、縦方向に見切れたり被ったりしない適切なスケールを算出
+    const scaleW = width / 950;
+    const scaleH = (height - 24) / 690;
+    const scale = Phaser.Math.Clamp(Math.min(scaleW, scaleH), 1.0, 1.55);
+
+    const basicPanelLeft = BASIC_PANEL_LEFT;
+    const basicCardWidth = Math.round(BASIC_CARD_WIDTH * scale);
+    const basicCardHeight = Math.round(BASIC_CARD_HEIGHT * scale);
+    const basicCardStep = basicCardWidth + Math.max(4, Math.round(6 * scale));
+    const basicPanelWidth = Math.max(Math.round(BASIC_PANEL_WIDTH * scale), basicCardStep * 3 + 14);
+    const basicPanelRight = basicPanelLeft + basicPanelWidth;
+    const basicLeft = basicPanelLeft + Math.round(8 * scale);
+    const basicCardLeft = basicPanelLeft + Math.round(7 * scale);
+
+    const supplyTop = Math.round(36 * scale);
+    const supplyCardWidth = Math.round(SUPPLY_CARD_WIDTH * scale);
+    const supplyCardHeight = Math.round(SUPPLY_CARD_HEIGHT * scale);
+    const supplyGap = Math.max(6, Math.round(8 * scale));
+    const supplyRowGap = Math.max(12, Math.round(48 * scale));
+    const supplyBottomPad = Math.max(8, Math.round(20 * scale));
+    const supplyGridWidth = supplyCardWidth * 5 + supplyGap * 4;
     const supplyLeft =
       basicPanelRight +
-      Math.max(20, (width - basicPanelRight - supplyWidth) / 2);
+      Math.max(12, Math.floor((width - basicPanelRight - supplyGridWidth) / 2));
+
+    // サプライエリアUIの最下端（高さ約1.2倍：カード比率は維持し行間・上下余白をゆったり拡張）
+    const supplyBottom = supplyTop + supplyCardHeight * 2 + supplyRowGap + supplyBottomPad;
+    const basicPanelHeight = supplyBottom - 6;
+    const basicAvailableHeight = basicPanelHeight - supplyTop - Math.round(8 * scale);
+    const basicRowStep = Math.max(
+      basicCardHeight + Math.max(4, Math.round(6 * scale)),
+      Math.floor((basicAvailableHeight - basicCardHeight) / 2),
+    );
+
     this.panel(
-      BASIC_PANEL_LEFT,
-      8,
-      BASIC_PANEL_WIDTH,
-      460,
+      basicPanelLeft,
+      6,
+      basicPanelWidth,
+      basicPanelHeight,
       0x0b251f,
       0.45,
     ).setStrokeStyle(1, 0x496054);
-    this.text(basicLeft, 8, "基本カード", 14, "#b9c8b7", true);
-    this.text(supplyLeft, 8, "サプライ", 14, "#b9c8b7", true);
+    this.text(basicLeft, 8, "基本カード", Math.round(14 * scale), "#b9c8b7", true);
+    this.text(supplyLeft, 8, "サプライ", Math.round(14 * scale), "#b9c8b7", true);
     const selectedSets = this.store.expansions
       .map((id) =>
-        id === "base" ? "基本" : id === "intrigue" ? "陰謀" : "海辺",
+        id === "base"
+          ? "基本"
+          : id === "intrigue"
+            ? "陰謀"
+            : id === "seaside"
+              ? "海辺"
+              : "錬金術",
       )
       .join("＋");
     this.text(
-      width - 18,
+      width - 14,
       8,
       `${this.store.mode === "basic" ? "おすすめ" : "ランダム10種類"} · ${selectedSets}`,
-      13,
+      Math.round(13 * scale),
       "#a2b8a7",
     ).setOrigin(1, 0);
+
     const supplyAction = (id: CardId) => () => {
       const pending = this.store.getSnapshot().pending;
       const gaining =
@@ -493,33 +522,52 @@ export class DominionScene extends Phaser.Scene {
         (pending?.kind === "expansion" && pending.zone === "supply");
       this.store.dispatch(seat, { type: gaining ? "gain" : "buy", card: id });
     };
-    BASIC_DISPLAY.forEach((id, index) => {
-      const column = id === "curse" ? 1 : index % 3;
+
+    const basicCards: CardId[] =
+      state.supply.potion !== undefined
+        ? [
+            "copper",
+            "silver",
+            "gold",
+            "estate",
+            "duchy",
+            "province",
+            "potion",
+            "curse",
+          ]
+        : BASIC_DISPLAY;
+
+    basicCards.forEach((id, index) => {
+      const isThirdRow = Math.floor(index / 3) === 2;
+      const column =
+        isThirdRow && basicCards.length === 7 ? 1 : index % 3;
       this.card(
         basicCardLeft + column * basicCardStep,
-        38 + Math.floor(index / 3) * 139,
-        84,
-        134,
+        supplyTop + Math.floor(index / 3) * basicRowStep,
+        basicCardWidth,
+        basicCardHeight,
         id,
         {
           compact: true,
+          scale,
           count: state.supply[id],
           enabled: humanInput && (canBuy(state, id) || canGain(state, id)),
           action: supplyAction(id),
         },
       );
     });
+
     state.kingdom.forEach((id, index) => {
       this.card(
-        supplyLeft + (index % 5) * (supplyCardWidth + 10),
-        38 + Math.floor(index / 5) * (supplyCardHeight + 10),
+        supplyLeft + (index % 5) * (supplyCardWidth + supplyGap),
+        supplyTop + Math.floor(index / 5) * (supplyCardHeight + supplyRowGap),
         supplyCardWidth,
         supplyCardHeight,
         id,
         {
           fullText: true,
-          fontScale: SUPPLY_CARD_FONT_SCALE,
-          textFitSize: SUPPLY_CARD_SIZE,
+          scale,
+          fontScale: scale,
           count: state.supply[id],
           enabled: humanInput && (canBuy(state, id) || canGain(state, id)),
           action: supplyAction(id),
@@ -528,30 +576,33 @@ export class DominionScene extends Phaser.Scene {
     });
 
     const played = state.players[state.active].played;
-    const playedTop = 478;
-    const playedHeight = Math.max(540, height - playedTop - 14);
+    const sectionGap = Math.max(10, Math.round(14 * scale));
+    const bottomAreaTop = supplyBottom + sectionGap;
+    const playedTop = bottomAreaTop;
+    const playedHeight = Math.min(Math.round(220 * scale), Math.max(160, height - playedTop - 12));
     this.panel(
-      BASIC_PANEL_LEFT,
+      basicPanelLeft,
       playedTop,
-      BASIC_PANEL_WIDTH,
+      basicPanelWidth,
       playedHeight,
       0x0b251f,
       0.45,
     ).setStrokeStyle(1, 0x496054);
     this.text(
       basicLeft,
-      playedTop + 8,
+      playedTop + 6,
       `${state.players[state.active].name}の場`,
-      14,
+      Math.round(13 * scale),
       "#b9c8b7",
       true,
     );
+
     const activePlayer = state.players[state.active];
     const mats = [
       activePlayer.islandMat.length &&
         `島：${activePlayer.islandMat.map((card) => CARDS[card.id].name).join("・")}`,
       activePlayer.nativeVillageMat.length &&
-        `原住民の村：${activePlayer.nativeVillageMat.map((card) => CARDS[card.id].name).join("・")}`,
+        `村：${activePlayer.nativeVillageMat.map((card) => CARDS[card.id].name).join("・")}`,
       activePlayer.blockadeMat.length &&
         `封鎖：${activePlayer.blockadeMat.map((entry) => CARDS[entry.card.id].name).join("・")}`,
       activePlayer.havenMat.length &&
@@ -559,77 +610,90 @@ export class DominionScene extends Phaser.Scene {
     ]
       .filter(Boolean)
       .join(" ／ ");
-    let matBottom = playedTop + 38;
+    let matBottom = playedTop + Math.round(24 * scale);
     if (mats) {
-      const matText = this.text(basicLeft, playedTop + 28, mats, 11, "#f1deaa");
-      matText.setWordWrapWidth(BASIC_PANEL_WIDTH - 20, true);
-      matBottom = playedTop + 28 + matText.height + 10;
+      const matText = this.text(basicLeft, playedTop + Math.round(22 * scale), mats, Math.round(10 * scale), "#f1deaa");
+      matText.setWordWrapWidth(basicPanelWidth - 16, true);
+      matBottom = playedTop + Math.round(22 * scale) + matText.height + 4;
     }
+
     let resourceBottom = matBottom;
     if (state.active === seat) {
       const resourceTop = matBottom;
-      const resourceWidth = BASIC_PANEL_WIDTH - 12;
-      const resourceLeft = BASIC_PANEL_LEFT + 6;
-      const slotWidth = Math.floor(resourceWidth / 3);
+      const resourceWidth = basicPanelWidth - 12;
+      const resourceLeft = basicPanelLeft + 6;
+      const resourceHeight = Math.round(42 * scale);
+      const hasPotionInGame = state.supply.potion !== undefined;
+      const resources = hasPotionInGame
+        ? ([
+            ["アクション", state.actions],
+            ["購入", state.buys],
+            ["コイン", state.coins],
+            ["ポーション", state.potions],
+          ] as const)
+        : ([
+            ["アクション", state.actions],
+            ["購入", state.buys],
+            ["コイン", state.coins],
+          ] as const);
+      const slotCount = resources.length;
+      const slotWidth = Math.floor(resourceWidth / slotCount);
       this.panel(
         resourceLeft,
         resourceTop,
         resourceWidth,
-        72,
+        resourceHeight,
         0x102d27,
         0.95,
       ).setStrokeStyle(1, 0x657267);
-      this.panel(resourceLeft + slotWidth, resourceTop + 6, 1, 60, 0x496054);
-      this.panel(
-        resourceLeft + slotWidth * 2,
-        resourceTop + 6,
-        1,
-        60,
-        0x496054,
-      );
-      (
-        [
-          ["アクション", state.actions],
-          ["購入", state.buys],
-          ["コイン", state.coins],
-        ] as const
-      ).forEach(([label, value], index) => {
+      for (let i = 1; i < slotCount; i++) {
+        this.panel(
+          resourceLeft + slotWidth * i,
+          resourceTop + 3,
+          1,
+          resourceHeight - 6,
+          0x496054,
+        );
+      }
+      resources.forEach(([label, value], index) => {
         const center =
           resourceLeft + Math.floor(slotWidth / 2) + index * slotWidth;
         this.text(
           center,
-          resourceTop + 6,
+          resourceTop + 3,
           label,
-          12,
+          Math.round((hasPotionInGame ? 9 : 10) * scale),
           "#c1d0c2",
           true,
         ).setOrigin(0.5, 0);
         this.text(
           center,
-          resourceTop + 25,
+          resourceTop + Math.round(16 * scale),
           String(value),
-          30,
+          Math.round((hasPotionInGame ? 18 : 20) * scale),
           "#f1deaa",
           true,
         ).setOrigin(0.5, 0);
       });
-      resourceBottom = resourceTop + 78;
+      resourceBottom = resourceTop + resourceHeight + 4;
     }
+
     const counts = new Map<CardId, number>();
     played.forEach((card) =>
       counts.set(card.id, (counts.get(card.id) ?? 0) + 1),
     );
     const groups = [...counts];
-    const playedCardsTop = resourceBottom + 6;
+    const playedCardsTop = resourceBottom + 4;
     const availableHeight = playedTop + playedHeight - playedCardsTop;
-    const rows = Math.max(1, Math.min(4, Math.floor(availableHeight / 140)));
+    const playedRowStep = basicCardHeight + Math.max(3, Math.round(4 * scale));
+    const rows = Math.max(1, Math.min(2, Math.floor(availableHeight / playedRowStep)));
     const playedSlots = rows * 3;
     const playedPages = Math.max(1, Math.ceil(groups.length / playedSlots));
     this.playedPage = Math.min(this.playedPage, playedPages - 1);
     if (playedPages > 1) {
       this.pager(
-        BASIC_PANEL_RIGHT - 85,
-        playedTop + 8,
+        basicPanelRight - Math.round(75 * scale),
+        playedTop + 6,
         "←",
         this.playedPage > 0,
         () => {
@@ -638,14 +702,14 @@ export class DominionScene extends Phaser.Scene {
         },
       );
       this.text(
-        BASIC_PANEL_RIGHT - 58,
-        playedTop + 8,
+        basicPanelRight - Math.round(50 * scale),
+        playedTop + 6,
         `${this.playedPage + 1}/${playedPages}`,
-        12,
+        Math.round(11 * scale),
       );
       this.pager(
-        BASIC_PANEL_RIGHT - 23,
-        playedTop + 8,
+        basicPanelRight - Math.round(20 * scale),
+        playedTop + 6,
         "→",
         this.playedPage < playedPages - 1,
         () => {
@@ -656,10 +720,10 @@ export class DominionScene extends Phaser.Scene {
     }
     if (!played.length) {
       this.text(
-        BASIC_PANEL_LEFT + BASIC_PANEL_WIDTH / 2,
-        playedCardsTop + 40,
+        basicPanelLeft + basicPanelWidth / 2,
+        playedCardsTop + Math.round(24 * scale),
         "使用したカードが\nここに並びます",
-        13,
+        Math.round(12 * scale),
         "#90ad9e",
       ).setOrigin(0.5);
     }
@@ -670,42 +734,54 @@ export class DominionScene extends Phaser.Scene {
         const row = Math.floor(index / 3);
         this.card(
           basicCardLeft + col * basicCardStep,
-          playedCardsTop + row * 139,
-          84,
-          134,
+          playedCardsTop + row * playedRowStep,
+          basicCardWidth,
+          basicCardHeight,
           id,
           {
             compact: true,
+            scale,
             count,
           },
         );
       });
 
-    const handTop = Math.max(SUPPLY_BOTTOM + 16, height - 262);
+    const handTop = playedTop;
     const handLeft = basicPanelRight + 10;
-    const handWidth = width - handLeft - 10;
-    this.panel(handLeft, handTop - 4, handWidth, 258, 0x0d2d26, 0.7);
-    this.text(handLeft + 12, handTop, "手札", 14, "#f1deaa", true);
-    this.text(
-      handLeft + 66,
-      handTop,
-      `${player.hand.length}枚 ／ 山札 ${player.deck.length} ／ 捨て札 ${player.discard.length} ／ 廃棄 ${state.trash.length}`,
-      12,
-      "#b9c8b7",
-    );
-    const handAreaWidth = handWidth - 160;
-    const slots = Math.max(1, Math.floor((handAreaWidth - 24) / 146));
+    const handWidth = width - handLeft - 8;
+    const handCardWidth = basicCardWidth;
+    const handCardHeight = basicCardHeight;
+    const slotCardWidth = handCardWidth + Math.max(4, Math.round(6 * scale));
+    const handActionAreaWidth = Math.max(140, Math.round(145 * scale));
+    const handAreaWidth = handWidth - handActionAreaWidth;
+    const slots = Math.max(1, Math.floor((handAreaWidth - 20) / slotCardWidth));
     const pages = Math.max(1, Math.ceil(player.hand.length / slots));
     this.handPage = Math.min(this.handPage, pages - 1);
+
+    // 手札パネル高さ：カード高さ＋ヘッダー・余白のみのコンパクトな高さに引き締め
+    const handHeight = handCardHeight + Math.round(46 * scale);
+    const isYourTurn = state.active === seat && state.phase !== "ended";
+
+    this.panel(handLeft, handTop, handWidth, handHeight, 0x0d2d26, 0.75)
+      .setStrokeStyle(isYourTurn ? 2 : 1, isYourTurn ? 0xf5d47c : 0x496054);
+    this.text(handLeft + 12, handTop + 8, "手札", Math.round(14 * scale), isYourTurn ? "#ffd875" : "#f1deaa", true);
+    this.text(
+      handLeft + Math.round(60 * scale),
+      handTop + 8,
+      `${player.hand.length}枚 ／ 山札 ${player.deck.length} ／ 捨て札 ${player.discard.length} ／ 廃棄 ${state.trash.length}`,
+      Math.round(12 * scale),
+      "#b9c8b7",
+    );
+
     if (pages > 1) {
-      this.pager(width - 290, handTop, "← 前", this.handPage > 0, () => {
+      this.pager(width - Math.round(275 * scale), handTop + 8, "← 前", this.handPage > 0, () => {
         this.handPage--;
         this.dirty = true;
       });
-      this.text(width - 235, handTop, `${this.handPage + 1} / ${pages}`, 14);
+      this.text(width - Math.round(225 * scale), handTop + 8, `${this.handPage + 1} / ${pages}`, Math.round(12 * scale));
       this.pager(
-        width - 180,
-        handTop,
+        width - Math.round(175 * scale),
+        handTop + 8,
         "次 →",
         this.handPage < pages - 1,
         () => {
@@ -718,9 +794,15 @@ export class DominionScene extends Phaser.Scene {
       .sort(compareHandCards)
       .slice(this.handPage * slots, (this.handPage + 1) * slots);
     const handCardsLeft = handLeft + 12;
-    const handY = handTop + 28;
+    const handY = handTop + Math.round(32 * scale);
+    const host = this.game.canvas?.parentElement;
+    if (host) {
+      host.style.setProperty("--hand-actions-top", `${handY}px`);
+    }
     hand.forEach((card: Card, index: number) => {
-      this.card(handCardsLeft + index * 146, handY, 136, 216, card.id, {
+      this.card(handCardsLeft + index * slotCardWidth, handY, handCardWidth, handCardHeight, card.id, {
+        compact: true,
+        scale,
         enabled: humanInput && (canPlay(state, card) || canChoose(state, card)),
         action: () =>
           this.store.dispatch(seat, {
